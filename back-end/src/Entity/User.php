@@ -2,71 +2,102 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use App\Repository\UserRepository;
+use App\State\UserPasswordHasher; //  Import du Processeur
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Serializer\Annotation\Groups; // Import des Groupes de Sérialisation
+use Symfony\Component\Validator\Constraints as Assert; // Import des Contraintes de Validation
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\Table(name: 'user')] // Convention : nom de table en minuscule et singulier
+#[ORM\Table(name: 'user')]
+#[ApiResource(
+    operations: [
+        new GetCollection(security: "is_granted('ROLE_ADMIN')"),
+        //  POST: Utilise le Processeur pour hacher le mot de passe et définir le rôle
+        new Post(processor: UserPasswordHasher::class, validationContext: ['groups' => ['Default', 'user:create']]),
+        new Get(security: "is_granted('ROLE_ADMIN') or object == user"),
+        new Put(processor: UserPasswordHasher::class, security: "object == user"),
+        new Patch(processor: UserPasswordHasher::class, security: "object == user"),
+        new Delete(security: "is_granted('ROLE_ADMIN') or object == user"),
+    ],
+    // Configuration des groupes
+    normalizationContext: ['groups' => ['user:read']],
+    denormalizationContext: ['groups' => ['user:create', 'user:update']],
+)]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['user:read'])]
     private ?int $id = null;
 
-    // Renommé: name_user -> name
     #[ORM\Column(length: 255)]
+    #[Groups(['user:read', 'user:create', 'user:update'])]
+    #[Assert\NotBlank]
     private ?string $name = null;
 
-    // Renommé: email_user -> email | Doit être unique pour l'authentification
     #[ORM\Column(length: 180, unique: true)]
+    #[Groups(['user:read', 'user:create', 'user:update'])]
+    #[Assert\Email]
     private ?string $email = null;
 
-    // Renommé: password_user -> password | Nécessaire pour l'interface de sécurité
     #[ORM\Column(length: 255)]
+    //  PAS DE GROUPE : Le hash ne doit jamais sortir
     private ?string $password = null;
 
-    // Renommé: role_user (boolean) -> roles (json) | Nécessaire pour l'interface de sécurité
+    //  CHAMP VIRTUEL : Mot de passe en clair pour l'écriture (non stocké en BDD)
+    #[Groups(['user:create', 'user:update'])]
+    #[Assert\NotBlank(groups: ['user:create'])] // Requis à la création
+    private ?string $plainPassword = null;
+
+    // CHAMP VIRTUEL : Booléen pour le rôle de propriétaire (non stocké en BDD)
+    #[Groups(['user:create'])]
+    private ?bool $isOwner = false;
+
     #[ORM\Column(type: 'json')]
+    #[Groups(['user:read'])]
     private array $roles = [];
 
-    // Renommé: avatar_user -> avatar
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['user:read', 'user:create', 'user:update'])]
     private ?string $avatar = null;
 
     /**
      * @var Collection<int, Listing>
      */
-    // mappedBy: 'owner' (L'utilisateur est le propriétaire du Listing)
     #[ORM\OneToMany(targetEntity: Listing::class, mappedBy: 'owner', orphanRemoval: true)]
     private Collection $listings;
 
     /**
      * @var Collection<int, Booking>
      */
-    // mappedBy: 'booker' (L'utilisateur est celui qui fait la réservation)
     #[ORM\OneToMany(targetEntity: Booking::class, mappedBy: 'booker', orphanRemoval: true)]
     private Collection $bookings;
 
     /**
      * @var Collection<int, Review>
      */
-    // mappedBy: 'author' (L'utilisateur est l'auteur de l'avis)
     #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'author', orphanRemoval: true)]
     private Collection $reviews;
 
     /**
      * @var Collection<int, Option>
      */
-    // Relation ManyToMany pour les options (si l'utilisateur peut avoir des options/préférences)
     #[ORM\ManyToMany(targetEntity: Option::class, inversedBy: 'users')]
     private Collection $options;
 
-    // OneToOne avec Profile (le champ de jointure est sur l'entité Profile)
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
     private ?Profile $profile = null;
 
@@ -82,7 +113,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->bookings = new ArrayCollection();
         $this->reviews = new ArrayCollection();
         $this->options = new ArrayCollection();
-        $this->roles = ['ROLE_USER']; // Rôle de base pour tous les nouveaux utilisateurs
+        $this->roles = ['ROLE_USER'];
         $this->favoritesUser = new ArrayCollection();
     }
 
@@ -93,13 +124,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     // --- INTERFACES DE SÉCURITÉ SYMFONY ---
 
-    /**
-     * @see UserInterface
-     */
     public function getRoles(): array
     {
         $roles = $this->roles;
-        // Garantie qu'il y a toujours au moins un rôle
         $roles[] = 'ROLE_USER';
         return array_unique($roles);
     }
@@ -110,9 +137,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * @see PasswordAuthenticatedUserInterface
-     */
     public function getPassword(): ?string
     {
         return $this->password;
@@ -129,20 +153,44 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function eraseCredentials(): void
     {
-        // Si vous stockez des données sensibles non persistantes, nettoyez-les ici
-        // $this->plainPassword = null;
+        $this->plainPassword = null;
     }
 
     /**
      * @see UserInterface
-     * Le champ utilisé pour identifier l'utilisateur (email dans notre cas)
      */
     public function getUserIdentifier(): string
     {
         return (string) $this->email;
     }
 
-    // --- GETTERS & SETTERS DES PROPRIÉTÉS ---
+    // --- GETTERS & SETTERS DES CHAMPS VIRTUELS ---
+
+    //  Plain Password Getter/Setter
+    public function getPlainPassword(): ?string
+    {
+        return $this->plainPassword;
+    }
+
+    public function setPlainPassword(?string $plainPassword): self
+    {
+        $this->plainPassword = $plainPassword;
+        return $this;
+    }
+
+    // IsOwner Getter/Setter
+    public function getIsOwner(): ?bool
+    {
+        return $this->isOwner;
+    }
+
+    public function setIsOwner(?bool $isOwner): self
+    {
+        $this->isOwner = $isOwner;
+        return $this;
+    }
+
+    // --- GETTERS & SETTERS DES PROPRIÉTÉS CLASSIQUES ---
 
     public function getName(): ?string
     {
@@ -179,16 +227,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     // --- GETTERS & SETTERS DES RELATIONS (Méthodes d'ajout/suppression) ---
 
-    // (Les méthodes add/remove pour toutes les collections sont à implémenter ici)
-
-    // Exemple pour Listings:
     public function getListings(): Collection
     {
         return $this->listings;
     }
-    // ...
-    // Ajoutez toutes les méthodes add/remove pour bookings, reviews, favorites, options, et profile
-    // ...
+    // ... (Ajoutez les méthodes add/remove pour toutes les collections) ...
 
     public function getProfile(): ?Profile
     {
@@ -197,7 +240,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function setProfile(Profile $profile): static
     {
-        // set the owning side of the relation if necessary
         if ($profile->getUser() !== $this) {
             $profile->setUser($this);
         }
@@ -226,7 +268,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function removeFavoritesUser(Favorite $favoritesUser): static
     {
         if ($this->favoritesUser->removeElement($favoritesUser)) {
-            // set the owning side to null (unless already changed)
             if ($favoritesUser->getFavoriteUser() === $this) {
                 $favoritesUser->setFavoriteUser(null);
             }

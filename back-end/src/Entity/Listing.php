@@ -2,11 +2,20 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
 use App\Repository\ListingRepository;
+use App\State\ListingOwnerProcessor; // IMPORT CRUCIAL DU PROCESSEUR
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ListingRepository::class)]
 #[ORM\Table(name: 'listing')]
@@ -17,66 +26,111 @@ use Doctrine\ORM\Mapping as ORM;
     'house' => HouseListing::class,
     'apartment' => ApartmentListing::class
 ])]
+#[ApiResource(
+    operations: [
+        //  GET Collection : Accessible à TOUS (PUBLIC_ACCESS)
+        new GetCollection(
+            normalizationContext: ['groups' => ['listing:read']]
+        ),
+
+        //  GET Item : Accessible à TOUS (PUBLIC_ACCESS)
+        new Get(
+            normalizationContext: ['groups' => ['listing:read', 'listing:item:read']]
+        ),
+
+        //  POST : SEULEMENT si 'ROLE_PROPRIETAIRE' & Utilisation du Processeur pour définir l'owner
+        new Post(
+            processor: ListingOwnerProcessor::class, // 🚀 Assigne l'utilisateur connecté comme owner
+            security: "is_granted('ROLE_PROPRIETAIRE')",
+            denormalizationContext: ['groups' => ['listing:create']]
+        ),
+
+        //  PATCH : SEULEMENT si l'utilisateur est le propriétaire ou un ADMIN
+        new Patch(
+            processor: ListingOwnerProcessor::class, // Peut être utile si l'on veut s'assurer que l'owner n'est pas modifié
+            security: "is_granted('ROLE_ADMIN') or object.getOwner() == user",
+            denormalizationContext: ['groups' => ['listing:update']]
+        ),
+
+        //  DELETE : SEULEMENT si l'utilisateur est le propriétaire ou un ADMIN
+        new Delete(
+            security: "is_granted('ROLE_ADMIN') or object.getOwner() == user"
+        ),
+    ]
+)]
 abstract class Listing
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['listing:read', 'booking:read', 'review:read'])]
     private ?int $id = null;
 
-    // Renommage: title_listing -> title
     #[ORM\Column(length: 255)]
+    #[Groups(['listing:read', 'listing:create', 'listing:update'])]
+    #[Assert\NotBlank]
     private ?string $title = null;
 
-    // Renommage: description_listing -> description
     #[ORM\Column(type: Types::TEXT)]
+    #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:update'])]
+    #[Assert\NotBlank]
     private ?string $description = null;
 
-    // Renommage: pricePerNight_listing -> pricePerNight
     #[ORM\Column]
+    #[Groups(['listing:read', 'listing:create', 'listing:update'])]
+    #[Assert\PositiveOrZero]
     private ?float $pricePerNight = null;
 
-    // Renommage: capacity_listing -> capacity
     #[ORM\Column]
+    #[Groups(['listing:read', 'listing:create', 'listing:update'])]
+    #[Assert\Positive]
     private ?int $capacity = null;
 
-    // Relation ManyToOne avec User
+    // 🔑 Relation ManyToOne avec User (Owner)
     #[ORM\ManyToOne(inversedBy: 'listings')]
+    // L'Owner est en lecture seulement (définie par le processeur à la création)
+    #[Groups(['listing:read', 'booking:read', 'review:read'])]
+    #[Assert\Valid] // Assure que l'objet User lié est valide
     private ?User $owner = null;
 
-    // Relation ManyToOne avec Category
+    // 🔑 Relation ManyToOne avec Category
     #[ORM\ManyToOne(inversedBy: 'listings')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['listing:read', 'listing:create', 'listing:update'])]
+    #[Assert\NotNull] // La catégorie est obligatoire
     private ?Category $category = null;
 
     /**
      * @var Collection<int, Booking>
      */
     #[ORM\OneToMany(targetEntity: Booking::class, mappedBy: 'listing', orphanRemoval: true)]
+    #[Groups(['listing:item:read'])]
     private Collection $bookings;
 
     /**
      * @var Collection<int, Image>
      */
     #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'listing', orphanRemoval: true)]
+    #[Groups(['listing:read', 'listing:item:read', 'listing:create'])] // Les images peuvent être lues en liste et ajoutées
     private Collection $images;
 
     /**
      * @var Collection<int, Review>
      */
     #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'listing', orphanRemoval: true)]
+    #[Groups(['listing:item:read'])]
     private Collection $reviews;
 
     /**
      * @var Collection<int, Option>
      */
     #[ORM\ManyToMany(targetEntity: Option::class, inversedBy: 'listings')]
+    #[Groups(['listing:read', 'listing:create', 'listing:update'])]
     private Collection $options;
 
     /**
      * @var Collection<int, User>
      */
-    // Côté INVERSE de la relation User <-> Listing (mappedBy: 'favorites' sur User)
     #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'favorites')]
     private Collection $favoritedByUsers;
 
