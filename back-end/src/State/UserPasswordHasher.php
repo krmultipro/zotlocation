@@ -3,9 +3,10 @@
 namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
-use ApiPlatform\Metadata\Post; // Pour cibler spécifiquement l'opération de création
+use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\User;
+use App\Entity\Profile; // 💡 Import de l'entité Profile
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -26,18 +27,27 @@ class UserPasswordHasher implements ProcessorInterface
         }
 
         // ----------------------------------------------------
-        // 1. LOGIQUE DE RÔLE : Appliquée uniquement lors de l'inscription (POST)
+        // 1. LOGIQUE DE RÔLE & CRÉATION DE PROFIL (POST uniquement)
         // ----------------------------------------------------
         if ($operation instanceof Post) {
+            // A. Gestion des Rôles
             $roles = ['ROLE_USER']; // Rôle de base pour tous les utilisateurs
 
             // Si le champ virtuel isOwner est vrai, on ajoute le rôle
             if ($data->getIsOwner() === true) {
                 $roles[] = 'ROLE_PROPRIETAIRE';
             }
-
-            // On définit les rôles finaux
             $data->setRoles(array_unique($roles));
+
+            // B. 💡 NOUVEAU : Création et Liaison du Profil
+            $profile = new Profile();
+
+            // Initialisation du nom complet du profil (utilisez le nom de l'utilisateur pour une valeur par défaut)
+            $profile->setFullName($data->getName() ?? '');
+
+            // Lier l'objet Profile à l'objet User.
+            // Grâce à la cascade: ['persist'] dans l'entité User, le Profile sera persisté automatiquement.
+            $data->setProfile($profile);
         }
 
         // ----------------------------------------------------

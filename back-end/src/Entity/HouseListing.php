@@ -2,40 +2,30 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource; // 💡 NOUVEAU
 use App\Repository\HouseListingRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups; // 💡 NOUVEAU
+use Symfony\Component\Validator\Constraints as Assert; // 💡 NOUVEAU
 
 #[ORM\Entity(repositoryClass: HouseListingRepository::class)]
+#[ApiResource(
+    // Les opérations sont héritées de Listing.
+    // On définit des groupes spécifiques pour la dénormalisation et la lecture.
+    normalizationContext: ['groups' => ['house:read', 'listing:read']],
+    denormalizationContext: ['groups' => ['house:create', 'house:update', 'listing:create', 'listing:update']],
+)]
 class HouseListing extends Listing // Hérite de $id, Owner, etc.
 {
-    // RETIRER LE CODE DE REDÉCLARATION DE L'ID :
-    /*
-    #[ORM\Id]
-    #[ORM\OneToOne(targetEntity: Listing::class)]
-    #[ORM\JoinColumn(name: 'id', referencedColumnName: 'id')]
-    protected $id;
-    */
-
-    // Propriétés spécifiques (déjà en CamelCase)
+    // Propriétés spécifiques
     #[ORM\Column]
+    #[Groups(['house:read', 'house:create', 'house:update'])] // 💡 Groupes ajoutés
+    #[Assert\PositiveOrZero(message: "La taille du jardin doit être positive ou nulle.")] // 💡 Validation
     private ?float $gardenSize = null;
 
     #[ORM\Column]
+    #[Groups(['house:read', 'house:create', 'house:update'])] // 💡 Groupes ajoutés
     private ?bool $hasGarage = null;
-
-    // NOTE : Les méthodes getId() et setId() ne sont plus nécessaires car elles sont héritées de Listing.
-    /*
-    public function getId(): ?int
-    {
-        return parent::getId();
-    }
-
-    public function setId(?int $id): static
-    {
-        parent::setId($id);
-        return $this;
-    }
-    */
 
     // --- GETTERS & SETTERS PROPRIÉTÉS SPÉCIFIQUES ---
 
@@ -50,7 +40,7 @@ class HouseListing extends Listing // Hérite de $id, Owner, etc.
         return $this;
     }
 
-    public function getHasGarage(): ?bool
+    public function isHasGarage(): ?bool
     {
         return $this->hasGarage;
     }

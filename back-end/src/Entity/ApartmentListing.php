@@ -2,42 +2,45 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource; // 💡 NOUVEAU
 use App\Repository\ApartmentListingRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups; // 💡 NOUVEAU
+use Symfony\Component\Validator\Constraints as Assert; // 💡 NOUVEAU
 
 #[ORM\Entity(repositoryClass: ApartmentListingRepository::class)]
+#[ApiResource(
+    // Les opérations sont héritées de Listing.
+    // On définit des groupes spécifiques pour la dénormalisation et la lecture.
+    normalizationContext: ['groups' => ['apartment:read', 'listing:read']],
+    denormalizationContext: ['groups' => ['apartment:create', 'apartment:update', 'listing:create', 'listing:update']],
+)]
 class ApartmentListing extends Listing // Hérite de $id, Owner, etc.
 {
-    // RETIRER LE CODE SUIVANT :
-    /*
-    #[ORM\Id]
-    #[ORM\OneToOne(targetEntity: Listing::class)]
-    #[ORM\JoinColumn(name: 'id', referencedColumnName: 'id')]
-    protected $id;
-    */
-
     // Propriétés spécifiques : application du CamelCase
     #[ORM\Column]
+    #[Groups(['apartment:read', 'apartment:create', 'apartment:update'])] // 💡 Groupes ajoutés
     private ?bool $balcony = null;
 
     #[ORM\Column]
+    #[Groups(['apartment:read', 'apartment:create', 'apartment:update'])] // 💡 Groupes ajoutés
+    #[Assert\Positive(message: "Le nombre de pièces doit être positif.")] // 💡 Validation
     private ?int $numberOfRooms = null;
 
-    // L'ID est géré par la jointure.
-    // NOTE: getId() est hérité de Listing, mais vous pouvez le laisser ici pour la clarté.
+    // L'ID et son Setter sont hérités de Listing, vous pouvez les retirer ici pour ne garder que les spécificités.
+
+    // Si vous décidez de garder les méthodes getId/setId (comme c'était dans votre code) :
+    /*
     public function getId(): ?int
     {
-        // Retourne l'ID hérité de Listing
         return parent::getId();
     }
-
-    // Le Setter de l'ID est également hérité de Listing.
     public function setId(?int $id): static
     {
-        // Appelle le setter de Listing
         parent::setId($id);
         return $this;
     }
+    */
 
     // --- GETTERS & SETTERS PROPRIÉTÉS SPÉCIFIQUES ---
 

@@ -9,7 +9,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Repository\ListingRepository;
-use App\State\ListingOwnerProcessor; // IMPORT CRUCIAL DU PROCESSEUR
+use App\State\ListingOwnerProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -28,31 +28,31 @@ use Symfony\Component\Validator\Constraints as Assert;
 ])]
 #[ApiResource(
     operations: [
-        //  GET Collection : Accessible à TOUS (PUBLIC_ACCESS)
+        // GET Collection : Accessible à TOUS
         new GetCollection(
             normalizationContext: ['groups' => ['listing:read']]
         ),
 
-        //  GET Item : Accessible à TOUS (PUBLIC_ACCESS)
+        // GET Item : Accessible à TOUS
         new Get(
             normalizationContext: ['groups' => ['listing:read', 'listing:item:read']]
         ),
 
-        //  POST : SEULEMENT si 'ROLE_PROPRIETAIRE' & Utilisation du Processeur pour définir l'owner
+        // POST : SEULEMENT si 'ROLE_PROPRIETAIRE' & Utilisation du Processeur
         new Post(
-            processor: ListingOwnerProcessor::class, // 🚀 Assigne l'utilisateur connecté comme owner
+            processor: ListingOwnerProcessor::class, // Assigne l'utilisateur connecté comme owner
             security: "is_granted('ROLE_PROPRIETAIRE')",
             denormalizationContext: ['groups' => ['listing:create']]
         ),
 
-        //  PATCH : SEULEMENT si l'utilisateur est le propriétaire ou un ADMIN
+        // PATCH : SEULEMENT si l'utilisateur est le propriétaire ou un ADMIN
         new Patch(
-            processor: ListingOwnerProcessor::class, // Peut être utile si l'on veut s'assurer que l'owner n'est pas modifié
+            processor: ListingOwnerProcessor::class,
             security: "is_granted('ROLE_ADMIN') or object.getOwner() == user",
             denormalizationContext: ['groups' => ['listing:update']]
         ),
 
-        //  DELETE : SEULEMENT si l'utilisateur est le propriétaire ou un ADMIN
+        // DELETE : SEULEMENT si l'utilisateur est le propriétaire ou un ADMIN
         new Delete(
             security: "is_granted('ROLE_ADMIN') or object.getOwner() == user"
         ),
@@ -88,16 +88,15 @@ class Listing
 
     // Relation ManyToOne avec User (Owner)
     #[ORM\ManyToOne(inversedBy: 'listings')]
-    // L'Owner est en lecture seulement (définie par le processeur à la création)
     #[Groups(['listing:read', 'booking:read', 'review:read'])]
-    #[Assert\Valid] // Assure que l'objet User lié est valide
+    #[Assert\Valid]
     private ?User $owner = null;
 
-    //  Relation ManyToOne avec Category
+    // Relation ManyToOne avec Category
     #[ORM\ManyToOne(inversedBy: 'listings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['listing:read', 'listing:create', 'listing:update'])]
-    #[Assert\NotNull] // La catégorie est obligatoire
+    #[Assert\NotNull]
     private ?Category $category = null;
 
     /**
@@ -110,8 +109,13 @@ class Listing
     /**
      * @var Collection<int, Image>
      */
-    #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'listing', orphanRemoval: true)]
-    #[Groups(['listing:read', 'listing:item:read', 'listing:create'])] // Les images peuvent être lues en liste et ajoutées
+    #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'listing', cascade: ['persist'], orphanRemoval: true)]
+    #[Groups(['listing:read', 'listing:item:read', 'listing:create'])]
+    // OBLIGATOIRE : Au moins une image
+    #[Assert\Count(
+        min: 1,
+        minMessage: "Une annonce doit obligatoirement avoir au moins une image."
+    )]
     private Collection $images;
 
     /**
@@ -126,13 +130,15 @@ class Listing
      */
     #[ORM\ManyToMany(targetEntity: Option::class, inversedBy: 'listings')]
     #[Groups(['listing:read', 'listing:create', 'listing:update'])]
+    // OBLIGATOIRE : Au moins une option
+    #[Assert\Count(
+        min: 1,
+        minMessage: "Vous devez sélectionner au moins une option pour cette annonce."
+    )]
     private Collection $options;
 
-    /**
-     * @var Collection<int, User>
-     */
-    #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'favorites')]
-    private Collection $favoritedByUsers;
+    // ❌ LIGNE SUPPRIMÉE : La relation ManyToMany `$favoritedByUsers` qui causait le conflit
+    // avec l'entité Favorite n'est plus présente ici.
 
     /**
      * @var Collection<int, Favorite>
@@ -146,7 +152,7 @@ class Listing
         $this->images = new ArrayCollection();
         $this->reviews = new ArrayCollection();
         $this->options = new ArrayCollection();
-        $this->favoritedByUsers = new ArrayCollection();
+        // $this->favoritedByUsers = new ArrayCollection(); // ❌ Ligne retirée
         $this->favoriteListings = new ArrayCollection();
     }
 
@@ -233,6 +239,9 @@ class Listing
 
     // --- RELATIONS OneToMany : Bookings ---
 
+    /**
+     * @return Collection<int, Booking>
+     */
     public function getBookings(): Collection
     {
         return $this->bookings;
@@ -259,6 +268,9 @@ class Listing
 
     // --- RELATIONS OneToMany : Images ---
 
+    /**
+     * @return Collection<int, Image>
+     */
     public function getImages(): Collection
     {
         return $this->images;
@@ -285,6 +297,9 @@ class Listing
 
     // --- RELATIONS OneToMany : Reviews ---
 
+    /**
+     * @return Collection<int, Review>
+     */
     public function getReviews(): Collection
     {
         return $this->reviews;
@@ -311,6 +326,9 @@ class Listing
 
     // --- RELATIONS ManyToMany : Options ---
 
+    /**
+     * @return Collection<int, Option>
+     */
     public function getOptions(): Collection
     {
         return $this->options;
@@ -330,26 +348,9 @@ class Listing
         return $this;
     }
 
-    // --- RELATIONS ManyToMany : FavoritedByUsers (Favorites) ---
+    // --- RELATIONS VERS FAVORITE (entité de liaison) ---
 
-    public function getFavoritedByUsers(): Collection
-    {
-        return $this->favoritedByUsers;
-    }
-
-    public function addFavoritedByUser(User $user): static
-    {
-        if (!$this->favoritedByUsers->contains($user)) {
-            $this->favoritedByUsers->add($user);
-        }
-        return $this;
-    }
-
-    public function removeFavoritedByUser(User $user): static
-    {
-        $this->favoritedByUsers->removeElement($user);
-        return $this;
-    }
+    // ❌ Les méthodes add/removeFavoritedByUser ont été supprimées.
 
     /**
      * @return Collection<int, Favorite>
@@ -372,7 +373,6 @@ class Listing
     public function removeFavoriteListing(Favorite $favoriteListing): static
     {
         if ($this->favoriteListings->removeElement($favoriteListing)) {
-            // set the owning side to null (unless already changed)
             if ($favoriteListing->getListing() === $this) {
                 $favoriteListing->setListing(null);
             }

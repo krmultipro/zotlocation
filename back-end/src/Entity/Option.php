@@ -2,37 +2,57 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
 use App\Repository\OptionRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups; // 💡 NOUVEAU
+use Symfony\Component\Validator\Constraints as Assert; // 💡 NOUVEAU
 
 #[ORM\Entity(repositoryClass: OptionRepository::class)]
-#[ORM\Table(name: 'option_listing')] // Nom de table explicite car 'option' est un mot clé SQL
+#[ORM\Table(name: 'option_listing')]
+#[ApiResource(
+    operations: [
+        // GET (Lecture) : Accessible à tous
+        new Get(normalizationContext: ['groups' => ['option:read']]),
+        new GetCollection(normalizationContext: ['groups' => ['option:read']]),
+
+        // POST (Création) : Peut-être limité à ROLE_ADMIN si les options sont statiques
+        new Post(
+            // La sécurité dépend de qui peut créer/gérer les options (ADMIN est souvent préférable)
+            // security: "is_granted('ROLE_ADMIN')",
+            denormalizationContext: ['groups' => ['option:create']]
+        ),
+    ],
+    normalizationContext: ['groups' => ['option:read']],
+    denormalizationContext: ['groups' => ['option:write']]
+)]
 class Option
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['option:read', 'listing:read'])] // L'ID est visible dans l'option et dans le Listing
     private ?int $id = null;
 
-    // 1. Renommage: name_option -> name (CamelCase, suppression du préfixe)
     #[ORM\Column(length: 255)]
+    #[Groups(['option:read', 'option:create', 'listing:read', 'listing:create'])] // 💡 Ajout des groupes
+    #[Assert\NotBlank(message: "Le nom de l'option est obligatoire.")] // 💡 Validation
     private ?string $name = null;
 
     /**
      * @var Collection<int, Listing>
      */
-    // Côté INVERSE de la relation Listing <-> Option.
-    // MappedBy doit correspondre au nom de la propriété sur l'entité Listing (qui sera la côté propriétaire).
     #[ORM\ManyToMany(targetEntity: Listing::class, mappedBy: 'options')]
     private Collection $listings;
 
     /**
      * @var Collection<int, User>
      */
-    // Côté INVERSE de la relation User <-> Option.
-    // MappedBy doit correspondre au nom de la propriété sur l'entité User (qui est la côté propriétaire).
     #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'options')]
     private Collection $users;
 
@@ -47,8 +67,6 @@ class Option
         return $this->id;
     }
 
-    // --- GETTERS & SETTERS CORRIGÉS ---
-
     public function getName(): ?string
     {
         return $this->name;
@@ -59,8 +77,6 @@ class Option
         $this->name = $name;
         return $this;
     }
-
-    // --- RELATIONS ---
 
     /**
      * @return Collection<int, Listing>
