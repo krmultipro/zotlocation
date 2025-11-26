@@ -2,50 +2,60 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource; // NOUVEAU : Importer ApiResource
+use ApiPlatform\Metadata\ApiResource;
+// Importations nécessaires pour définir les opérations CRUD explicitement
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use App\Repository\CategoryRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups; // NOUVEAU : Importer les Groups de Serializer
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
 #[ORM\Table(name: 'category')]
-// NOUVEAU : Déclaration ApiResource pour exposer l'entité via l'API
 #[ApiResource(
-    // Configuration simple des opérations (GET, POST, PUT/PATCH, DELETE)
-    // Permet d'accéder à l'entité via /api/categories
-    operations: [], // Utilise les opérations par défaut (GET collection, GET item, POST, PUT, DELETE)
+    // *** MODIFICATION ICI : Définition explicite des opérations CRUD ***
+    operations: [
+        // Route pour obtenir un élément spécifique (GET /api/categories/{id})
+        new Get(),
+        // Route pour obtenir la collection (GET /api/categories)
+        new Get(uriTemplate: '/categories'),
+        // Route pour créer un nouvel élément (POST /api/categories)
+        new Post(),
+        // Route pour remplacer un élément existant (PUT /api/categories/{id})
+        new Put(),
+        // Route pour modifier partiellement un élément (PATCH /api/categories/{id})
+        new Patch(),
+        // Route pour supprimer un élément (DELETE /api/categories/{id})
+        new Delete(),
+    ],
 
     // Définition des groupes de sérialisation pour un meilleur contrôle
-    normalizationContext: ['groups' => ['category:read']],
-    denormalizationContext: ['groups' => ['category:write']]
+    normalizationContext: ['groups' => ['category:read']], // Groupes pour la lecture (GET)
+    denormalizationContext: ['groups' => ['category:write']] // Groupes pour l'écriture (POST/PUT/PATCH)
 )]
 class Category
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    // Utiliser le groupe de lecture pour que l'ID soit toujours inclus dans les réponses GET
     #[Groups(['category:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    // Le nom est lisible et modifiable
-    #[Groups(['category:read', 'category:write', 'listing:read'])] // 'listing:read' si vous voulez voir le nom dans l'entité Listing
+    #[Groups(['category:read', 'category:write', 'listing:read'])]
     private ?string $name = null;
 
     /**
      * @var Collection<int, Listing>
      */
-    // Relation OneToMany vers Listing
     #[ORM\OneToMany(targetEntity: Listing::class, mappedBy: 'category', orphanRemoval: true)]
-    // NE PAS inclure 'category:read' ici si vous voulez éviter la récursivité infinie.
-    // Par défaut, API Platform ne sérialise pas les relations OneToMany/ManyToMany
-    // Si vous voulez la liste des IDs des listings, utilisez un groupe spécifique (e.g. 'category:detail')
+    // Laissez cette relation hors du groupe 'category:read' pour éviter la récursivité infinie
     private Collection $listings;
-
-    // ... (Le constructeur et les méthodes restent inchangés) ...
 
     public function __construct()
     {
