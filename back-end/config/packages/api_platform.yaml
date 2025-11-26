@@ -1,7 +1,27 @@
 api_platform:
+    swagger:
+        api_keys:
+            jwt:
+                name: Authorization
+                type: header
+
     title: Hello API Platform
     version: 1.0.0
+
     defaults:
         stateless: true
         cache_headers:
-            vary: ['Content-Type', 'Authorization', 'Origin']
+            vary: ["Content-Type", "Authorization", "Origin"]
+
+    formats:
+        jsonld: ["application/ld+json"]
+        json: ["application/json"]
+        html: ["text/html"]
+
+    enable_swagger: true
+    enable_swagger_ui: true
+    enable_re_doc: false
+
+    openapi:
+        swagger_ui_extra_configuration:
+            persistAuthorization: true

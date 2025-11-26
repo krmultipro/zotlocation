@@ -20,7 +20,7 @@ use Symfony\Component\Serializer\Annotation\Groups; // Import des Groupes de Sé
 use Symfony\Component\Validator\Constraints as Assert; // Import des Contraintes de Validation
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\Table(name: 'user')]
+#[ORM\Table(name: '"user"')]
 #[ApiResource(
     operations: [
         new GetCollection(security: "is_granted('ROLE_ADMIN')"),

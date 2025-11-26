@@ -3,3 +3,10 @@ controllers:
         path: ../src/Controller/
         namespace: App\Controller
     type: attribute
+
+# 🔑 AJOUTER CETTE DÉCLARATION MANUELLE DE LA ROUTE LOGIN_CHECK
+api_login_check:
+    path: /api/login_check
+    methods: ["POST"]
+    # Ceci est le contrôleur interne que Symfony utilise pour gérer le json_login.
+    controller: symfony_security.controller.security_json_login_check

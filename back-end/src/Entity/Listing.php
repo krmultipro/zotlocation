@@ -58,7 +58,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
     ]
 )]
-abstract class Listing
+class Listing
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -86,14 +86,14 @@ abstract class Listing
     #[Assert\Positive]
     private ?int $capacity = null;
 
-    // 🔑 Relation ManyToOne avec User (Owner)
+    // Relation ManyToOne avec User (Owner)
     #[ORM\ManyToOne(inversedBy: 'listings')]
     // L'Owner est en lecture seulement (définie par le processeur à la création)
     #[Groups(['listing:read', 'booking:read', 'review:read'])]
     #[Assert\Valid] // Assure que l'objet User lié est valide
     private ?User $owner = null;
 
-    // 🔑 Relation ManyToOne avec Category
+    //  Relation ManyToOne avec Category
     #[ORM\ManyToOne(inversedBy: 'listings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['listing:read', 'listing:create', 'listing:update'])]
