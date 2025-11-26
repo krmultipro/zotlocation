@@ -1,5 +1,3 @@
-# config/packages/lexik_jwt_authentication.yaml
-
 lexik_jwt_authentication:
     # --- Clés de signature/vérification ---
     # La clé privée (pour signer les tokens)
@@ -9,14 +7,13 @@ lexik_jwt_authentication:
     public_key: "%env(resolve:JWT_PUBLIC_KEY)%"
 
     # --- Gestion du mot de passe de la clé ---
-    # Puisque vous n'avez pas défini de mot de passe lors de la création de la clé (openssl genpkey),
-    # nous définissons la passphrase comme une chaîne vide ('') pour empêcher le bundle
-    # d'essayer de déchiffrer la clé avec un mot de passe inexistant.
-    pass_phrase: "" #  La valeur correcte si vous n'avez pas de passphrase sur la clé privée
+    # S'assurer que c'est une chaîne vide si aucune passphrase n'a été utilisée
+    pass_phrase: ""
 
     # --- Options du Token ---
-    # Durée de vie du token (Récupère la valeur dans .env.local, par défaut 3600 secondes)
+    # Durée de vie du token (Récupère la valeur dans .env.local)
     token_ttl: "%env(int:JWT_TOKEN_TTL)%"
 
-    # Champ utilisé pour identifier l'utilisateur (doit correspondre à votre Entité User)
-    user_identity_field: email
+    # Champ utilisé pour identifier l'utilisateur (maintenant 'user_id_claim')
+
+    user_id_claim: email
