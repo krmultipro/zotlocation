@@ -3,7 +3,6 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
-// Importations nécessaires pour définir les opérations CRUD explicitement
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Patch;
@@ -18,7 +17,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
 #[ORM\Table(name: 'category')]
 #[ApiResource(
-    // *** MODIFICATION ICI : Définition explicite des opérations CRUD ***
+
     operations: [
         // Route pour obtenir un élément spécifique (GET /api/categories/{id})
         new Get(),
@@ -54,7 +53,7 @@ class Category
      * @var Collection<int, Listing>
      */
     #[ORM\OneToMany(targetEntity: Listing::class, mappedBy: 'category', orphanRemoval: true)]
-    // Laissez cette relation hors du groupe 'category:read' pour éviter la récursivité infinie
+
     private Collection $listings;
 
     public function __construct()

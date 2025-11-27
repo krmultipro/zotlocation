@@ -25,9 +25,6 @@ use Symfony\Component\Validator\Constraints as Assert;
             security: "is_granted('ROLE_ADMIN') or object.getUser() == user",
             denormalizationContext: ['groups' => ['profile:update']]
         ),
-
-        // Note: La création (POST) et la suppression (DELETE) sont généralement gérées
-        // par l'entité User ou par des mécanismes internes (Event Listeners/Processors).
     ],
     normalizationContext: ['groups' => ['profile:read']],
 )]
@@ -49,7 +46,7 @@ class Profile
     // C'est le côté "propriétaire"
     #[ORM\OneToOne(inversedBy: 'profile', cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['profile:read'])] // Affiché, mais pas modifiable/créable via cet endpoint
+    #[Groups(['profile:read'])]
     private ?User $user = null;
 
     public function getId(): ?int

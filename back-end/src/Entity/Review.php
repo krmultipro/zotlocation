@@ -9,7 +9,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Repository\ReviewRepository;
-use App\State\ReviewAuthorProcessor; // 💡 PROCESSEUR NÉCESSAIRE (à créer)
+use App\State\ReviewAuthorProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -27,18 +27,18 @@ use Symfony\Component\Validator\Constraints as Assert;
 
         // POST : Création par un utilisateur connecté
         new Post(
-            processor: ReviewAuthorProcessor::class, // 💡 Définit l'auteur = utilisateur connecté
+            processor: ReviewAuthorProcessor::class, // Définit l'auteur = utilisateur connecté
             security: "is_granted('ROLE_USER')",
             denormalizationContext: ['groups' => ['review:create']]
         ),
 
-        // PATCH : Modification par l'auteur ou ADMIN
+        // PATCH : Modification par l'auteur ou ROLE_ADMIN
         new Patch(
             security: "is_granted('ROLE_ADMIN') or object.getAuthor() == user",
             denormalizationContext: ['groups' => ['review:update']]
         ),
 
-        // DELETE : Suppression par l'auteur ou ADMIN
+        // DELETE : Suppression par l'auteur ou ROLE_ADMIN
         new Delete(security: "is_granted('ROLE_ADMIN') or object.getAuthor() == user"),
     ],
     // Groupes de sérialisation par défaut
@@ -72,7 +72,7 @@ class Review
 
     // Relation ManyToOne avec Listing
     #[ORM\ManyToOne(inversedBy: 'reviews')]
-    #[Groups(['review:read', 'review:create'])] // On fournit l'URI du Listing à la création
+    #[Groups(['review:read', 'review:create'])]
     #[Assert\NotNull]
     private ?Listing $listing = null;
 
@@ -80,10 +80,9 @@ class Review
     #[ORM\ManyToOne(inversedBy: 'reviews')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['review:read', 'listing:item:read'])]
-    // 💡 PAS DANS 'review:create' : Défini par le processeur pour la sécurité
+
     private ?User $author = null;
 
-    // ... (Reste des Getters et Setters inchangés) ...
     public function getId(): ?int
     {
         return $this->id;

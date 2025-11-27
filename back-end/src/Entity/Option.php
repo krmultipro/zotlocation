@@ -10,8 +10,8 @@ use App\Repository\OptionRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups; // 💡 NOUVEAU
-use Symfony\Component\Validator\Constraints as Assert; // 💡 NOUVEAU
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: OptionRepository::class)]
 #[ORM\Table(name: 'option_listing')]
@@ -21,10 +21,9 @@ use Symfony\Component\Validator\Constraints as Assert; // 💡 NOUVEAU
         new Get(normalizationContext: ['groups' => ['option:read']]),
         new GetCollection(normalizationContext: ['groups' => ['option:read']]),
 
-        // POST (Création) : Peut-être limité à ROLE_ADMIN si les options sont statiques
+
         new Post(
-            // La sécurité dépend de qui peut créer/gérer les options (ADMIN est souvent préférable)
-            // security: "is_granted('ROLE_ADMIN')",
+            security: "is_granted('ROLE_ADMIN')",
             denormalizationContext: ['groups' => ['option:create']]
         ),
     ],
@@ -36,12 +35,12 @@ class Option
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['option:read', 'listing:read'])] // L'ID est visible dans l'option et dans le Listing
+    #[Groups(['option:read', 'listing:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['option:read', 'option:create', 'listing:read', 'listing:create'])] // 💡 Ajout des groupes
-    #[Assert\NotBlank(message: "Le nom de l'option est obligatoire.")] // 💡 Validation
+    #[Groups(['option:read', 'option:create', 'listing:read', 'listing:create'])]
+    #[Assert\NotBlank(message: "Le nom de l'option est obligatoire.")]
     private ?string $name = null;
 
     /**

@@ -38,10 +38,10 @@ use Symfony\Component\Validator\Constraints as Assert;
             normalizationContext: ['groups' => ['listing:read', 'listing:item:read']]
         ),
 
-        // POST : SEULEMENT si 'ROLE_PROPRIETAIRE' & Utilisation du Processeur
+        // POST : SEULEMENT si 'ROLE_ADMIN' & Utilisation du Processeur
         new Post(
-            processor: ListingOwnerProcessor::class, // Assigne l'utilisateur connecté comme owner
-            security: "is_granted('ROLE_PROPRIETAIRE')",
+            processor: ListingOwnerProcessor::class,
+            security: "is_granted('ROLE_ADMIN')",
             denormalizationContext: ['groups' => ['listing:create']]
         ),
 
@@ -137,9 +137,6 @@ class Listing
     )]
     private Collection $options;
 
-    // ❌ LIGNE SUPPRIMÉE : La relation ManyToMany `$favoritedByUsers` qui causait le conflit
-    // avec l'entité Favorite n'est plus présente ici.
-
     /**
      * @var Collection<int, Favorite>
      */
@@ -152,7 +149,7 @@ class Listing
         $this->images = new ArrayCollection();
         $this->reviews = new ArrayCollection();
         $this->options = new ArrayCollection();
-        // $this->favoritedByUsers = new ArrayCollection(); // ❌ Ligne retirée
+
         $this->favoriteListings = new ArrayCollection();
     }
 
@@ -347,11 +344,6 @@ class Listing
         $this->options->removeElement($option);
         return $this;
     }
-
-    // --- RELATIONS VERS FAVORITE (entité de liaison) ---
-
-    // ❌ Les méthodes add/removeFavoritedByUser ont été supprimées.
-
     /**
      * @return Collection<int, Favorite>
      */

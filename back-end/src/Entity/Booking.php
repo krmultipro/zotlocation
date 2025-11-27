@@ -16,7 +16,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: BookingRepository::class)]
 #[ORM\Table(name: 'booking')]
-// 💡 Exposition à API Platform
+
 #[ApiResource(
     operations: [
         // GET Collection : Seulement ADMIN peut voir toutes les bookings

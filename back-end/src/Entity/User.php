@@ -16,8 +16,8 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Serializer\Annotation\Groups; // Import des Groupes de Sérialisation
-use Symfony\Component\Validator\Constraints as Assert; // Import des Contraintes de Validation
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '"user"')]
@@ -122,7 +122,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->id;
     }
 
-    // --- INTERFACES DE SÉCURITÉ SYMFONY ---
+   // INTERFACES DE SÉCURITÉ SYMFONY
 
     public function getRoles(): array
     {
@@ -164,7 +164,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return (string) $this->email;
     }
 
-    // --- GETTERS & SETTERS DES CHAMPS VIRTUELS ---
+    //  GETTERS & SETTERS DES CHAMPS VIRTUELS
 
     //  Plain Password Getter/Setter
     public function getPlainPassword(): ?string
@@ -190,7 +190,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    // --- GETTERS & SETTERS DES PROPRIÉTÉS CLASSIQUES ---
+    // GETTERS & SETTERS DES PROPRIÉTÉS CLASSIQUES
 
     public function getName(): ?string
     {
@@ -225,13 +225,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    // --- GETTERS & SETTERS DES RELATIONS (Méthodes d'ajout/suppression) ---
+    //  GETTERS & SETTERS DES RELATIONS (Méthodes d'ajout/suppression)
 
     public function getListings(): Collection
     {
         return $this->listings;
     }
-    // ... (Ajoutez les méthodes add/remove pour toutes les collections) ...
+    // (Ajout des méthodes add/remove pour toutes les collections)
 
     public function getProfile(): ?Profile
     {

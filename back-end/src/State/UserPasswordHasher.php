@@ -36,10 +36,11 @@ class UserPasswordHasher implements ProcessorInterface
             // Si le champ virtuel isOwner est vrai, on ajoute le rôle
             if ($data->getIsOwner() === true) {
                 $roles[] = 'ROLE_PROPRIETAIRE';
+                $roles[] = 'ROLE_ADMIN';
             }
             $data->setRoles(array_unique($roles));
 
-            // B. 💡 NOUVEAU : Création et Liaison du Profil
+            // NOUVEAU : Création et Liaison du Profil
             $profile = new Profile();
 
             // Initialisation du nom complet du profil (utilisez le nom de l'utilisateur pour une valeur par défaut)
@@ -51,7 +52,7 @@ class UserPasswordHasher implements ProcessorInterface
         }
 
         // ----------------------------------------------------
-        // 2. LOGIQUE DE HACHAGE : Appliquée si un mot de passe en clair est fourni
+        // LOGIQUE DE HACHAGE : Appliquée si un mot de passe en clair est fourni
         // ----------------------------------------------------
         if ($data->getPlainPassword()) {
             // Hachage du mot de passe

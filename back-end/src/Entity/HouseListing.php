@@ -19,15 +19,16 @@ class HouseListing extends Listing // Hérite de $id, Owner, etc.
 {
     // Propriétés spécifiques
     #[ORM\Column]
-    #[Groups(['house:read', 'house:create', 'house:update'])] // 💡 Groupes ajoutés
-    #[Assert\PositiveOrZero(message: "La taille du jardin doit être positive ou nulle.")] // 💡 Validation
+    #[Groups(['house:read', 'house:create', 'house:update'])]
+    #[Assert\PositiveOrZero(message: "La taille du jardin doit être positive ou nulle.")]
+
     private ?float $gardenSize = null;
 
     #[ORM\Column]
-    #[Groups(['house:read', 'house:create', 'house:update'])] // 💡 Groupes ajoutés
+    #[Groups(['house:read', 'house:create', 'house:update'])]
     private ?bool $hasGarage = null;
 
-    // --- GETTERS & SETTERS PROPRIÉTÉS SPÉCIFIQUES ---
+
 
     public function getGardenSize(): ?float
     {
