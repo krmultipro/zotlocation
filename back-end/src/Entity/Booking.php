@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Repository\BookingRepository;
+use App\State\BookingPriceProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -32,6 +33,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Post(
             // Le Booker sera l'utilisateur connecté (on le set dans un processeur si nécessaire, mais on assume la relation dans le denormalization)
             security: "is_granted('ROLE_USER')",
+            processor: BookingPriceProcessor::class,
             denormalizationContext: ['groups' => ['booking:create']]
         ),
 

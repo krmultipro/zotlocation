@@ -54,6 +54,13 @@ security:
         # Login
         - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
 
+        # Routes publiques sans authentification
+
+        - { path: ^/api/listings, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/categories, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/options, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/reviews, roles: PUBLIC_ACCESS, methods: [GET] }
+
         # GET /api
         - { path: ^/api$, methods: [GET], roles: PUBLIC_ACCESS }
 
