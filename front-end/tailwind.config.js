@@ -1,5 +1,4 @@
 /** @type {import('tailwindcss').Config} */
-
 module.exports = {
   // Liste des fichiers à scanner pour les classes Tailwind
   content: [
