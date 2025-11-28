@@ -1,46 +1,61 @@
-/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable react-hooks/incompatible-library */
 "use client"
 import axios from "axios"
 import { useState } from "react"
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form"
-import { IoMdClose } from "react-icons/io"
+// Import de IoMdClose supprimé car la croix personnalisée a été retirée
 
-// Importation des composants Shadcn (Assurez-vous d'avoir bien installé ces composants via 'npx shadcn-ui@latest add <composant>')
+import { Checkbox } from "@/components/ui/checkbox" // Importation du composant Checkbox
+
+// Utilisation des alias pour les imports (méthode standard Next.js)
+// Si cela ne fonctionne pas, veuillez vérifier que votre tsconfig.json a l'alias '@/*' configuré pour le dossier 'src' ou la racine.
+
+import useRegisterModal from "@/app/hooks/useRegisterModal"
+
+// Importation des composants Shadcn
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-// Assurez-vous que ce chemin est correct pour votre CustomButton
-import useLoginModal from "@/app/hooks/useLoginModal"
-import useRegisterModal from "@/app/hooks/useRegisterModal"
 import CustomButton from "../CustomButton"
 
 const RegisterModal = () => {
   const registerModal = useRegisterModal()
-  const loginModal = useLoginModal() // Récupération du store pour la connexion
   const [isLoading, setIsLoading] = useState(false)
 
   const {
     register,
     handleSubmit,
+    setValue, // Ajout de setValue pour gérer l'état de la checkbox
+    watch, // Ajout de watch pour surveiller l'état
     formState: { errors },
   } = useForm<FieldValues>({
     defaultValues: {
       name: "",
       email: "",
       password: "",
+      isOwner: false, // Initialisation du champ de rôle
+      avatarUrl: "", // Initialisation du champ d'avatar (non obligatoire)
     },
   })
 
-  // Fonction pour basculer : ferme Register, ouvre Login
-  const onToggle = () => {
-    registerModal.onClose()
-    loginModal.onOpen()
+  // Surveiller l'état de la case à cocher
+  const isOwner = watch("isOwner")
+
+  // Fonction utilitaire pour basculer la valeur de la checkbox
+  const toggleOwner = (checked: boolean) => {
+    setValue("isOwner", checked, {
+      shouldValidate: true,
+      shouldDirty: true,
+    })
   }
 
   const onSubmit: SubmitHandler<FieldValues> = (data) => {
     setIsLoading(true)
+
+    // Affichage des données (incluant isOwner et avatarUrl)
+    console.log("Données envoyées:", data)
 
     axios
       .post("/api/users", data)
@@ -58,6 +73,25 @@ const RegisterModal = () => {
   // Contenu du formulaire d'inscription
   const FormBody = (
     <div className="flex flex-col space-y-4">
+      {/* Name Input */}
+      <div>
+        <Label htmlFor="name">Nom</Label>
+        <Input
+          id="name"
+          placeholder="Votre nom"
+          disabled={isLoading}
+          {...register("name", { required: "Le nom est requis" })}
+          className={
+            errors.name ? "border-rose-500 focus-visible:ring-rose-500" : ""
+          }
+        />
+        {errors.name && (
+          <p className="text-rose-500 text-sm mt-1">
+            {errors.name.message as string}
+          </p>
+        )}
+      </div>
+
       {/* Email Input */}
       <div>
         <Label htmlFor="email">Email</Label>
@@ -74,25 +108,6 @@ const RegisterModal = () => {
         {errors.email && (
           <p className="text-rose-500 text-sm mt-1">
             {errors.email.message as string}
-          </p>
-        )}
-      </div>
-
-      {/* Name Input */}
-      <div>
-        <Label htmlFor="name">Nom</Label>
-        <Input
-          id="name"
-          placeholder="Votre nom"
-          disabled={isLoading}
-          {...register("name", { required: "Le nom est requis" })}
-          className={
-            errors.name ? "border-rose-500 focus-visible:ring-rose-500" : ""
-          }
-        />
-        {errors.name && (
-          <p className="text-rose-500 text-sm mt-1">
-            {errors.name.message as string}
           </p>
         )}
       </div>
@@ -116,6 +131,33 @@ const RegisterModal = () => {
           </p>
         )}
       </div>
+
+      {/* Avatar URL Input (Non obligatoire) */}
+      <div>
+        <Label htmlFor="avatarUrl">Avatar (URL)</Label>
+        <Input
+          id="avatarUrl"
+          placeholder="Lien vers votre photo de profil (ex: https://...)"
+          disabled={isLoading}
+          {...register("avatarUrl")} // Pas de validation requise
+        />
+      </div>
+
+      {/* Rôle Checkbox */}
+      <div className="flex items-center space-x-2 pt-2">
+        <Checkbox
+          id="isOwner"
+          checked={isOwner}
+          onCheckedChange={toggleOwner}
+          disabled={isLoading}
+        />
+        <label
+          htmlFor="isOwner"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Je suis Propriétaire ⭐️
+        </label>
+      </div>
     </div>
   )
 
@@ -133,17 +175,10 @@ const RegisterModal = () => {
         <Card className="border-none shadow-none">
           {/* HEADER */}
           <CardHeader className="p-6 border-b flex flex-row items-center justify-center relative">
-            <button
-              onClick={registerModal.onClose}
-              className="p-1 border-0 hover:opacity-70 transition absolute left-4 md:left-9"
-            >
-              <IoMdClose size={18} />
-            </button>
             <DialogTitle className="text-2xl font-semibold">
-              S'inscrire
+              S&rsquo;inscrire et définir votre rôle
             </DialogTitle>
           </CardHeader>
-
           {/* BODY */}
           <CardContent className="relative p-6">{FormBody}</CardContent>
 
@@ -162,10 +197,7 @@ const RegisterModal = () => {
             <div className="text-neutral-500 text-center mt-4 font-light">
               <p>
                 Vous avez déjà un compte ?
-                <span
-                  onClick={onToggle} // Bascule vers la modale de connexion
-                  className="text-neutral-800 cursor-pointer hover:underline ml-1"
-                >
+                <span className="text-neutral-800 cursor-pointer hover:underline ml-1">
                   Connectez-vous
                 </span>
               </p>
