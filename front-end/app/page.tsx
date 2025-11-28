@@ -1,11 +1,9 @@
-import { Button } from "@/components/ui/button"
+import ModalAjoutAnnonce from "@/components/modals/ModalAjoutAnnonce";
 
 export default function Home() {
   return (
-    <>
-      <div className="text-center text-3xl  text-green-700">Hello world</div>
-      <Button>Hello</Button>
-      <Button className="bg-red-500">Hello</Button>
-    </>
-  )
+    <div className="flex items-center justify-center min-h-screen p-4">
+      <ModalAjoutAnnonce />
+    </div>
+  );
 }
