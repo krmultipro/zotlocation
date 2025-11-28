@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { X } from "lucide-react";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 
 export default function Home() {
@@ -116,6 +117,31 @@ export default function Home() {
                 step="1"
                 required
               />
+            </div>
+            <div className="w-full max-w-md">
+              <Field>
+                <FieldLabel>Catégorie</FieldLabel>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choisissez une catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="camping">Camping</SelectItem>
+                    <SelectItem value="montagne">Montagne</SelectItem>
+                    <SelectItem value="plage">Plage</SelectItem>
+                    <SelectItem value="bassin">Bassin</SelectItem>
+                    <SelectItem value="luxe">Luxe</SelectItem>
+                    <SelectItem value="moderne">Moderne</SelectItem>
+                    <SelectItem value="foret">Forêt</SelectItem>
+                    <SelectItem value="volcan">Volcan</SelectItem>
+                    <SelectItem value="insolite">Insolite</SelectItem>
+                    <SelectItem value="traditionnelle">Traditionnelle</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldDescription>
+                  Sélectionnez la catégorie qui correspond le mieux à votre logement.
+                </FieldDescription>
+              </Field>
             </div>
 
             <div className="w-full max-w-md">
