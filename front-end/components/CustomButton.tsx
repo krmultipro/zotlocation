@@ -5,6 +5,8 @@ import { IconType } from "react-icons"
 
 interface ButtonProps {
   label: string
+  // Ajout de la propriété 'type'
+  type?: "button" | "submit" | "reset"
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
   disabled?: boolean
   outline?: boolean
@@ -14,7 +16,7 @@ interface ButtonProps {
 
 const CustomButton: React.FC<ButtonProps> = ({
   label,
-  onClick,
+  type = "button", // Valeur par défaut si non spécifiée
   disabled,
   outline,
   small,
@@ -22,7 +24,8 @@ const CustomButton: React.FC<ButtonProps> = ({
 }) => {
   return (
     <button
-      onClick={onClick}
+      // Transmission de la propriété 'type' au bouton HTML
+      type={type}
       disabled={disabled}
       className={`
     relative disabled:opacity-70 disabled:cursor-not-allowed rounded-lg hover:opacity-80 transition w-full
