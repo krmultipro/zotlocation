@@ -22,11 +22,11 @@ interface ListingCardProps {
   id: number;
   title: string;
   pricePerNight: number;
-  capacity: number;        // ✅ Maintenant utilisé
-  category: string;        // ✅ Renommé (était "city")
+  capacity: number;        
+  category: string;        
   imageUrl: string;
-  // rating?: number;      // ❌ Retiré temporairement
-  // type?: string;        // ❌ Non disponible dans l'API
+  // rating?: number;      
+  // type?: string;       
 }
 
 export default function ListingCard({
