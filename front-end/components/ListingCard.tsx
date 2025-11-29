@@ -16,35 +16,32 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 
 /**
  * Interface ListingCardProps
- * Définit les propriétés nécessaires pour afficher une carte d'annonce
+ * Props basées sur les données réellement disponibles de l'API
  */
 interface ListingCardProps {
   id: number;
   title: string;
   pricePerNight: number;
-  city: string;
+  capacity: number;        // ✅ Maintenant utilisé
+  category: string;        // ✅ Renommé (était "city")
   imageUrl: string;
-  rating?: number;
+  // rating?: number;      // ❌ Retiré temporairement
+  // type?: string;        // ❌ Non disponible dans l'API
 }
 
-/**
- * Composant principal ListingCard
- * Affiche une carte stylisée pour une annonce de location
- */
 export default function ListingCard({
   id,
   title,
   pricePerNight,
-  city,
-  imageUrl,
-  rating
+  capacity,
+  category,
+  imageUrl
 }: ListingCardProps) {
   return (
     <Link href={`/listings/${id}`}>
-      {/* Card shadcn/ui avec effet hover personnalisé */}
       <Card className="group cursor-pointer overflow-hidden hover:shadow-lg transition-shadow duration-300">
         
-        {/* Section image avec bouton favori */}
+        {/* Image */}
         <div className="relative aspect-square overflow-hidden">
           <Image
             src={imageUrl || "/images/placeholder.png"}
@@ -54,7 +51,7 @@ export default function ListingCard({
             className="object-cover group-hover:scale-110 transition-transform duration-300"
           />
           
-          {/* Bouton favori positionné en absolu */}
+          {/* Bouton favori */}
           <Button
             size="icon"
             variant="ghost"
@@ -69,20 +66,20 @@ export default function ListingCard({
           </Button>
         </div>
         
-{/* Contenu de la carte : informations textuelles */}
-<CardContent className="p-4">
-  {/* Titre de l'annonce et note */}
-  <div className="flex justify-between items-start mb-2">
-    <h3 className="font-semibold text-sm truncate">{title}</h3>
-    {rating && (
-      <span className="text-sm flex-shrink-0 ml-2">⭐ {rating}</span>
-    )}
-  </div>
-  
-  {/* Catégorie/Ville (secondaire) */}
-  <p className="text-gray-600 text-sm truncate mb-2">{city}</p>
-</CardContent>
-        {/* Pied de carte : Prix */}
+        <CardContent className="p-4">
+          {/* Titre */}
+          <h3 className="font-semibold text-sm truncate mb-2">{title}</h3>
+          
+          {/* Catégorie */}
+          <p className="text-gray-600 text-sm truncate mb-2">{category}</p>
+          
+          {/* Capacité - NOUVEAU */}
+          <p className="text-gray-500 text-xs flex items-center gap-1">
+            <span>👥</span>
+            <span>{capacity} {capacity > 1 ? 'personnes' : 'personne'}</span>
+          </p>
+        </CardContent>
+        
         <CardFooter className="p-4 pt-0">
           <p className="font-semibold">
             {pricePerNight}€ <span className="font-normal text-gray-600">/ nuit</span>

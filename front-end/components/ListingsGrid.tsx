@@ -13,21 +13,36 @@ import { useEffect, useState } from "react";
 import Container from "@/components/Container";
 import ListingCard from "@/components/ListingCard";
 
+
 /**
  * Interface Listing
- * Définit la structure d'une annonce de location telle qu'elle est retournée par l'API
+ * Correspond exactement à la structure retournée par l'API Symfony
  */
 interface Listing {
-  id: number;                    // Identifiant unique de l'annonce
-  title: string;                 // Titre de l'annonce
-  pricePerNight: number;         // Prix par nuit en euros
-  capacity: number;              // Capacité d'accueil (nombre de personnes)
-  category?: {                   // Catégorie optionnelle (plage, montagne, etc.)
-    name: string;                // Nom de la catégorie
+  "@id": string;                    // IRI API Platform (ex: "/api/listings/3")
+  "@type": string;                  // Type API Platform (ex: "Listing")
+  id: number;                       // ID de l'annonce
+  title: string;                    // Titre de l'annonce
+  description: string;              // Description complète
+  pricePerNight: number;            // Prix par nuit
+  capacity: number;                 // Capacité d'accueil (nombre de personnes)
+  category: {                       // Objet catégorie complet
+    "@id": string;                  // IRI (ex: "/api/categories/5")
+    "@type": string;                // Type ("Category")
+    name: string;                   // Nom de la catégorie
   };
-  owner?: string;                // Identifiant du propriétaire (format IRI d'API Platform)
-  images?: Array<{               // Tableau d'images optionnel
-    url: string;                 // URL de l'image
+  owner: string;                    // IRI du propriétaire (ex: "/api/users/3")
+  images: Array<{                   // Tableau d'images
+    "@id": string;                  // IRI de l'image
+    "@type": string;                // Type ("Image")
+    id: number;                     // ID de l'image
+    url: string;                    // URL de l'image
+  }>;
+  options: Array<{                  // Tableau d'options
+    "@id": string;
+    "@type": string;
+    id: number;
+    name: string;
   }>;
 }
 
@@ -182,16 +197,17 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 py-8">
         {/* Itération sur chaque annonce pour créer une carte */}
         {listings.map((listing) => (
-          <ListingCard
-            key={listing.id}                                                    // Clé unique pour React
-            id={listing.id}                                                     // ID de l'annonce
-            title={listing.title}                                               // Titre de l'annonce
-            pricePerNight={listing.pricePerNight}                               // Prix par nuit
-            city={listing.category?.name || "Réunion"}                          // Nom de la catégorie ou "Réunion" par défaut
-            imageUrl={listing.images?.[0]?.url || "/images/placeholder.png"}   // Première image ou image par défaut
-            rating={undefined}                                                  // Note non implémentée pour le moment
-          />
-        ))}
+  <ListingCard
+    key={listing.id}
+    id={listing.id}
+    title={listing.title}
+    pricePerNight={listing.pricePerNight}
+    capacity={listing.capacity}                    
+    category={listing.category.name}               
+    imageUrl={listing.images?.[0]?.url || "/images/placeholder.png"}
+    
+  />
+))}
       </div>
     </Container>
   );
