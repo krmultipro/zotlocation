@@ -403,7 +403,7 @@ const RegisterModal = () => {
                 {/* Bouton de soumission personnalisé */}
                 <CustomButton
                   disabled={isLoading}
-                  label={isLoading ? "Connexion en cours..." : "Continuer"}
+                  label={isLoading ? "Inscription en cours..." : "S'inscrire"}
                   type="submit" // Déclenche la soumission du formulaire
                   onClick={function (
                     e: React.MouseEvent<HTMLButtonElement>
