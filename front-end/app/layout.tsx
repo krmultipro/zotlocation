@@ -5,6 +5,7 @@ import Navbar from "@/components/navbar/Navbar"
 import type { Metadata } from "next"
 import RegisterModal from "@/components/modals/RegisterModal"
 import LoginModal from "@/components/modals/LoginModal"
+import Categories from "@/components/Categories"
 
 const font = Nunito({
   subsets: ["latin"],
@@ -26,7 +27,10 @@ export default function RootLayout({
         <RegisterModal />
         <LoginModal />
         <Navbar />
+        <main className="pt-40">
+        <Categories />
         {children}
+        </main>
       </body>
     </html>
   )
