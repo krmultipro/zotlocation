@@ -1,10 +1,12 @@
 import { Nunito } from "next/font/google"
 
-import "./globals.css"
-import Navbar from "@/components/navbar/Navbar"
-import type { Metadata } from "next"
-import RegisterModal from "@/components/modals/RegisterModal"
 import LoginModal from "@/components/modals/LoginModal"
+import RegisterModal from "@/components/modals/RegisterModal"
+import Navbar from "@/components/navbar/Navbar"
+
+import type { Metadata } from "next"
+import { Toaster } from "react-hot-toast"
+import "./globals.css"
 
 const font = Nunito({
   subsets: ["latin"],
@@ -12,10 +14,10 @@ const font = Nunito({
 
 export const metadata: Metadata = {
   title: "🌴 ZotLocation",
-  description: "Réservez vos meilleurs sejour à la Réunion",
+  description: "Réservez vos meilleurs séjours à la Réunion",
 }
 
-export default function RootLayout({
+export default function Layout({
   children,
 }: Readonly<{
   children: React.ReactNode
@@ -23,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={font.className}>
+        <Toaster position="top-center" reverseOrder={false} />
         <RegisterModal />
         <LoginModal />
         <Navbar />

@@ -7,7 +7,7 @@ interface ButtonProps {
   label: string
   // Ajout de la propriété 'type'
   type?: "button" | "submit" | "reset"
-  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
   disabled?: boolean
   outline?: boolean
   small?: boolean
