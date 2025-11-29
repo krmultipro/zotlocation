@@ -69,20 +69,19 @@ export default function ListingCard({
           </Button>
         </div>
         
-        {/* Contenu de la carte : informations textuelles */}
-        <CardContent className="p-4">
-          {/* Ville/Catégorie et note */}
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="font-semibold text-sm truncate">{city}</h3>
-            {rating && (
-              <span className="text-sm flex-shrink-0 ml-2">⭐ {rating}</span>
-            )}
-          </div>
-          
-          {/* Titre de l'annonce */}
-          <p className="text-gray-600 text-sm truncate mb-2">{title}</p>
-        </CardContent>
-        
+{/* Contenu de la carte : informations textuelles */}
+<CardContent className="p-4">
+  {/* Titre de l'annonce et note */}
+  <div className="flex justify-between items-start mb-2">
+    <h3 className="font-semibold text-sm truncate">{title}</h3>
+    {rating && (
+      <span className="text-sm flex-shrink-0 ml-2">⭐ {rating}</span>
+    )}
+  </div>
+  
+  {/* Catégorie/Ville (secondaire) */}
+  <p className="text-gray-600 text-sm truncate mb-2">{city}</p>
+</CardContent>
         {/* Pied de carte : Prix */}
         <CardFooter className="p-4 pt-0">
           <p className="font-semibold">
