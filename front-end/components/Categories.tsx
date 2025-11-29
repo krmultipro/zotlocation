@@ -88,7 +88,7 @@ export default function Categories() {
     // z-30 : niveau de profondeur pour rester au-dessus des autres éléments
     // bg-background : couleur de fond définie dans le thème
     // border-b : bordure en bas pour séparer visuellement du contenu
-    <section className="sticky top-24 z-30 bg-background border-b">
+    <section className="sticky top-20 z-30 bg-white border-b">
       {/* Conteneur pour centrer et espacer le contenu */}
       <div className="container mx-auto px-4 py-4">
         {/* ScrollArea de shadcn/ui pour permettre le défilement horizontal */}

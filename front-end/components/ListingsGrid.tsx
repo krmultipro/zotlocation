@@ -84,8 +84,8 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
    */
   useEffect(() => {
     // Appel à l'API Symfony pour récupérer toutes les annonces
-    fetch('http://localhost:8000/api/listings')
-      .then(res => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/listings`)
+          .then(res => {
         // Vérification que la réponse HTTP est valide (code 2xx)
         if (!res.ok) {
           throw new Error(`Erreur HTTP: ${res.status}`);
