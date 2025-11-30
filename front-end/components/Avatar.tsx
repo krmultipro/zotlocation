@@ -13,8 +13,8 @@ const Avatar: React.FC<AvatarProps> = ({ src }) => {
   return (
     <Image
       src={avatarSrc}
-      width={64}
-      height={64}
+      width={40}
+      height={40}
       alt="Avatar"
       className="rounded-full"
       unoptimized // nécessaire pour les SVG externes
