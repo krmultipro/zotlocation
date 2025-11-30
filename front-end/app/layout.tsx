@@ -29,7 +29,10 @@ export default function Layout({
         <RegisterModal />
         <LoginModal />
         <Navbar />
+        <main className="pt-32">
+        <Categories />
         {children}
+        </main>
       </body>
     </html>
   )
