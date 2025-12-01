@@ -5,6 +5,7 @@ import { useState } from "react"
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form"
 import toast from "react-hot-toast"
 
+import { useUser } from "@/app/context/UserProvider"
 import useLoginModal from "@/app/hooks/useLoginModal"
 import useRegisterModal from "@/app/hooks/useRegisterModal"
 
@@ -21,6 +22,7 @@ const LoginModal = () => {
   const router = useRouter()
   const registerModal = useRegisterModal()
   const loginModal = useLoginModal()
+  const { refreshUser } = useUser() // Hook global
 
   const [isLoading, setIsLoading] = useState(false)
 
@@ -43,7 +45,6 @@ const LoginModal = () => {
 
   const onSubmit: SubmitHandler<FieldValues> = async (data) => {
     setIsLoading(true)
-
     try {
       const response = await axios.post(SYMFONY_LOGIN_CHECK_URL, data, {
         headers: { "Content-Type": "application/json" },
@@ -51,30 +52,25 @@ const LoginModal = () => {
 
       const token = response.data.token
 
-      if (token) {
-        localStorage.setItem("jwtToken", token)
+      if (!token) throw new Error("Token JWT non reçu.")
 
-        toast.success("Connexion réussie ! Bienvenue sur ZotLocation.", {
-          duration: 4000,
-        })
+      // Stocke le token et déclenche le refresh du provider
+      localStorage.setItem("jwtToken", token)
+      refreshUser() // 🔥 met à jour UserProvider immédiatement
 
-        reset()
-        loginModal.onClose()
-        router.refresh()
-      } else {
-        throw new Error("Token JWT non reçu.")
-      }
+      toast.success("Connexion réussie ! Bienvenue sur ZotLocation.", {
+        duration: 4000,
+      })
+
+      reset()
+      loginModal.onClose()
     } catch (error) {
       let message = "Une erreur est survenue lors de la connexion."
-
       if (axios.isAxiosError(error) && error.response) {
-        if (error.response.status === 401) {
-          message = "Identifiants invalides."
-        } else if (error.response.data?.detail) {
+        if (error.response.status === 401) message = "Identifiants invalides."
+        else if (error.response.data?.detail)
           message = error.response.data.detail
-        }
       }
-
       toast.error(message)
     } finally {
       setIsLoading(false)
@@ -138,7 +134,6 @@ const LoginModal = () => {
                 label={isLoading ? "Connexion en cours..." : "Connexion"}
                 type="submit"
               />
-
               <div className="text-neutral-500 text-center mt-4 font-light">
                 <p>
                   Première fois sur notre plateforme ?
