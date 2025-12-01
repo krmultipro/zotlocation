@@ -3,6 +3,12 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;  
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use App\Repository\CategoryRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -12,8 +18,26 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
 #[ORM\Table(name: 'category')]
 #[ApiResource(
-    normalizationContext: ['groups' => ['category:read']],
-    denormalizationContext: ['groups' => ['category:write']]
+    normalizationContext: ['groups' => ['category:read']], // Groupes pour la lecture (GET)
+    denormalizationContext: ['groups' => ['category:write']]     // Définition des groupes de sérialisation pour un meilleur contrôle
+// Groupes pour l'écriture (POST/PUT/PATCH)
+    operations: [
+        // Route pour obtenir la collection (GET /api/categories)
+        new GetCollection(normalizationContext: ['groups' => ['category:read']]),
+        // Route pour obtenir un élément spécifique (GET /api/categories/{id})
+        new Get(),
+        // Route pour obtenir la collection (GET /api/categories)
+        new Get(uriTemplate: '/categories'),
+        // Route pour créer un nouvel élément (POST /api/categories)
+        new Post(),
+        // Route pour remplacer un élément existant (PUT /api/categories/{id})
+        new Put(),
+        // Route pour modifier partiellement un élément (PATCH /api/categories/{id})
+        new Patch(),
+        // Route pour supprimer un élément (DELETE /api/categories/{id})
+        new Delete(),
+    ],
+
 )]
 class Category
 {
