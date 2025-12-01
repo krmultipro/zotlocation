@@ -72,7 +72,7 @@ export default function Categories() {
   const [loading, setLoading] = useState(true);
 
   // URL de l'API depuis les variables d'environnement
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ;
 
   /**
    * Récupération des catégories depuis l'API au montage du composant
