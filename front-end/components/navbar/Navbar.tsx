@@ -1,7 +1,6 @@
 "use client"
 import Container from "../Container"
 import ListingsGrid from "../ListingsGrid"
-
 import Logo from "./Logo"
 import Search from "./Search"
 import UserMenu from "./UserMenu"

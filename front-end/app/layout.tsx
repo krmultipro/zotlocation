@@ -25,7 +25,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <RegisterModal />
           <LoginModal />
           <Navbar />
-          {children}
+          <div className="pt-32">
+            {" "}
+            {/* Ajouter un padding-top pour compenser la Navbar */}
+            {children}
+          </div>
         </Providers>
       </body>
     </html>
