@@ -5,6 +5,7 @@ namespace App\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;  
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
@@ -19,6 +20,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiResource(
 
     operations: [
+        // Route pour obtenir la collection (GET /api/categories)
+        new GetCollection(normalizationContext: ['groups' => ['category:read']]),
         // Route pour obtenir un élément spécifique (GET /api/categories/{id})
         new Get(),
         // Route pour obtenir la collection (GET /api/categories)
