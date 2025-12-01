@@ -6,14 +6,13 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\User;
-use App\Entity\Profile; // 💡 Import de l'entité Profile
+use App\Entity\Profile;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 class UserPasswordHasher implements ProcessorInterface
 {
     public function __construct(
-        // On injecte le processeur Doctrine par défaut pour la persistance réelle
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private ProcessorInterface $persistProcessor,
         private UserPasswordHasherInterface $passwordHasher
@@ -21,54 +20,43 @@ class UserPasswordHasher implements ProcessorInterface
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        // On s'assure que nous traitons bien un objet User
+        // Si ce n'est pas un User, on délègue directement
         if (!$data instanceof User) {
             return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
         }
 
-        // ----------------------------------------------------
-        // 1. LOGIQUE DE RÔLE & CRÉATION DE PROFIL (POST uniquement)
-        // ----------------------------------------------------
+        // Gestion des rôles et création du profil à l'inscription
         if ($operation instanceof Post) {
-            // A. Gestion des Rôles
-            $roles = ['ROLE_USER']; // Rôle de base pour tous les utilisateurs
-
-            // Si le champ virtuel isOwner est vrai, on ajoute le rôle
+            $roles = ['ROLE_USER'];
             if ($data->getIsOwner() === true) {
                 $roles[] = 'ROLE_PROPRIETAIRE';
                 $roles[] = 'ROLE_ADMIN';
             }
             $data->setRoles(array_unique($roles));
 
-            // NOUVEAU : Création et Liaison du Profil
-            $profile = new Profile();
-
-            // Initialisation du nom complet du profil (utilisez le nom de l'utilisateur pour une valeur par défaut)
-            $profile->setFullName($data->getName() ?? '');
-
-            // Lier l'objet Profile à l'objet User.
-            // Grâce à la cascade: ['persist'] dans l'entité User, le Profile sera persisté automatiquement.
-            $data->setProfile($profile);
+            // Crée un profil si absent
+            if (!$data->getProfile()) {
+                $profile = new Profile();
+                $profile->setFullName($data->getName() ?? '');
+                $data->setProfile($profile);
+            }
         }
 
-        // ----------------------------------------------------
-        // LOGIQUE DE HACHAGE : Appliquée si un mot de passe en clair est fourni
-        // ----------------------------------------------------
+        // Hachage du mot de passe si fourni
         if ($data->getPlainPassword()) {
-            // Hachage du mot de passe
-            $hashedPassword = $this->passwordHasher->hashPassword(
-                $data,
-                $data->getPlainPassword()
+            $data->setPassword(
+                $this->passwordHasher->hashPassword($data, $data->getPlainPassword())
             );
-            $data->setPassword($hashedPassword);
         }
-
-        // Nettoyage du mot de passe en clair (sécurité)
         $data->eraseCredentials();
 
-        // ----------------------------------------------------
-        // 3. PERSISTANCE : On appelle le processeur par défaut pour sauvegarder en BDD
-        // ----------------------------------------------------
+        // Avatar : si c'est une URL valide, on la stocke directement
+        $avatar = $data->getAvatar();
+        if ($avatar && filter_var($avatar, FILTER_VALIDATE_URL) === false) {
+            // Si ce n'est pas une URL valide, on peut l'ignorer ou lever une exception
+            $data->setAvatar(null);
+        }
+
         return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
     }
 }

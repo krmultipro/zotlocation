@@ -18,7 +18,9 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
 #[ORM\Table(name: 'category')]
 #[ApiResource(
-
+    normalizationContext: ['groups' => ['category:read']], // Groupes pour la lecture (GET)
+    denormalizationContext: ['groups' => ['category:write']]     // Définition des groupes de sérialisation pour un meilleur contrôle
+// Groupes pour l'écriture (POST/PUT/PATCH)
     operations: [
         // Route pour obtenir la collection (GET /api/categories)
         new GetCollection(normalizationContext: ['groups' => ['category:read']]),
@@ -36,16 +38,13 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new Delete(),
     ],
 
-    // Définition des groupes de sérialisation pour un meilleur contrôle
-    normalizationContext: ['groups' => ['category:read']], // Groupes pour la lecture (GET)
-    denormalizationContext: ['groups' => ['category:write']] // Groupes pour l'écriture (POST/PUT/PATCH)
 )]
 class Category
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['category:read'])]
+    #[Groups(['category:read', 'listing:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
@@ -55,8 +54,11 @@ class Category
     /**
      * @var Collection<int, Listing>
      */
-    #[ORM\OneToMany(targetEntity: Listing::class, mappedBy: 'category', orphanRemoval: true)]
-
+    #[ORM\OneToMany(
+        targetEntity: Listing::class,
+        mappedBy: 'category',
+        orphanRemoval: true
+    )]
     private Collection $listings;
 
     public function __construct()
@@ -77,7 +79,6 @@ class Category
     public function setName(string $name): static
     {
         $this->name = $name;
-
         return $this;
     }
 

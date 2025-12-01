@@ -10,7 +10,7 @@ use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Repository\UserRepository;
-use App\State\UserPasswordHasher; //  Import du Processeur
+use App\State\UserPasswordHasher;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -24,14 +24,12 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     operations: [
         new GetCollection(security: "is_granted('ROLE_ADMIN')"),
-        //  POST: Utilise le Processeur pour hacher le mot de passe et définir le rôle
         new Post(processor: UserPasswordHasher::class, validationContext: ['groups' => ['Default', 'user:create']]),
         new Get(security: "is_granted('ROLE_ADMIN') or object == user"),
         new Put(processor: UserPasswordHasher::class, security: "object == user"),
         new Patch(processor: UserPasswordHasher::class, security: "object == user"),
         new Delete(security: "is_granted('ROLE_ADMIN') or object == user"),
     ],
-    // Configuration des groupes
     normalizationContext: ['groups' => ['user:read']],
     denormalizationContext: ['groups' => ['user:create', 'user:update']],
 )]
@@ -54,15 +52,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $email = null;
 
     #[ORM\Column(length: 255)]
-    //  PAS DE GROUPE : Le hash ne doit jamais sortir
     private ?string $password = null;
 
-    //  CHAMP VIRTUEL : Mot de passe en clair pour l'écriture (non stocké en BDD)
     #[Groups(['user:create', 'user:update'])]
-    #[Assert\NotBlank(groups: ['user:create'])] // Requis à la création
+    #[Assert\NotBlank(groups: ['user:create'])]
     private ?string $plainPassword = null;
 
-    // CHAMP VIRTUEL : Booléen pour le rôle de propriétaire (non stocké en BDD)
     #[Groups(['user:create'])]
     private ?bool $isOwner = false;
 
@@ -72,6 +67,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['user:read', 'user:create', 'user:update'])]
+    #[Assert\Url(
+        protocols: ['http', 'https'],
+        message: 'Veuillez fournir une URL valide pour l\'avatar.'
+    )]
     private ?string $avatar = null;
 
     /**
@@ -122,8 +121,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->id;
     }
 
-   // INTERFACES DE SÉCURITÉ SYMFONY
-
     public function getRoles(): array
     {
         $roles = $this->roles;
@@ -148,25 +145,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * @see UserInterface
-     */
     public function eraseCredentials(): void
     {
         $this->plainPassword = null;
     }
 
-    /**
-     * @see UserInterface
-     */
     public function getUserIdentifier(): string
     {
         return (string) $this->email;
     }
 
-    //  GETTERS & SETTERS DES CHAMPS VIRTUELS
-
-    //  Plain Password Getter/Setter
     public function getPlainPassword(): ?string
     {
         return $this->plainPassword;
@@ -178,7 +166,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    // IsOwner Getter/Setter
     public function getIsOwner(): ?bool
     {
         return $this->isOwner;
@@ -189,8 +176,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->isOwner = $isOwner;
         return $this;
     }
-
-    // GETTERS & SETTERS DES PROPRIÉTÉS CLASSIQUES
 
     public function getName(): ?string
     {
@@ -221,17 +206,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function setAvatar(?string $avatar): static
     {
+        if ($avatar && !filter_var($avatar, FILTER_VALIDATE_URL)) {
+            throw new \InvalidArgumentException('L\'avatar doit être une URL valide.');
+        }
         $this->avatar = $avatar;
         return $this;
     }
-
-    //  GETTERS & SETTERS DES RELATIONS (Méthodes d'ajout/suppression)
 
     public function getListings(): Collection
     {
         return $this->listings;
     }
-    // (Ajout des méthodes add/remove pour toutes les collections)
 
     public function getProfile(): ?Profile
     {
@@ -247,9 +232,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * @return Collection<int, Favorite>
-     */
     public function getFavoritesUser(): Collection
     {
         return $this->favoritesUser;
@@ -261,7 +243,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $this->favoritesUser->add($favoritesUser);
             $favoritesUser->setFavoriteUser($this);
         }
-
         return $this;
     }
 
@@ -272,7 +253,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
                 $favoritesUser->setFavoriteUser(null);
             }
         }
-
         return $this;
     }
 }

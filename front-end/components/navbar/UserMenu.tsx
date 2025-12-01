@@ -1,17 +1,18 @@
 "use client"
 
-import useCurrentUser from "@/app/hooks/useCurrentUser"
+import { useUser } from "@/app/context/UserProvider"
 import useLoginModal from "@/app/hooks/useLoginModal"
 import useRegisterModal from "@/app/hooks/useRegisterModal"
 import { useCallback, useState } from "react"
 import { AiOutlineMenu } from "react-icons/ai"
+
 import Avatar from "../Avatar"
 import MenuItem from "./MenuItem"
 
 const UserMenu = () => {
   const loginModal = useLoginModal()
   const registerModal = useRegisterModal()
-  const { user, isLoading } = useCurrentUser()
+  const { user, isLoading, refreshUser } = useUser() // 🔥 Hook global
 
   const [isOpen, setIsOpen] = useState(false)
   const toggleOpen = useCallback(() => setIsOpen((prev) => !prev), [])
@@ -29,8 +30,8 @@ const UserMenu = () => {
   const handleLogoutClick = useCallback(() => {
     setIsOpen(false)
     localStorage.removeItem("jwtToken")
-    window.location.reload()
-  }, [])
+    refreshUser() // 🔥 Déconnexion immédiate
+  }, [refreshUser])
 
   if (isLoading) {
     return (
@@ -52,12 +53,10 @@ const UserMenu = () => {
 
   return (
     <div className="relative flex items-center gap-3">
-      {/* Nom affiché après connexion, ou "Mon compte" si non connecté */}
       <div className="hidden md:block text-sm font-semibold py-3 px-4 rounded-full hover:bg-neutral-100 transition cursor-default">
         {user ? `Bienvenue, ${user.name}` : "Mon compte"}
       </div>
 
-      {/* Burger menu qui déclenche l'ouverture des onglets */}
       <div
         onClick={toggleOpen}
         className="p-4 md:py-1 md:px-2 border border-neutral-200 flex flex-row items-center gap-3 rounded-full cursor-pointer hover:shadow-md transition"
@@ -68,7 +67,6 @@ const UserMenu = () => {
         </div>
       </div>
 
-      {/* Menu déroulant */}
       {isOpen && (
         <div className="absolute rounded-xl shadow-md w-[40vw] md:w-3/4 bg-white overflow-hidden right-0 top-12 text-sm z-50">
           <div className="flex flex-col cursor-pointer">
