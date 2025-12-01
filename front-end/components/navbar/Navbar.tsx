@@ -1,4 +1,5 @@
 "use client"
+import Categories from "../Categories"
 import Container from "../Container"
 import ListingsGrid from "../ListingsGrid"
 import Logo from "./Logo"
@@ -15,6 +16,7 @@ const Navbar = () => {
             <Search />
             <UserMenu />
           </div>
+          <Categories />
           <ListingsGrid />
         </Container>
       </div>
