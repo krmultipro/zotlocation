@@ -1,6 +1,5 @@
 import { Providers } from "@/app/context/Provider"
 import LoginModal from "@/components/modals/LoginModal"
-
 import RegisterModal from "@/components/modals/RegisterModal"
 import Navbar from "@/components/navbar/Navbar"
 import type { Metadata } from "next"
@@ -27,11 +26,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <LoginModal />
           <Navbar />
           <div className="pt-32">
-            {" "}
             {/* Ajouter un padding-top pour compenser la Navbar */}
             {children}
           </div>
-          {children}
         </Providers>
       </body>
     </html>
