@@ -1,5 +1,5 @@
-// app/page.tsx
+"use client"
 
 export default function Home() {
-  return <div className="pb-20"></div>
+  return <div className="pt-32"></div>
 }
