@@ -20,7 +20,6 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiResource(
     normalizationContext: ['groups' => ['category:read']], // Groupes pour la lecture (GET)
     denormalizationContext: ['groups' => ['category:write']],     // Définition des groupes de sérialisation pour un meilleur contrôle
-// Groupes pour l'écriture (POST/PUT/PATCH)
     operations: [
         // Route pour obtenir la collection (GET /api/categories)
         new GetCollection(normalizationContext: ['groups' => ['category:read']]),
