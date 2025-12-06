@@ -54,8 +54,7 @@ security:
         # Login
         - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
 
-        # Routes publiques sans authentification
-
+        # Routes publiques sans authentification (GET seulement)
         - { path: ^/api/listings, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/categories, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/options, roles: PUBLIC_ACCESS, methods: [GET] }
@@ -67,5 +66,9 @@ security:
         # Inscription
         - { path: ^/api/users, methods: [POST], roles: PUBLIC_ACCESS }
 
-        # 🔥 Tout le reste nécessite un JWT
+        # 🚨 CORRECTION CRITIQUE : Les favoris nécessitent l'authentification 🚨
+        # Ceci garantit que toutes les requêtes (GET/POST/DELETE) sur les favoris sont sécurisées
+        - { path: ^/api/favorites, roles: IS_AUTHENTICATED_FULLY }
+
+        # 🔥 Tout le reste nécessite un JWT (Maintenant, pour les routes non-spécifiées)
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }

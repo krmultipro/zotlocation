@@ -7,26 +7,26 @@ use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
+// ⚠️ ApiProperty n'est plus nécessaire ici
 use App\Repository\FavoriteRepository;
-use App\State\FavoriteUserProcessor; // 💡 PROCESSEUR NÉCESSAIRE (à créer)
+use App\State\FavoriteUserProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity; // 💡 Pour éviter les doublons
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: FavoriteRepository::class)]
-// 💡 Assurance que la combinaison (User, Listing) est unique
 #[UniqueEntity(
     fields: ['favoriteUser', 'listing'],
     message: "Cette annonce est déjà dans vos favoris."
 )]
 #[ApiResource(
     operations: [
-        // GET Collection : Lister MES favoris (filtré)
+        // GET Collection : Lister MES favoris
         new GetCollection(
             security: "is_granted('ROLE_USER')",
-            normalizationContext: ['groups' => ['favorite:read']]
-            // Un Filtre Doctrine sera nécessaire pour n'afficher que les favoris de l'utilisateur connecté
+            // ✅ CORRECTION : Le groupe est injecté ici, ce qui fonctionne bien
+            normalizationContext: ['groups' => ['favorite:read', 'listing:card:read']]
         ),
 
         // GET Item : Lire un favori spécifique (si c'est le sien)
@@ -37,7 +37,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity; // 💡 Pour év
 
         // POST : Ajouter un favori (utilisateur connecté)
         new Post(
-            processor: FavoriteUserProcessor::class, //  Définit favoriteUser = utilisateur connecté
+            processor: FavoriteUserProcessor::class,
             security: "is_granted('ROLE_USER')",
             denormalizationContext: ['groups' => ['favorite:create']]
         ),
@@ -45,7 +45,6 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity; // 💡 Pour év
         // DELETE : Retirer des favoris (si c'est le sien)
         new Delete(security: "object.getFavoriteUser() == user"),
     ],
-    // Groupes de sérialisation par défaut
     normalizationContext: ['groups' => ['favorite:read']],
 )]
 class Favorite
@@ -60,12 +59,12 @@ class Favorite
     #[ORM\ManyToOne(inversedBy: 'favoritesUser')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['favorite:read', 'listing:item:read'])]
-    // 💡 PAS DANS 'favorite:create' : Défini par le processeur pour la sécurité
     private ?User $favoriteUser = null;
 
     // L'annonce mise en favori
     #[ORM\ManyToOne(inversedBy: 'favoriteListings')]
     #[ORM\JoinColumn(nullable: false)]
+    // ✅ MODIFICATION : Suppression de l'attribut ApiProperty
     #[Groups(['favorite:read', 'favorite:create', 'user:read'])]
     #[Assert\NotNull]
     private ?Listing $listing = null; // URI du listing fournie par l'utilisateur

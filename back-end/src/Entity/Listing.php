@@ -63,11 +63,11 @@ class Listing
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['listing:read', 'booking:read', 'review:read'])]
+    #[Groups(['listing:read', 'booking:read', 'review:read', 'listing:card:read'])] // 💡 AJOUT
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['listing:read', 'listing:create', 'listing:update'])]
+    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read'])] // 💡 AJOUT
     #[Assert\NotBlank]
     private ?string $title = null;
 
@@ -77,12 +77,12 @@ class Listing
     private ?string $description = null;
 
     #[ORM\Column]
-    #[Groups(['listing:read', 'listing:create', 'listing:update'])]
+    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read'])] // 💡 AJOUT
     #[Assert\PositiveOrZero]
     private ?float $pricePerNight = null;
 
     #[ORM\Column]
-    #[Groups(['listing:read', 'listing:create', 'listing:update'])]
+    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read'])] // 💡 AJOUT
     #[Assert\Positive]
     private ?int $capacity = null;
 
@@ -95,7 +95,7 @@ class Listing
     // Relation ManyToOne avec Category
     #[ORM\ManyToOne(inversedBy: 'listings')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['listing:read', 'listing:create', 'listing:update'])]
+    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read'])] // 💡 AJOUT
     #[Assert\NotNull]
     private ?Category $category = null;
 
@@ -110,7 +110,7 @@ class Listing
      * @var Collection<int, Image>
      */
     #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'listing', cascade: ['persist'], orphanRemoval: true)]
-    #[Groups(['listing:read', 'listing:item:read', 'listing:create'])]
+    #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:card:read'])] // 💡 AJOUT
     // OBLIGATOIRE : Au moins une image
     #[Assert\Count(
         min: 1,
