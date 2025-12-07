@@ -50,7 +50,7 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
       try {
         // Définir l'URL de base (doit être https://localhost:8000 dans .env.local)
         const baseApiUrl =
-          process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
+          process.env.NEXT_PUBLIC_API_URL 
 
         // Construire le chemin complet de l'endpoint pour les listings
         const endpoint = `${baseApiUrl}/api/listings`
@@ -75,7 +75,7 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
 
         // Afficher l'URL d'appel pour le débuggage
         const debugUrl = `${
-          process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
+          process.env.NEXT_PUBLIC_API_URL 
         }/api/listings`
         setError(
           `Erreur lors de la récupération des annonces. Veuillez vérifier la console et l'URL : ${debugUrl}`
