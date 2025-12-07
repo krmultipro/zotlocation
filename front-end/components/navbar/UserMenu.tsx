@@ -6,15 +6,18 @@ import useRegisterModal from "@/app/hooks/useRegisterModal"
 import { useCallback, useState } from "react"
 import { AiOutlineMenu } from "react-icons/ai"
 
+import ModalAjoutAnnonce from "@/components/modals/ModalAjoutAnnonce"
 import Avatar from "../Avatar"
 import MenuItem from "./MenuItem"
 
 const UserMenu = () => {
   const loginModal = useLoginModal()
   const registerModal = useRegisterModal()
-  const { user, isLoading, refreshUser } = useUser() // 🔥 Hook global
+  const { user, isLoading, refreshUser } = useUser()
 
   const [isOpen, setIsOpen] = useState(false)
+  const [openModal, setOpenModal] = useState(false)
+
   const toggleOpen = useCallback(() => setIsOpen((prev) => !prev), [])
 
   const handleLoginClick = useCallback(() => {
@@ -30,7 +33,7 @@ const UserMenu = () => {
   const handleLogoutClick = useCallback(() => {
     setIsOpen(false)
     localStorage.removeItem("jwtToken")
-    refreshUser() // 🔥 Déconnexion immédiate
+    refreshUser()
   }, [refreshUser])
 
   if (isLoading) {
@@ -76,7 +79,13 @@ const UserMenu = () => {
                 <MenuItem onClick={() => {}} label="Mes réservations" />
                 <MenuItem onClick={() => {}} label="Mes favoris" />
                 {user.isOwner && (
-                  <MenuItem onClick={() => {}} label="Créer une annonce" />
+                  <MenuItem
+                    onClick={() => {
+                      setOpenModal(true) // ouvre la modale ici
+                      setIsOpen(false) // ferme le menu
+                    }}
+                    label="Créer une annonce"
+                  />
                 )}
                 <hr className="my-1 border-neutral-100" />
                 <MenuItem onClick={handleLogoutClick} label="Déconnexion" />
@@ -90,6 +99,9 @@ const UserMenu = () => {
           </div>
         </div>
       )}
+
+      {/* Modale */}
+      <ModalAjoutAnnonce open={openModal} onOpenChange={setOpenModal} />
     </div>
   )
 }

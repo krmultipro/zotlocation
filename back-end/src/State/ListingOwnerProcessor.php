@@ -3,7 +3,7 @@
 namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
-use ApiPlatform\Metadata\Post; //  Import nécessaire pour la vérification de l'opération POST
+use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Listing;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -18,27 +18,32 @@ class ListingOwnerProcessor implements ProcessorInterface
         private Security $security
     ) {}
 
+    /**
+     * @param mixed $data L'entité à traiter
+     * @param Operation $operation L'opération API Platform en cours
+     * @param array $uriVariables Les variables d'URI (optionnel)
+     * @param array $context Contexte supplémentaire (optionnel)
+     *
+     * @return mixed L'entité persistée
+     */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
+        // On ne traite que les objets Listing
         if (!$data instanceof Listing) {
             return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
         }
 
-        // 1. Récupération de l'utilisateur connecté
+        // Récupération de l'utilisateur connecté
         $user = $this->security->getUser();
 
-        // 2. Vérification de la création (POST)
-        // On vérifie si l'opération est une instance de la classe ApiPlatform\Metadata\Post
+        // Si c'est une création (POST) et que l'utilisateur est connecté
         if ($operation instanceof Post) {
-
-            // 3. Attribution de l'Owner si l'utilisateur est connecté et que l'owner n'est pas déjà défini
             if ($user instanceof UserInterface && $data->getOwner() === null) {
-                // 🚀 Attribution automatique de l'utilisateur connecté
-                $data->setOwner($user);
+                $data->setOwner($user); // Attribution automatique
             }
         }
 
-        // 4. Persistance des données
+        // Persistance de l'entité via le processeur standard
         return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
     }
 }

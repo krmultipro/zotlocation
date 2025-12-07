@@ -1,41 +1,108 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { FieldGroup, FieldSet, FieldLabel, FieldDescription, Field, FieldContent, FieldTitle, FieldLegend } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+  FieldTitle,
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import axios from "axios"
+import { useState } from "react"
 
-export default function ModalAjoutAnnonce() {
-  const [open, setOpen] = useState(false);
-    // État pour suivre le type de logement sélectionné
-    const [typeLogement, setTypeLogement] = useState<"maison" | "appartement">("maison");
+interface ModalAjoutAnnonceProps {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
 
+export default function ModalAjoutAnnonce({
+  open,
+  onOpenChange,
+}: ModalAjoutAnnonceProps) {
+  const [isOpen, setOpen] = useState(false)
+  const [typeLogement, setTypeLogement] = useState<"maison" | "appartement">(
+    "maison"
+  )
+  const [imageFile, setImageFile] = useState<File | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const form = e.target as HTMLFormElement
+    const formData = new FormData(form)
+
+    if (imageFile) {
+      formData.append("images[0][file]", imageFile) // API Platform attend un array pour images
+    }
+
+    try {
+      const token = localStorage.getItem("jwtToken")
+      await axios.post("https://localhost:8000/api/listings", formData, {
+        headers: {
+          // NE PAS définir Content-Type pour FormData
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      })
+
+      // Fermeture et reset
+      setOpen(false)
+      form.reset()
+      setImageFile(null)
+
+      // Refresh pour voir la nouvelle annonce
+      window.location.reload()
+    } catch (err: any) {
+      console.error(
+        "Erreur lors de la création :",
+        err.response?.data || err.message
+      )
+      alert("Erreur lors de la création de l'annonce")
+    }
+  }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Ajouter un logement</Button>
-      </DialogTrigger>
-      
+    <Dialog open={open ?? isOpen} onOpenChange={onOpenChange ?? setOpen}>
+      <DialogTrigger asChild></DialogTrigger>
+
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Ajouter votre logement !</DialogTitle>
         </DialogHeader>
-        
-        <form className="space-y-6">
+
+        <form className="space-y-6" onSubmit={handleSubmit}>
           {/* Type de logement */}
           <FieldGroup>
             <FieldSet>
               <FieldLabel>Que souhaitez-vous proposer ?</FieldLabel>
-              <RadioGroup defaultValue="maison"
-                                onValueChange={(value) => setTypeLogement(value as "maison" | "appartement")}
->
+              <RadioGroup
+                defaultValue="maison"
+                onValueChange={(value) =>
+                  setTypeLogement(value as "maison" | "appartement")
+                }
+              >
                 <FieldLabel htmlFor="maison">
                   <Field orientation="horizontal">
                     <FieldContent>
@@ -58,11 +125,12 @@ export default function ModalAjoutAnnonce() {
 
           {/* Titre */}
           <div className="grid gap-2">
-            <Label htmlFor="titre">Titre</Label>
+            <Label htmlFor="title">Titre</Label>
             <Input
-              id="titre"
+              id="title"
+              name="title"
               type="text"
-              placeholder="Magnifique maison en bord de mer"
+              placeholder="Magnifique villa à la Réunion"
               required
             />
           </div>
@@ -72,113 +140,120 @@ export default function ModalAjoutAnnonce() {
             <FieldLabel htmlFor="description">Description</FieldLabel>
             <Textarea
               id="description"
-              placeholder="Ex: Charmante villa face à la mer avec terrasse panoramique, accès direct à la plage, 3 chambres, jardin arboré..."
+              name="description"
+              placeholder="Ex: Villa luxueuse avec piscine, 3 chambres, vue imprenable sur l’océan..."
               rows={4}
+              required
             />
           </Field>
 
-            {/* Champs spécifiques à MAISON */}
-            {typeLogement === "maison" && (
-              <>
-                <div className="grid gap-2">
-                  <Label htmlFor="jardin">Taille du jardin (m²)</Label>
-                  <Input
-                    id="jardin"
-                    type="number"
-                    placeholder="200"
-                    min="0"
-                  />
-                </div>
+          {/* Maison */}
+          {typeLogement === "maison" && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="jardin">Taille du jardin (m²)</Label>
+                <Input
+                  id="jardin"
+                  name="jardin"
+                  type="number"
+                  placeholder="200"
+                  min="0"
+                />
+              </div>
 
-                <FieldGroup>
-                  <FieldSet>
-                    <FieldLabel>Garage</FieldLabel>
-                    <RadioGroup defaultValue="non">
-                      <FieldLabel htmlFor="garage-oui">
-                        <Field orientation="horizontal">
-                          <FieldContent>
-                            <FieldTitle>Oui</FieldTitle>
-                          </FieldContent>
-                          <RadioGroupItem value="oui" id="garage-oui" />
-                        </Field>
-                      </FieldLabel>
-                      <FieldLabel htmlFor="garage-non">
-                        <Field orientation="horizontal">
-                          <FieldContent>
-                            <FieldTitle>Non</FieldTitle>
-                          </FieldContent>
-                          <RadioGroupItem value="non" id="garage-non" />
-                        </Field>
-                      </FieldLabel>
-                    </RadioGroup>
-                  </FieldSet>
-                </FieldGroup>
-              </>
-            )}
+              <FieldGroup>
+                <FieldSet>
+                  <FieldLabel>Garage</FieldLabel>
+                  <RadioGroup defaultValue="non" name="garage">
+                    <FieldLabel htmlFor="garage-oui">
+                      <Field orientation="horizontal">
+                        <FieldContent>
+                          <FieldTitle>Oui</FieldTitle>
+                        </FieldContent>
+                        <RadioGroupItem value="oui" id="garage-oui" />
+                      </Field>
+                    </FieldLabel>
+                    <FieldLabel htmlFor="garage-non">
+                      <Field orientation="horizontal">
+                        <FieldContent>
+                          <FieldTitle>Non</FieldTitle>
+                        </FieldContent>
+                        <RadioGroupItem value="non" id="garage-non" />
+                      </Field>
+                    </FieldLabel>
+                  </RadioGroup>
+                </FieldSet>
+              </FieldGroup>
+            </>
+          )}
 
-       {/* Champs spécifiques à APPARTEMENT */}
-       {typeLogement === "appartement" && (
-              <>
-                <div className="grid gap-2">
-                  <Label htmlFor="pieces">Nombre de pièces</Label>
-                  <Input
-                    id="pieces"
-                    type="number"
-                    placeholder="3"
-                    min="1"
-                    required
-                  />
-                </div>
+          {/* Appartement */}
+          {typeLogement === "appartement" && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="pieces">Nombre de pièces</Label>
+                <Input
+                  id="pieces"
+                  name="pieces"
+                  type="number"
+                  placeholder="3"
+                  min="1"
+                  required
+                />
+              </div>
 
-                <FieldGroup>
-                  <FieldSet>
-                    <FieldLabel>Balcon</FieldLabel>
-                    <RadioGroup defaultValue="non">
-                      <FieldLabel htmlFor="balcon-oui">
-                        <Field orientation="horizontal">
-                          <FieldContent>
-                            <FieldTitle>Oui</FieldTitle>
-                          </FieldContent>
-                          <RadioGroupItem value="oui" id="balcon-oui" />
-                        </Field>
-                      </FieldLabel>
-                      <FieldLabel htmlFor="balcon-non">
-                        <Field orientation="horizontal">
-                          <FieldContent>
-                            <FieldTitle>Non</FieldTitle>
-                          </FieldContent>
-                          <RadioGroupItem value="non" id="balcon-non" />
-                        </Field>
-                      </FieldLabel>
-                    </RadioGroup>
-                  </FieldSet>
-                </FieldGroup>
-              </>
-            )}
+              <FieldGroup>
+                <FieldSet>
+                  <FieldLabel>Balcon</FieldLabel>
+                  <RadioGroup defaultValue="non" name="balcon">
+                    <FieldLabel htmlFor="balcon-oui">
+                      <Field orientation="horizontal">
+                        <FieldContent>
+                          <FieldTitle>Oui</FieldTitle>
+                        </FieldContent>
+                        <RadioGroupItem value="oui" id="balcon-oui" />
+                      </Field>
+                    </FieldLabel>
+                    <FieldLabel htmlFor="balcon-non">
+                      <Field orientation="horizontal">
+                        <FieldContent>
+                          <FieldTitle>Non</FieldTitle>
+                        </FieldContent>
+                        <RadioGroupItem value="non" id="balcon-non" />
+                      </Field>
+                    </FieldLabel>
+                  </RadioGroup>
+                </FieldSet>
+              </FieldGroup>
+            </>
+          )}
+
           {/* Prix */}
           <div className="grid gap-2">
-            <Label htmlFor="prix">Prix par nuit</Label>
+            <Label htmlFor="price">Prix par nuit</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                 €
               </span>
               <Input
-                id="prix"
+                id="price"
+                name="pricePerNight"
                 type="number"
                 placeholder="150"
                 min="0"
                 step="1"
-                required
                 className="pl-8"
+                required
               />
             </div>
           </div>
 
           {/* Capacité */}
           <div className="grid gap-2">
-            <Label htmlFor="capacite">Capacité (nombre de personnes)</Label>
+            <Label htmlFor="capacity">Capacité (nombre de personnes)</Label>
             <Input
-              id="capacite"
+              id="capacity"
+              name="capacity"
               type="number"
               placeholder="4"
               min="1"
@@ -190,7 +265,7 @@ export default function ModalAjoutAnnonce() {
           {/* Catégorie */}
           <Field>
             <FieldLabel>Catégorie</FieldLabel>
-            <Select>
+            <Select name="category">
               <SelectTrigger>
                 <SelectValue placeholder="Choisissez une catégorie" />
               </SelectTrigger>
@@ -208,7 +283,8 @@ export default function ModalAjoutAnnonce() {
               </SelectContent>
             </Select>
             <FieldDescription>
-              Sélectionnez la catégorie qui correspond le mieux à votre logement.
+              Sélectionnez la catégorie qui correspond le mieux à votre
+              logement.
             </FieldDescription>
           </Field>
 
@@ -220,25 +296,30 @@ export default function ModalAjoutAnnonce() {
               </FieldLegend>
               <FieldGroup className="flex flex-row flex-wrap gap-3">
                 <Field orientation="horizontal">
-                  <Checkbox id="wifi" defaultChecked />
+                  <Checkbox
+                    id="wifi"
+                    name="options[]"
+                    value="wifi"
+                    defaultChecked
+                  />
                   <FieldLabel htmlFor="wifi" className="font-normal">
                     WiFi
                   </FieldLabel>
                 </Field>
                 <Field orientation="horizontal">
-                  <Checkbox id="parking" />
+                  <Checkbox id="parking" name="options[]" value="parking" />
                   <FieldLabel htmlFor="parking" className="font-normal">
                     Parking
                   </FieldLabel>
                 </Field>
                 <Field orientation="horizontal">
-                  <Checkbox id="piscine" />
+                  <Checkbox id="piscine" name="options[]" value="piscine" />
                   <FieldLabel htmlFor="piscine" className="font-normal">
                     Piscine
                   </FieldLabel>
                 </Field>
                 <Field orientation="horizontal">
-                  <Checkbox id="clim" />
+                  <Checkbox id="clim" name="options[]" value="clim" />
                   <FieldLabel htmlFor="clim" className="font-normal">
                     Climatisation
                   </FieldLabel>
@@ -247,17 +328,35 @@ export default function ModalAjoutAnnonce() {
             </FieldSet>
           </FieldGroup>
 
+          {/* Image */}
+          <div className="grid gap-2">
+            <Label htmlFor="image">Image principale</Label>
+            <Input
+              type="file"
+              id="image"
+              accept="image/*"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  setImageFile(e.target.files[0])
+                }
+              }}
+              required
+            />
+          </div>
+
           {/* Boutons */}
           <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Annuler
             </Button>
-            <Button type="submit">
-              Ajouter le logement
-            </Button>
+            <Button type="submit">Ajouter le logement</Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
