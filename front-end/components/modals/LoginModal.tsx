@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
 import CustomButton from "../CustomButton"
 
-const SYMFONY_LOGIN_CHECK_URL = "https://127.0.0.1:8000/api/login_check"
+const SYMFONY_LOGIN_CHECK_URL = "http://127.0.0.1:8000/api/login_check"
 
 const LoginModal = () => {
   const router = useRouter()

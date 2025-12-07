@@ -10,30 +10,22 @@ use ApiPlatform\Metadata\Post;
 use App\Repository\ImageRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
-use Symfony\Component\Validator\Constraints as Assert; // 💡 NOUVEAU
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ImageRepository::class)]
 #[ORM\Table(name: 'image')]
 #[ApiResource(
-    // 💡 Exposition de l'entité à l'API
     operations: [
-        // GET (Lecture) : Accessible à tous
         new Get(normalizationContext: ['groups' => ['image:read']]),
         new GetCollection(normalizationContext: ['groups' => ['image:read']]),
-
-        // POST (Création) : SEULEMENT si l'utilisateur est 'ROLE_PROPRIETAIRE' ou ADMIN
         new Post(
             security: "is_granted('ROLE_PROPRIETAIRE')",
             denormalizationContext: ['groups' => ['image:create']]
         ),
-
-        // DELETE (Suppression) : SEULEMENT si l'utilisateur est le propriétaire du Listing associé ou ADMIN
         new Delete(
-            // Assure que l'utilisateur est l'owner du listing OU admin
             security: "is_granted('ROLE_ADMIN') or object.getListing().getOwner() == user"
         )
     ],
-    // Définition des groupes par défaut pour une meilleure cohérence
     normalizationContext: ['groups' => ['image:read']],
     denormalizationContext: ['groups' => ['image:write']],
 )]
@@ -42,21 +34,21 @@ class Image
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['image:read', 'listing:read'])] // L'ID est visible dans l'image et dans le Listing
+    #[Groups(['image:read', 'listing:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['image:read', 'image:create', 'listing:read', 'listing:create'])] // 💡 Ajout des groupes
-    #[Assert\NotBlank(message: "L'URL de l'image est obligatoire.")] // 💡 Validation
-    #[Assert\Url(message: "Ceci n'est pas une URL valide.")] // 💡 Validation
+    // 💡 CORRECTION : Ajout du groupe 'listing:card:read'
+    #[Groups(['image:read', 'image:create', 'listing:read', 'listing:create', 'listing:card:read'])]
+    #[Assert\NotBlank(message: "L'URL de l'image est obligatoire.")]
+    #[Assert\Url(message: "Ceci n'est pas une URL valide.")]
     private ?string $url = null;
 
     // Relation ManyToOne avec Listing
     #[ORM\ManyToOne(inversedBy: 'images')]
     #[ORM\JoinColumn(nullable: false)]
-    // 💡 L'URI du listing est requis lors de la création d'une image
     #[Groups(['image:create'])]
-    #[Assert\NotNull(message: "L'image doit être associée à un Listing.")] // 💡 Validation
+    #[Assert\NotNull(message: "L'image doit être associée à un Listing.")]
     private ?Listing $listing = null;
 
     // ... (Getters & Setters) ...
