@@ -1,6 +1,6 @@
+// app/layout.tsx
 import { Providers } from "@/app/context/Provider"
 import LoginModal from "@/components/modals/LoginModal"
-
 import RegisterModal from "@/components/modals/RegisterModal"
 import Navbar from "@/components/navbar/Navbar"
 import type { Metadata } from "next"
@@ -21,13 +21,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
       <body className={font.className}>
+        {/* Wrapper client */}
         <Providers>
           <Toaster position="top-center" reverseOrder={false} />
           <RegisterModal />
           <LoginModal />
           <Navbar />
 
-          {children}
+          {/* Contenu de la page */}
+          <div className="pt-32">{children}</div>
         </Providers>
       </body>
     </html>

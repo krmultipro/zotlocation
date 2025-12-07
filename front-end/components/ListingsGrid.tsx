@@ -15,22 +15,13 @@ interface Listing {
   pricePerNight: number
   capacity: number
   category: {
-    "@id": string
-    "@type": string
+    id: number
     name: string
   }
   owner: string
   images: Array<{
-    "@id": string
-    "@type": string
     id: number
     url: string
-  }>
-  options: Array<{
-    "@id": string
-    "@type": string
-    id: number
-    name: string
   }>
 }
 
@@ -40,7 +31,7 @@ interface ApiPlatformResponse {
 }
 
 interface ListingsGridProps {
-  categoryFilter?: string
+  categoryFilter?: string // ici c'est l'ID de la catégorie
 }
 
 export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
@@ -54,7 +45,6 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
       setError(null)
 
       try {
-        // Création d'un agent HTTPS pour ignorer les certificats auto-signés
         const agent = new https.Agent({ rejectUnauthorized: false })
 
         const response = await axios.get<ApiPlatformResponse>(
@@ -66,9 +56,7 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
 
         if (categoryFilter) {
           filteredListings = filteredListings.filter(
-            (listing) =>
-              listing.category?.name?.toLowerCase() ===
-              categoryFilter.toLowerCase()
+            (listing) => listing.category?.id === Number(categoryFilter) // filtrage par ID
           )
         }
 
@@ -119,7 +107,7 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
         <div className="py-20 text-center">
           <p className="text-gray-600 text-lg">
             {categoryFilter
-              ? `Aucune annonce disponible pour la catégorie "${categoryFilter}"`
+              ? `Aucune annonce disponible pour cette catégorie`
               : "Aucune annonce disponible pour le moment"}
           </p>
         </div>
