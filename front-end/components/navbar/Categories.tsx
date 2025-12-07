@@ -50,7 +50,7 @@ const Categories: React.FC = () => {
   const selectedCategoryId = params?.get("categoryId") || "all"
 
   useEffect(() => {
-    fetch("https://localhost:8000/api/categories")
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`)  
       .then((res) => res.json())
       .then((data) => setCategories(data.member || []))
       .catch((err) => console.error("Erreur récupération catégories :", err))

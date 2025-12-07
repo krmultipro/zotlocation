@@ -59,7 +59,7 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
         const params: Record<string, string> = {}
         if (categoryFilter) {
           // Filtrage API Platform standard
-          params["category.id"] = categoryFilter
+          params["category"] = `/api/categories/${categoryFilter}`
         }
 
         // Appel API correct, sans agent HTTPS côté client
