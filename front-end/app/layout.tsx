@@ -1,4 +1,5 @@
 // app/layout.tsx
+import { FavoritesProvider } from "@/app/context/FavoritesContext" // 💡 IMPORT DU PROVIDER
 import { Providers } from "@/app/context/Provider"
 import LoginModal from "@/components/modals/LoginModal"
 import RegisterModal from "@/components/modals/RegisterModal"
@@ -21,15 +22,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
       <body className={font.className}>
-        {/* Wrapper client */}
+        {/* Wrapper client principal */}
         <Providers>
-          <Toaster position="top-center" reverseOrder={false} />
-          <RegisterModal />
-          <LoginModal />
-          <Navbar />
+          {/* 💡 ENGLOBER L'APPLICATION AVEC LE CONTEXTE FAVORIS */}
+          <FavoritesProvider>
+            <Toaster position="top-center" reverseOrder={false} />
+            <RegisterModal />
+            <LoginModal />
+            <Navbar />
 
-          {/* Contenu de la page */}
-          <div className="pt-32">{children}</div>
+            {/* Contenu de la page */}
+            <div className="pt-32">{children}</div>
+          </FavoritesProvider>
         </Providers>
       </body>
     </html>

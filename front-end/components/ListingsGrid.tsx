@@ -4,9 +4,9 @@
 import Container from "@/components/Container"
 import ListingCard from "@/components/ListingCard"
 import axios from "axios"
-import https from "https"
 import { useEffect, useState } from "react"
 
+// Types
 interface Listing {
   "@id": string
   "@type": string
@@ -27,12 +27,14 @@ interface Listing {
 }
 
 interface ApiPlatformResponse {
-  member: Listing[]
-  totalItems: number
+  "hydra:member"?: Listing[]
+  member?: Listing[]
+  "hydra:totalItems"?: number
+  totalItems?: number
 }
 
 interface ListingsGridProps {
-  categoryFilter?: string // ici c'est l'ID de la catégorie
+  categoryFilter?: string
 }
 
 export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
@@ -46,25 +48,38 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
       setError(null)
 
       try {
-        const agent = new https.Agent({ rejectUnauthorized: false })
+        // Définir l'URL de base (doit être https://localhost:8000 dans .env.local)
+        const baseApiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
 
-        const response = await axios.get<ApiPlatformResponse>(
-          "https://localhost:8000/api/listings",
-          { httpsAgent: agent }
-        )
+        // Construire le chemin complet de l'endpoint pour les listings
+        const endpoint = `${baseApiUrl}/api/listings`
 
-        let filteredListings = response.data.member || []
-
+        // Construction des paramètres pour le filtrage côté SERVEUR
+        const params: Record<string, string> = {}
         if (categoryFilter) {
-          filteredListings = filteredListings.filter(
-            (listing) => listing.category?.id === Number(categoryFilter) // filtrage par ID
-          )
+          // Filtrage API Platform standard
+          params["category.id"] = categoryFilter
         }
 
-        setListings(filteredListings)
+        // Appel API correct, sans agent HTTPS côté client
+        const response = await axios.get<ApiPlatformResponse>(endpoint, {
+          params,
+        })
+
+        const data = response.data["hydra:member"] || response.data.member || []
+
+        setListings(data)
       } catch (err: any) {
         console.error("Erreur lors du chargement des listings:", err)
-        setError(err.message || "Erreur inconnue")
+
+        // Afficher l'URL d'appel pour le débuggage
+        const debugUrl = `${
+          process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
+        }/api/listings`
+        setError(
+          `Erreur lors de la récupération des annonces. Veuillez vérifier la console et l'URL : ${debugUrl}`
+        )
       } finally {
         setLoading(false)
       }
@@ -72,6 +87,8 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
 
     fetchListings()
   }, [categoryFilter])
+
+  // --- Affichage de l'état de chargement (Squelette) ---
 
   if (loading) {
     return (
@@ -89,18 +106,22 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
     )
   }
 
+  // --- Affichage de l'état d'erreur ---
+
   if (error) {
     return (
       <Container>
         <div className="py-20 text-center">
           <p className="text-red-500 text-lg">Erreur : {error}</p>
           <p className="text-gray-600 mt-2">
-            Vérifiez que le serveur backend est démarré
+            Vérifiez que le serveur backend est démarré et accessible.
           </p>
         </div>
       </Container>
     )
   }
+
+  // --- Affichage de l'état vide ---
 
   if (listings.length === 0) {
     return (
@@ -116,6 +137,8 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
     )
   }
 
+  // --- Affichage de la grille d'annonces ---
+
   return (
     <Container>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 py-8">
@@ -126,7 +149,8 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
             title={listing.title}
             pricePerNight={listing.pricePerNight}
             capacity={listing.capacity}
-            category={listing.category.name}
+            // Chaînage optionnel sécurisé
+            category={listing.category?.name || "Non spécifiée"}
             imageUrl={listing.images?.[0]?.url || "/images/placeholder.png"}
           />
         ))}

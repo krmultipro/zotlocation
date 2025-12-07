@@ -3,6 +3,7 @@
 import { useUser } from "@/app/context/UserProvider"
 import useLoginModal from "@/app/hooks/useLoginModal"
 import useRegisterModal from "@/app/hooks/useRegisterModal"
+import { useRouter } from "next/navigation" // 💡 IMPORT NÉCESSAIRE POUR LA NAVIGATION
 import { useCallback, useState } from "react"
 import { AiOutlineMenu } from "react-icons/ai"
 
@@ -11,6 +12,7 @@ import Avatar from "../Avatar"
 import MenuItem from "./MenuItem"
 
 const UserMenu = () => {
+  const router = useRouter() // 💡 INITIALISATION DU HOOK ROUTER
   const loginModal = useLoginModal()
   const registerModal = useRegisterModal()
   const { user, isLoading, refreshUser } = useUser()
@@ -35,6 +37,18 @@ const UserMenu = () => {
     localStorage.removeItem("jwtToken")
     refreshUser()
   }, [refreshUser])
+
+  // 💡 NOUVEAU HANDLER POUR LA NAVIGATION VERS LE DASHBOARD
+  const handleDashboardClick = useCallback(() => {
+    setIsOpen(false)
+    router.push("/dashboard")
+  }, [router])
+
+  // 💡 NOUVEAU HANDLER POUR LA NAVIGATION VERS LES FAVORIS
+  const handleFavoritesClick = useCallback(() => {
+    setIsOpen(false)
+    router.push("/dashboard/favoris")
+  }, [router])
 
   if (isLoading) {
     return (
@@ -75,9 +89,14 @@ const UserMenu = () => {
           <div className="flex flex-col cursor-pointer">
             {user ? (
               <>
-                <MenuItem onClick={() => {}} label="Tableau de bord" />
+                {/* Utilise le nouveau handler */}
+                <MenuItem
+                  onClick={handleDashboardClick}
+                  label="Tableau de bord"
+                />
                 <MenuItem onClick={() => {}} label="Mes réservations" />
-                <MenuItem onClick={() => {}} label="Mes favoris" />
+                {/* Utilise le nouveau handler pour naviguer vers /dashboard/favoris */}
+                <MenuItem onClick={handleFavoritesClick} label="Mes favoris" />
                 {user.isOwner && (
                   <MenuItem
                     onClick={() => {
