@@ -7,7 +7,6 @@ use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
-// ⚠️ ApiProperty n'est plus nécessaire ici
 use App\Repository\FavoriteRepository;
 use App\State\FavoriteUserProcessor;
 use Doctrine\ORM\Mapping as ORM;
@@ -16,16 +15,26 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: FavoriteRepository::class)]
+
+// 1. Validation Logicielle (Renvoie un message d'erreur 422 propre)
 #[UniqueEntity(
     fields: ['favoriteUser', 'listing'],
-    message: "Cette annonce est déjà dans vos favoris."
+    message: "Cette annonce est déjà dans vos favoris.",
+    errorPath: 'listing'
 )]
+
+// 2. Sécurité Base de Données (Bloque physiquement l'insertion de doublons)
+#[ORM\UniqueConstraint(
+    name: 'UNIQ_FAVORITE_USER_LISTING',
+    columns: ['favorite_user_id', 'listing_id']
+)]
+
 #[ApiResource(
     operations: [
         // GET Collection : Lister MES favoris
         new GetCollection(
             security: "is_granted('ROLE_USER')",
-            // ✅ CORRECTION : Le groupe est injecté ici, ce qui fonctionne bien
+            // On inclut 'listing:card:read' pour avoir l'image et le titre de l'annonce
             normalizationContext: ['groups' => ['favorite:read', 'listing:card:read']]
         ),
 
@@ -64,7 +73,6 @@ class Favorite
     // L'annonce mise en favori
     #[ORM\ManyToOne(inversedBy: 'favoriteListings')]
     #[ORM\JoinColumn(nullable: false)]
-    // ✅ MODIFICATION : Suppression de l'attribut ApiProperty
     #[Groups(['favorite:read', 'favorite:create', 'user:read'])]
     #[Assert\NotNull]
     private ?Listing $listing = null; // URI du listing fournie par l'utilisateur

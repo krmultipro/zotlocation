@@ -3,41 +3,24 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;  
-use ApiPlatform\Metadata\Patch;
-use ApiPlatform\Metadata\Post;
-use ApiPlatform\Metadata\Put;
+use ApiPlatform\Metadata\GetCollection;
 use App\Repository\CategoryRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
-#[ORM\Table(name: 'category')]
 #[ApiResource(
-    normalizationContext: ['groups' => ['category:read']], // Groupes pour la lecture (GET)
-    denormalizationContext: ['groups' => ['category:write']],     // Définition des groupes de sérialisation pour un meilleur contrôle
-
     operations: [
-        // Route pour obtenir la collection (GET /api/categories)
+        // GET Collection : Lister les catégories (pour le filtre de recherche par ex)
         new GetCollection(normalizationContext: ['groups' => ['category:read']]),
-        // Route pour obtenir un élément spécifique (GET /api/categories/{id})
-        new Get(),
-        // Route pour obtenir la collection (GET /api/categories)
-        new Get(uriTemplate: '/categories'),
-        // Route pour créer un nouvel élément (POST /api/categories)
-        new Post(),
-        // Route pour remplacer un élément existant (PUT /api/categories/{id})
-        new Put(),
-        // Route pour modifier partiellement un élément (PATCH /api/categories/{id})
-        new Patch(),
-        // Route pour supprimer un élément (DELETE /api/categories/{id})
-        new Delete(),
-    ],
 
+        // GET Item : Voir une catégorie spécifique
+        new Get(normalizationContext: ['groups' => ['category:read']]),
+    ]
 )]
 class Category
 {
@@ -48,17 +31,17 @@ class Category
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['category:read', 'category:write', 'listing:read'])]
+    // Cela permet à l'entité Favorite (qui utilise ce groupe) de lire le nom de la catégorie
+    #[Groups(['category:read', 'listing:read', 'listing:create', 'listing:update', 'listing:card:read'])]
+    #[Assert\NotBlank]
     private ?string $name = null;
 
-    /**
-     * @var Collection<int, Listing>
-     */
-    #[ORM\OneToMany(
-        targetEntity: Listing::class,
-        mappedBy: 'category',
-        orphanRemoval: true
-    )]
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['category:read', 'listing:read', 'listing:card:read'])]
+    private ?string $description = null;
+
+    // Relation avec Listing (Une catégorie a plusieurs annonces)
+    #[ORM\OneToMany(mappedBy: 'category', targetEntity: Listing::class)]
     private Collection $listings;
 
     public function __construct()
@@ -79,6 +62,19 @@ class Category
     public function setName(string $name): static
     {
         $this->name = $name;
+
+        return $this;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): static
+    {
+        $this->description = $description;
+
         return $this;
     }
 
@@ -94,9 +90,7 @@ class Category
     {
         if (!$this->listings->contains($listing)) {
             $this->listings->add($listing);
-            if ($listing->getCategory() !== $this) {
-                $listing->setCategory($this);
-            }
+            $listing->setCategory($this);
         }
 
         return $this;
@@ -105,6 +99,7 @@ class Category
     public function removeListing(Listing $listing): static
     {
         if ($this->listings->removeElement($listing)) {
+            // set the owning side to null (unless already changed)
             if ($listing->getCategory() === $this) {
                 $listing->setCategory(null);
             }
