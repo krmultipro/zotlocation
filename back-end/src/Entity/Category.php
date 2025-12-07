@@ -5,6 +5,9 @@ namespace App\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use App\Repository\CategoryRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -14,6 +17,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
 #[ApiResource(
+    normalizationContext: ['groups' => ['category:read']], // Groupes pour la lecture (GET)
+    denormalizationContext: ['groups' => ['category:write']],     // Définition des groupes de sérialisation pour un meilleur contrôle
     operations: [
         // GET Collection : Lister les catégories (pour le filtre de recherche par ex)
         new GetCollection(normalizationContext: ['groups' => ['category:read']]),

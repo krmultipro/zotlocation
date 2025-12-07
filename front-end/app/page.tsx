@@ -1,9 +1,5 @@
-import CategoryListings from "@/components/CategoryListings"
+"use client"
 
-export default function HomePage() {
-  return (
-    <div className="pt-23">
-      <CategoryListings /> {/* Affiche toutes les annonces par défaut */}
-    </div>
-  )
+export default function Home() {
+  return <div className="pt-32"></div>
 }
