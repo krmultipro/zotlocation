@@ -8,177 +8,85 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   Field,
+  FieldContent,
+  FieldDescription,
   FieldGroup,
   FieldLabel,
   FieldLegend,
   FieldSet,
+  FieldTitle,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Textarea } from "@/components/ui/textarea"
-import { useEffect, useState } from "react"
-import { toast } from "react-hot-toast"
-import { IconType } from "react-icons"
 import {
-  TbBeach,
-  TbBuilding,
-  TbCrown,
-  TbHome,
-  TbMountain,
-  TbPool,
-  TbSparkles,
-  TbTent,
-  TbTrees,
-  TbVolcano,
-} from "react-icons/tb"
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import axios from "axios"
+import { useState } from "react"
 
 interface ModalAjoutAnnonceProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
-
-interface Category {
-  id: number
-  name: string
-}
-
-const categoryIcons: Record<string, IconType> = {
-  Camping: TbTent,
-  Montagne: TbMountain,
-  Plage: TbBeach,
-  Bassin: TbPool,
-  Luxe: TbCrown,
-  Moderne: TbBuilding,
-  Forêt: TbTrees,
-  Volcan: TbVolcano,
-  Insolite: TbSparkles,
-  Traditionnelle: TbHome,
-}
-
-const optionsList = [
-  { id: 22, name: "Vue sur l’océan Indien" },
-  { id: 23, name: "Vue sur le Piton de la Fournaise" },
-  { id: 24, name: "Vue sur les cirques" },
-  { id: 25, name: "Piscine privée" },
-  { id: 26, name: "Piscine chauffée" },
-  { id: 27, name: "Jacuzzi" },
-  { id: 28, name: "Climatisation" },
-  { id: 29, name: "Ventilateur plafond" },
-  { id: 30, name: "Cuisine équipée créole" },
-  { id: 31, name: "Barbecue créole" },
-  { id: 32, name: "Varangue" },
-  { id: 33, name: "Jardin tropical" },
-  { id: 34, name: "Proximité plage" },
-  { id: 35, name: "Proximité randonnée" },
-  { id: 36, name: "Wi-Fi fibre" },
-  { id: 37, name: "Parking sécurisé" },
-  { id: 38, name: "Accès PMR" },
-  { id: 39, name: "Lit bébé" },
-  { id: 40, name: "Animaux acceptés" },
-  { id: 41, name: "Équipement snorkeling" },
-  { id: 42, name: "Case en bois sous tôle" },
-  { id: 43, name: "Cuisine extérieure" },
-  { id: 44, name: "Douche extérieure tropicale" },
-  { id: 45, name: "Lit à baldaquin moustiquaire" },
-  { id: 46, name: "Dodo au rhum offert" },
-  { id: 47, name: "Mobilier créole authentique" },
-  { id: 48, name: "Caris maison à la demande" },
-  { id: 49, name: "Jardin avec plantes endémiques" },
-  { id: 50, name: "Vue sur bananeraie" },
-  { id: 51, name: "Varangue créole" },
-]
 
 export default function ModalAjoutAnnonce({
   open,
   onOpenChange,
 }: ModalAjoutAnnonceProps) {
+  const [isOpen, setOpen] = useState(false)
   const [typeLogement, setTypeLogement] = useState<"maison" | "appartement">(
     "maison"
   )
-  const [categories, setCategories] = useState<Category[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
-  const [selectedOptions, setSelectedOptions] = useState<number[]>([])
+  const [imageFile, setImageFile] = useState<File | null>(null)
 
-  useEffect(() => {
-    fetch("https://localhost:8000/api/categories")
-      .then((res) => res.json())
-      .then((data) => setCategories(data.member || []))
-      .catch((err) => console.error("Erreur récupération catégories :", err))
-  }, [])
-
-  const handleOptionChange = (id: number) => {
-    setSelectedOptions((prev) =>
-      prev.includes(id) ? prev.filter((o) => o !== id) : [...prev, id]
-    )
-  }
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!selectedCategory) {
-      toast.error("Veuillez sélectionner une catégorie")
-      return
-    }
-
-    const form = e.currentTarget
+    const form = e.target as HTMLFormElement
     const formData = new FormData(form)
 
-    const annonce: any = {
-      title: formData.get("title"),
-      description: formData.get("description"),
-      pricePerNight: Number(formData.get("price")),
-      capacity: Number(formData.get("capacity")),
-      category: `https://localhost:8000/api/categories/${selectedCategory}`,
-      images: [{ url: formData.get("imageUrl") }],
-      options: selectedOptions.map(
-        (id) => `https://localhost:8000/api/options/${id}`
-      ),
-      type: typeLogement,
-    }
-
-    if (typeLogement === "maison") {
-      annonce.gardenSize = Number(formData.get("gardenSize"))
-      annonce.hasGarage = formData.get("garage") === "oui"
-    } else if (typeLogement === "appartement") {
-      annonce.numberOfRooms = Number(formData.get("numberOfRooms"))
-      annonce.balcony = formData.get("balcony") === "oui"
+    if (imageFile) {
+      formData.append("images[0][file]", imageFile) // API Platform attend un array pour images
     }
 
     try {
-      const token = localStorage.getItem("jwtToken") // récupérer ton token
-      if (!token) {
-        toast.error("Vous devez être connecté")
-        return
-      }
-
-      const res = await fetch("https://localhost:8000/api/listings", {
-        method: "POST",
+      const token = localStorage.getItem("jwtToken")
+      await axios.post("https://localhost:8000/api/listings", formData, {
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          // NE PAS définir Content-Type pour FormData
+          Authorization: token ? `Bearer ${token}` : undefined,
         },
-        body: JSON.stringify(annonce),
       })
 
-      if (!res.ok) throw new Error(`Erreur : ${res.status}`)
-
-      toast.success("Annonce créée avec succès !")
-      onOpenChange(false)
+      // Fermeture et reset
+      setOpen(false)
       form.reset()
-      setSelectedCategory(null)
-      setSelectedOptions([])
-    } catch (err) {
-      console.error("Erreur lors de la création de l'annonce :", err)
-      toast.error("Impossible de créer l'annonce")
+      setImageFile(null)
+
+      // Refresh pour voir la nouvelle annonce
+      window.location.reload()
+    } catch (err: any) {
+      console.error(
+        "Erreur lors de la création :",
+        err.response?.data || err.message
+      )
+      alert("Erreur lors de la création de l'annonce")
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open ?? isOpen} onOpenChange={onOpenChange ?? setOpen}>
+      <DialogTrigger asChild></DialogTrigger>
+
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Ajouter votre logement</DialogTitle>
@@ -191,16 +99,26 @@ export default function ModalAjoutAnnonce({
               <FieldLabel>Que souhaitez-vous proposer ?</FieldLabel>
               <RadioGroup
                 defaultValue="maison"
-                onValueChange={(v) =>
-                  setTypeLogement(v as "maison" | "appartement")
+                onValueChange={(value) =>
+                  setTypeLogement(value as "maison" | "appartement")
                 }
               >
-                <label className="flex items-center gap-2">
-                  <RadioGroupItem value="maison" /> Maison
-                </label>
-                <label className="flex items-center gap-2">
-                  <RadioGroupItem value="appartement" /> Appartement
-                </label>
+                <FieldLabel htmlFor="maison">
+                  <Field orientation="horizontal">
+                    <FieldContent>
+                      <FieldTitle>Maison</FieldTitle>
+                    </FieldContent>
+                    <RadioGroupItem value="maison" id="maison" />
+                  </Field>
+                </FieldLabel>
+                <FieldLabel htmlFor="appartement">
+                  <Field orientation="horizontal">
+                    <FieldContent>
+                      <FieldTitle>Appartement</FieldTitle>
+                    </FieldContent>
+                    <RadioGroupItem value="appartement" id="appartement" />
+                  </Field>
+                </FieldLabel>
               </RadioGroup>
             </FieldSet>
           </FieldGroup>
@@ -211,6 +129,8 @@ export default function ModalAjoutAnnonce({
             <Input
               id="title"
               name="title"
+              type="text"
+              placeholder="Magnifique villa à la Réunion"
               required
               placeholder="Ex: Villa créole avec vue sur l'océan"
             />
@@ -222,61 +142,87 @@ export default function ModalAjoutAnnonce({
             <Textarea
               id="description"
               name="description"
+              placeholder="Ex: Villa luxueuse avec piscine, 3 chambres, vue imprenable sur l’océan..."
               rows={4}
-              placeholder="Charmante villa avec piscine..."
+              required
             />
           </Field>
 
-          {/* Champs maison */}
+          {/* Maison */}
           {typeLogement === "maison" && (
             <>
               <div className="grid gap-2">
-                <Label htmlFor="gardenSize">Taille du jardin (m²)</Label>
+                <Label htmlFor="jardin">Taille du jardin (m²)</Label>
                 <Input
-                  id="gardenSize"
-                  name="gardenSize"
+                  id="jardin"
+                  name="jardin"
                   type="number"
-                  min={0}
+                  placeholder="200"
+                  min="0"
                 />
               </div>
+
               <FieldGroup>
                 <FieldSet>
                   <FieldLabel>Garage</FieldLabel>
-                  <RadioGroup name="garage" defaultValue="non">
-                    <label className="flex items-center gap-2">
-                      <RadioGroupItem value="oui" /> Oui
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <RadioGroupItem value="non" /> Non
-                    </label>
+                  <RadioGroup defaultValue="non" name="garage">
+                    <FieldLabel htmlFor="garage-oui">
+                      <Field orientation="horizontal">
+                        <FieldContent>
+                          <FieldTitle>Oui</FieldTitle>
+                        </FieldContent>
+                        <RadioGroupItem value="oui" id="garage-oui" />
+                      </Field>
+                    </FieldLabel>
+                    <FieldLabel htmlFor="garage-non">
+                      <Field orientation="horizontal">
+                        <FieldContent>
+                          <FieldTitle>Non</FieldTitle>
+                        </FieldContent>
+                        <RadioGroupItem value="non" id="garage-non" />
+                      </Field>
+                    </FieldLabel>
                   </RadioGroup>
                 </FieldSet>
               </FieldGroup>
             </>
           )}
 
-          {/* Champs appartement */}
+          {/* Appartement */}
           {typeLogement === "appartement" && (
             <>
               <div className="grid gap-2">
-                <Label htmlFor="numberOfRooms">Nombre de pièces</Label>
+                <Label htmlFor="pieces">Nombre de pièces</Label>
                 <Input
-                  id="numberOfRooms"
-                  name="numberOfRooms"
+                  id="pieces"
+                  name="pieces"
                   type="number"
-                  min={1}
+                  placeholder="3"
+                  min="1"
+                  required
                 />
               </div>
+
               <FieldGroup>
                 <FieldSet>
                   <FieldLabel>Balcon</FieldLabel>
-                  <RadioGroup name="balcony" defaultValue="non">
-                    <label className="flex items-center gap-2">
-                      <RadioGroupItem value="oui" /> Oui
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <RadioGroupItem value="non" /> Non
-                    </label>
+                  <RadioGroup defaultValue="non" name="balcon">
+                    <FieldLabel htmlFor="balcon-oui">
+                      <Field orientation="horizontal">
+                        <FieldContent>
+                          <FieldTitle>Oui</FieldTitle>
+                        </FieldContent>
+                        <RadioGroupItem value="oui" id="balcon-oui" />
+                      </Field>
+                    </FieldLabel>
+                    <FieldLabel htmlFor="balcon-non">
+                      <Field orientation="horizontal">
+                        <FieldContent>
+                          <FieldTitle>Non</FieldTitle>
+                        </FieldContent>
+                        <RadioGroupItem value="non" id="balcon-non" />
+                      </Field>
+                    </FieldLabel>
                   </RadioGroup>
                 </FieldSet>
               </FieldGroup>
@@ -286,12 +232,26 @@ export default function ModalAjoutAnnonce({
           {/* Prix */}
           <div className="grid gap-2">
             <Label htmlFor="price">Prix par nuit</Label>
-            <Input id="price" name="price" type="number" min={0} step={1} />
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                €
+              </span>
+              <Input
+                id="price"
+                name="pricePerNight"
+                type="number"
+                placeholder="150"
+                min="0"
+                step="1"
+                className="pl-8"
+                required
+              />
+            </div>
           </div>
 
           {/* Capacité */}
           <div className="grid gap-2">
-            <Label htmlFor="capacity">Capacité</Label>
+            <Label htmlFor="capacity">Capacité (nombre de personnes)</Label>
             <Input
               id="capacity"
               name="capacity"
@@ -315,50 +275,91 @@ export default function ModalAjoutAnnonce({
           {/* Catégorie */}
           <Field>
             <FieldLabel>Catégorie</FieldLabel>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => {
-                const Icon = categoryIcons[cat.name] || TbHome
-                const selected = selectedCategory === cat.id
-                return (
-                  <button
-                    type="button"
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`flex flex-col items-center p-2 border rounded-md ${
-                      selected ? "border-green-500" : "border-gray-300"
-                    }`}
-                  >
-                    <Icon className="w-6 h-6" />
-                    <span className="text-xs">{cat.name}</span>
-                  </button>
-                )
-              })}
-            </div>
+            <Select name="category">
+              <SelectTrigger>
+                <SelectValue placeholder="Choisissez une catégorie" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="camping">Camping</SelectItem>
+                <SelectItem value="montagne">Montagne</SelectItem>
+                <SelectItem value="plage">Plage</SelectItem>
+                <SelectItem value="bassin">Bassin</SelectItem>
+                <SelectItem value="luxe">Luxe</SelectItem>
+                <SelectItem value="moderne">Moderne</SelectItem>
+                <SelectItem value="foret">Forêt</SelectItem>
+                <SelectItem value="volcan">Volcan</SelectItem>
+                <SelectItem value="insolite">Insolite</SelectItem>
+                <SelectItem value="traditionnelle">Traditionnelle</SelectItem>
+              </SelectContent>
+            </Select>
+            <FieldDescription>
+              Sélectionnez la catégorie qui correspond le mieux à votre
+              logement.
+            </FieldDescription>
           </Field>
 
           {/* Options */}
           <FieldGroup>
             <FieldSet>
-              <FieldLegend>Options</FieldLegend>
-              <div className="grid grid-cols-2 gap-2">
-                {optionsList.map((opt) => (
-                  <label key={opt.id} className="flex items-center gap-2">
-                    <Checkbox
-                      checked={selectedOptions.includes(opt.id)}
-                      onCheckedChange={() => handleOptionChange(opt.id)}
-                    />
-                    {opt.name}
-                  </label>
-                ))}
-              </div>
+              <FieldLegend variant="label">
+                Choisissez une ou plusieurs options
+              </FieldLegend>
+              <FieldGroup className="flex flex-row flex-wrap gap-3">
+                <Field orientation="horizontal">
+                  <Checkbox
+                    id="wifi"
+                    name="options[]"
+                    value="wifi"
+                    defaultChecked
+                  />
+                  <FieldLabel htmlFor="wifi" className="font-normal">
+                    WiFi
+                  </FieldLabel>
+                </Field>
+                <Field orientation="horizontal">
+                  <Checkbox id="parking" name="options[]" value="parking" />
+                  <FieldLabel htmlFor="parking" className="font-normal">
+                    Parking
+                  </FieldLabel>
+                </Field>
+                <Field orientation="horizontal">
+                  <Checkbox id="piscine" name="options[]" value="piscine" />
+                  <FieldLabel htmlFor="piscine" className="font-normal">
+                    Piscine
+                  </FieldLabel>
+                </Field>
+                <Field orientation="horizontal">
+                  <Checkbox id="clim" name="options[]" value="clim" />
+                  <FieldLabel htmlFor="clim" className="font-normal">
+                    Climatisation
+                  </FieldLabel>
+                </Field>
+              </FieldGroup>
             </FieldSet>
           </FieldGroup>
 
+          {/* Image */}
+          <div className="grid gap-2">
+            <Label htmlFor="image">Image principale</Label>
+            <Input
+              type="file"
+              id="image"
+              accept="image/*"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  setImageFile(e.target.files[0])
+                }
+              }}
+              required
+            />
+          </div>
+
+          {/* Boutons */}
           <div className="flex gap-2 justify-end">
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => setOpen(false)}
             >
               Annuler
             </Button>

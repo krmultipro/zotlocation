@@ -21,13 +21,12 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/**",
       },
-      // === AJOUT NÉCESSAIRE POUR PEXELS ===
       {
         protocol: "https",
-        hostname: "images.pexels.com", // <-- C'est l'hôte qui manquait
+        hostname: "images.pexels.com",
         port: "",
         pathname: "/**",
-      },
+      } 
     ],
   },
 }
