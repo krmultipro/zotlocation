@@ -89,7 +89,7 @@ export default function ModalAjoutAnnonce({
 
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Ajouter votre logement !</DialogTitle>
+          <DialogTitle>Ajouter votre logement</DialogTitle>
         </DialogHeader>
 
         <form className="space-y-6" onSubmit={handleSubmit}>
@@ -132,6 +132,7 @@ export default function ModalAjoutAnnonce({
               type="text"
               placeholder="Magnifique villa à la Réunion"
               required
+              placeholder="Ex: Villa créole avec vue sur l'océan"
             />
           </div>
 
@@ -255,10 +256,19 @@ export default function ModalAjoutAnnonce({
               id="capacity"
               name="capacity"
               type="number"
-              placeholder="4"
-              min="1"
-              step="1"
-              required
+              min={1}
+              step={1}
+            />
+          </div>
+
+          {/* Image */}
+          <div className="grid gap-2">
+            <Label htmlFor="imageUrl">URL de l&apos;image</Label>
+            <Input
+              id="imageUrl"
+              name="imageUrl"
+              type="text"
+              placeholder="https://..."
             />
           </div>
 
