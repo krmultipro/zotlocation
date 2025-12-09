@@ -9,17 +9,16 @@ import React, {
 } from "react"
 
 interface FavoriteItem {
-  id: number // ID du favori
-  listing: { id: number } // ID de l'annonce
+  id: number
+  listing: { id: number }
 }
 
 interface FavoritesContextType {
   favorites: FavoriteItem[]
   isLoading: boolean
-  // Fonction utilitaire pour vérifier si une annonce est favorite
   getFavoriteIdByListingId: (listingId: string) => string | null
-  // Fonction pour forcer le rechargement (après ajout/suppression)
   refreshFavorites: () => void
+  clearFavorites: () => void // <-- 🔥 Ajout essentiel
 }
 
 const FavoritesContext = createContext<FavoritesContextType | null>(null)
@@ -29,7 +28,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [favorites, setFavorites] = useState<FavoriteItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [trigger, setTrigger] = useState(0) // Sert à forcer le refresh
+  const [trigger, setTrigger] = useState(0)
 
   useEffect(() => {
     const fetchFavorites = async () => {
@@ -37,7 +36,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
         typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
 
       if (!token) {
-        setFavorites([])
+        setFavorites([]) // <-- 🔥 On reset quand pas de token
         setIsLoading(false)
         return
       }
@@ -53,9 +52,12 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
         if (res.ok) {
           const data = await res.json()
           setFavorites(data.member || data["hydra:member"] || [])
+        } else {
+          setFavorites([])
         }
       } catch (error) {
         console.error("Erreur chargement favoris global:", error)
+        setFavorites([]) // sécurité
       } finally {
         setIsLoading(false)
       }
@@ -63,7 +65,6 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
 
     fetchFavorites()
 
-    // Écoute aussi l'événement custom qu'on avait mis en place, par sécurité
     const handleGlobalUpdate = () => setTrigger((prev) => prev + 1)
     window.addEventListener("favorites:updated", handleGlobalUpdate)
 
@@ -76,7 +77,10 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
     setTrigger((prev) => prev + 1)
   }, [])
 
-  // Fonction optimisée pour trouver l'ID du favori
+  const clearFavorites = useCallback(() => {
+    setFavorites([]) // <-- 🔥 vide totalement les favoris
+  }, [])
+
   const getFavoriteIdByListingId = useCallback(
     (listingId: string) => {
       const found = favorites.find(
@@ -94,6 +98,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
         isLoading,
         getFavoriteIdByListingId,
         refreshFavorites,
+        clearFavorites, // <-- 🔥 On expose au front
       }}
     >
       {children}
