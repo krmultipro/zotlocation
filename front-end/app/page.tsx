@@ -1,5 +1,11 @@
 "use client"
 
-export default function Home() {
-  return <div className="pt-32"></div>
+import CategoryListings from "@/components/CategoryListings"
+
+export default function HomePage() {
+  return (
+    <div className="pt-32">
+      <CategoryListings />
+    </div>
+  )
 }
