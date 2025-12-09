@@ -16,6 +16,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 
 #[ORM\Entity(repositoryClass: ListingRepository::class)]
 #[ORM\Table(name: 'listing')]
@@ -58,6 +60,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
     ]
 )]
+#[ApiFilter(SearchFilter::class, properties: ['category' => 'exact'])]
 class Listing
 {
     #[ORM\Id]
