@@ -3,20 +3,21 @@
 import { useUser } from "@/app/context/UserProvider"
 import useLoginModal from "@/app/hooks/useLoginModal"
 import useRegisterModal from "@/app/hooks/useRegisterModal"
-import { useRouter } from "next/navigation" // 💡 IMPORT NÉCESSAIRE POUR LA NAVIGATION
+import { useRouter } from "next/navigation"
 import { useCallback, useState } from "react"
 import { AiOutlineMenu } from "react-icons/ai"
 
+import { useFavorites } from "@/app/context/FavoritesContext"
 import ModalAjoutAnnonce from "@/components/modals/ModalAjoutAnnonce"
 import Avatar from "../Avatar"
 import MenuItem from "./MenuItem"
 
 const UserMenu = () => {
-  const router = useRouter() // 💡 INITIALISATION DU HOOK ROUTER
+  const router = useRouter() // INITIALISATION DU HOOK ROUTER
   const loginModal = useLoginModal()
   const registerModal = useRegisterModal()
   const { user, isLoading, refreshUser } = useUser()
-
+  const { refreshFavorites } = useFavorites()
   const [isOpen, setIsOpen] = useState(false)
   const [openModal, setOpenModal] = useState(false)
 
@@ -35,16 +36,15 @@ const UserMenu = () => {
   const handleLogoutClick = useCallback(() => {
     setIsOpen(false)
     localStorage.removeItem("jwtToken")
-    refreshUser()
-  }, [refreshUser])
+    refreshUser() // Réinitialise l'utilisateur
+    refreshFavorites() // Réinitialise les favoris automatiquement
+  }, [refreshUser, refreshFavorites])
 
-  // 💡 NOUVEAU HANDLER POUR LA NAVIGATION VERS LE DASHBOARD
   const handleDashboardClick = useCallback(() => {
     setIsOpen(false)
     router.push("/dashboard")
   }, [router])
 
-  // 💡 NOUVEAU HANDLER POUR LA NAVIGATION VERS LES FAVORIS
   const handleFavoritesClick = useCallback(() => {
     setIsOpen(false)
     router.push("/dashboard/favoris")
