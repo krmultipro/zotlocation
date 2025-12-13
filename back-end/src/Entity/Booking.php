@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -20,37 +22,39 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiResource(
     operations: [
-        // GET Collection : Seulement ADMIN peut voir toutes les bookings
+        // 1. Endpoint pour récupérer toutes les bookings (ADMIN UNIQUEMENT)
         new GetCollection(security: "is_granted('ROLE_ADMIN')"),
 
-        // GET Item : Booker, Owner du Listing ou ADMIN
+        // 2. GET Item (Lecture d'une seule réservation)
         new Get(
+            // Accessible par l'Admin, le Booker (utilisateur qui a réservé), ou le Propriétaire du logement.
             security: "is_granted('ROLE_ADMIN') or object.getBooker() == user or object.getListing().getOwner() == user",
             normalizationContext: ['groups' => ['booking:read', 'booking:item:read']]
         ),
 
-        // POST : Tout utilisateur connecté peut créer une réservation
+        // 3. POST (Création d'une réservation)
         new Post(
-            // Le Booker sera l'utilisateur connecté (on le set dans un processeur si nécessaire, mais on assume la relation dans le denormalization)
             security: "is_granted('ROLE_USER')",
-            processor: BookingPriceProcessor::class,
+            processor: BookingPriceProcessor::class, // Utilisé pour calculer le prix total
             denormalizationContext: ['groups' => ['booking:create']]
         ),
 
-        // PATCH : Seul l'auteur peut modifier sa réservation (pourrait être limité aux dates, pas au listing)
+        // 4. PATCH (Mise à jour d'une réservation)
         new Patch(
             security: "is_granted('ROLE_ADMIN') or object.getBooker() == user",
             denormalizationContext: ['groups' => ['booking:update']]
         ),
 
-        // DELETE : Seul l'auteur peut annuler
+        // 5. DELETE (Suppression d'une réservation)
         new Delete(security: "is_granted('ROLE_ADMIN') or object.getBooker() == user"),
     ],
-    // Groupes de sérialisation par défaut
     normalizationContext: ['groups' => ['booking:read']],
     denormalizationContext: ['groups' => ['booking:create', 'booking:update']],
 )]
-// 💡 Assertion globale : la date de fin doit être après la date de début
+
+#[ApiFilter(SearchFilter::class, properties: [
+    'listing' => 'exact',
+])]
 #[Assert\Expression(
     "this.getEndDate() > this.getStartDate()",
     message: "La date de fin de la réservation doit être postérieure à la date de début."
@@ -65,13 +69,13 @@ class Booking
 
     // Dates
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    #[Groups(['booking:read', 'booking:create', 'booking:update'])]
+    #[Groups(['booking:read', 'booking:create', 'booking:update', 'listing:item:read'])]
     #[Assert\NotBlank]
     #[Assert\GreaterThanOrEqual('today', message: "La date de début ne peut pas être dans le passé.", groups: ['booking:create'])]
     private ?\DateTimeInterface $startDate = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    #[Groups(['booking:read', 'booking:create', 'booking:update'])]
+    #[Groups(['booking:read', 'booking:create', 'booking:update', 'listing:item:read'])]
     #[Assert\NotBlank]
     private ?\DateTimeInterface $endDate = null;
 
@@ -79,14 +83,12 @@ class Booking
     #[ORM\Column]
     #[Groups(['booking:read', 'booking:item:read'])]
     #[Assert\PositiveOrZero]
-    // 💡 REMARQUE : totalPrice n'est PAS en denormalisation ('create', 'update'), car il doit être calculé
-    // par un Data Transformer ou un Event Listener (EventListener) pour éviter la fraude.
     private ?float $totalPrice = null;
 
     // Relation ManyToOne avec Listing
     #[ORM\ManyToOne(inversedBy: 'bookings')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['booking:read', 'booking:create'])] // On donne l'URI du Listing à la création
+    #[Groups(['booking:read', 'booking:create'])]
     #[Assert\NotNull]
     private ?Listing $listing = null;
 
@@ -94,16 +96,14 @@ class Booking
     #[ORM\ManyToOne(inversedBy: 'bookings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['booking:read', 'listing:item:read'])]
-    // 💡 REMARQUE : Booker n'est PAS en denormalisation ('create') car il doit être défini
-    // automatiquement comme l'utilisateur connecté (via un Processeur, comme pour Listing Owner).
     private ?User $booker = null;
+
+    // --- Getters et Setters ---
 
     public function getId(): ?int
     {
         return $this->id;
     }
-
-    // --- GETTERS & SETTERS ---
 
     public function getStartDate(): ?\DateTimeInterface
     {
@@ -119,6 +119,9 @@ class Booking
     public function getEndDate(): ?\DateTimeInterface
     {
         return $this->endDate;
+        // 💡 NOTE : Si le front-end a des problèmes de format de date,
+        // nous devrons soit modifier ici pour retourner une string Y-M-D,
+        // soit utiliser un Serializer Context spécial pour forcer le format.
     }
 
     public function setEndDate(\DateTimeInterface $endDate): static
@@ -126,6 +129,23 @@ class Booking
         $this->endDate = $endDate;
         return $this;
     }
+
+    // 💡 NOUVELLE PROPRIÉTÉ CALCULÉE : DURATION (Pour aider le front-end)
+    #[Groups(['booking:read'])]
+    public function getDuration(): ?int
+    {
+        if (!$this->startDate || !$this->endDate) {
+            return null;
+        }
+
+        // Calcule la différence en jours
+        $interval = $this->startDate->diff($this->endDate);
+
+        // Retourne le nombre de jours comme la durée (nuits)
+        return (int) $interval->days;
+    }
+
+    // --- Reste des getters et setters inchangés ---
 
     public function getTotalPrice(): ?float
     {
@@ -137,8 +157,6 @@ class Booking
         $this->totalPrice = $totalPrice;
         return $this;
     }
-
-    // --- RELATIONS ---
 
     public function getListing(): ?Listing
     {
