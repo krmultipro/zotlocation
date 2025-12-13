@@ -13,7 +13,7 @@ import Avatar from "../Avatar"
 import MenuItem from "./MenuItem"
 
 const UserMenu = () => {
-  const router = useRouter() // INITIALISATION DU HOOK ROUTER
+  const router = useRouter()
   const loginModal = useLoginModal()
   const registerModal = useRegisterModal()
   const { user, isLoading, refreshUser } = useUser()
@@ -36,13 +36,19 @@ const UserMenu = () => {
   const handleLogoutClick = useCallback(() => {
     setIsOpen(false)
     localStorage.removeItem("jwtToken")
-    refreshUser() // Réinitialise l'utilisateur
-    refreshFavorites() // Réinitialise les favoris automatiquement
-  }, [refreshUser, refreshFavorites])
+    refreshUser()
+    refreshFavorites()
+    router.push("/")
+  }, [refreshUser, refreshFavorites, router])
 
   const handleDashboardClick = useCallback(() => {
     setIsOpen(false)
     router.push("/dashboard")
+  }, [router])
+
+  const handleReservationsClick = useCallback(() => {
+    setIsOpen(false)
+    router.push("/dashboard/reservations")
   }, [router])
 
   const handleFavoritesClick = useCallback(() => {
@@ -89,19 +95,20 @@ const UserMenu = () => {
           <div className="flex flex-col cursor-pointer">
             {user ? (
               <>
-                {/* Utilise le nouveau handler */}
                 <MenuItem
                   onClick={handleDashboardClick}
                   label="Tableau de bord"
                 />
-                <MenuItem onClick={() => {}} label="Mes réservations" />
-                {/* Utilise le nouveau handler pour naviguer vers /dashboard/favoris */}
+                <MenuItem
+                  onClick={handleReservationsClick}
+                  label="Mes réservations"
+                />
                 <MenuItem onClick={handleFavoritesClick} label="Mes favoris" />
                 {user.isOwner && (
                   <MenuItem
                     onClick={() => {
-                      setOpenModal(true) // ouvre la modale ici
-                      setIsOpen(false) // ferme le menu
+                      setOpenModal(true)
+                      setIsOpen(false)
                     }}
                     label="Créer une annonce"
                   />
@@ -119,7 +126,6 @@ const UserMenu = () => {
         </div>
       )}
 
-      {/* Modale */}
       <ModalAjoutAnnonce open={openModal} onOpenChange={setOpenModal} />
     </div>
   )

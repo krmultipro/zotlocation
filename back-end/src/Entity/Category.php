@@ -17,13 +17,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
 #[ApiResource(
-    normalizationContext: ['groups' => ['category:read']], // Groupes pour la lecture (GET)
-    denormalizationContext: ['groups' => ['category:write']],     // Définition des groupes de sérialisation pour un meilleur contrôle
+    normalizationContext: ['groups' => ['category:read']],
+    denormalizationContext: ['groups' => ['category:write']],
     operations: [
-        // GET Collection : Lister les catégories (pour le filtre de recherche par ex)
         new GetCollection(normalizationContext: ['groups' => ['category:read']]),
-
-        // GET Item : Voir une catégorie spécifique
         new Get(normalizationContext: ['groups' => ['category:read']]),
     ]
 )]
@@ -36,13 +33,14 @@ class Category
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    // Cela permet à l'entité Favorite (qui utilise ce groupe) de lire le nom de la catégorie
-    #[Groups(['category:read', 'listing:read', 'listing:create', 'listing:update', 'listing:card:read'])]
+    // 💡 CORRIGÉ : Ajout du groupe 'listing:item:read'
+    #[Groups(['category:read', 'listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
     #[Assert\NotBlank]
     private ?string $name = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['category:read', 'listing:read', 'listing:card:read'])]
+    // 💡 CORRIGÉ : Ajout du groupe 'listing:item:read'
+    #[Groups(['category:read', 'listing:read', 'listing:card:read', 'listing:item:read'])]
     private ?string $description = null;
 
     // Relation avec Listing (Une catégorie a plusieurs annonces)

@@ -1,6 +1,8 @@
 "use client"
 
+import { useUser } from "@/app/context/UserProvider"
 import Container from "@/components/Container"
+import BookingCalendar from "@/components/reservations/BookingCalendar"
 import axios from "axios"
 import { ArrowLeft, MapPin, Users } from "lucide-react"
 import Image from "next/image"
@@ -18,7 +20,7 @@ interface ListingDetail {
     name: string
   }
   owner: {
-    id: number
+    id: string
     name: string
   }
   images: Array<{
@@ -31,6 +33,8 @@ export default function ListingDetailPage() {
   const params = useParams()
   const router = useRouter()
   const listingId = params.listingId
+
+  const { isLoading: userLoading } = useUser()
 
   const [listing, setListing] = useState<ListingDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -46,25 +50,28 @@ export default function ListingDetailPage() {
         setListing(response.data)
       } catch (err) {
         setError("Erreur lors du chargement de l'annonce")
-        console.error(err)
       } finally {
         setLoading(false)
       }
     }
+
     fetchListing()
   }, [listingId])
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <Container>
-        <div className="py-30 text-center">Chargement...</div>
+        <div className="py-32 text-center">Chargement...</div>
       </Container>
     )
   }
-  if (error) {
+
+  if (error || !listing) {
     return (
       <Container>
-        <div className="py-20 text-center text-red-500">{error}</div>
+        <div className="py-32 text-center text-red-500">
+          {error || "Annonce introuvable"}
+        </div>
       </Container>
     )
   }
@@ -81,109 +88,111 @@ export default function ListingDetailPage() {
           <span className="font-medium">Retour</span>
         </button>
 
-        {/* Image principale */}
-        <div className="relative w-full h-[60vh] overflow-hidden rounded-xl mb-4 shadow-lg">
-          <Image
-            src={listing?.images[0]?.url || "/images/placeholder.png"}
-            alt={listing?.title || "Image de l'annonce"}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
-            priority
-          />
-        </div>
-        {/* Grille de miniatures */}
-        {listing?.images && listing.images.length > 1 && (
-          <div className="grid grid-cols-4 gap-2 mb-8">
-            {listing.images.slice(1, 5).map((image, idx) => (
-              <div
-                key={image.id}
-                className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition"
-              >
-                <Image
-                  src={image.url}
-                  alt={`Photo ${idx + 2}`}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            ))}
-          </div>
-        )}
+        {/* 🔥 SECTION IMAGES + RÉSERVATION */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+          {/* Images */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Image principale */}
+            <div className="relative w-full h-[60vh] rounded-xl overflow-hidden shadow-lg">
+              <Image
+                src={listing.images[0]?.url || "/images/placeholder.png"}
+                alt={listing.title}
+                fill
+                className="object-cover"
+                priority
+              />
+            </div>
 
-        {/* Contenu principal en grille */}
+            {/* Miniatures */}
+            {listing.images.length > 1 && (
+              <div className="grid grid-cols-4 gap-2">
+                {listing.images.slice(1, 5).map((image, idx) => (
+                  <div
+                    key={image.id}
+                    className="relative aspect-square rounded-lg overflow-hidden"
+                  >
+                    <Image
+                      src={image.url}
+                      alt={`Photo ${idx + 2}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Carte réservation */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24">
+              <div className="border border-gray-200 rounded-xl p-6 shadow-lg bg-white space-y-6">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold">
+                    {listing.pricePerNight}€
+                  </span>
+                  <span className="text-gray-600">/ nuit</span>
+                </div>
+
+                <BookingCalendar
+                  listingId={listing.id}
+                  pricePerNight={listing.pricePerNight}
+                />
+
+                <p className="text-center text-sm text-gray-500">
+                  Vous ne serez pas débité pour le moment
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 🔽 INFOS ANNONCE */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Section principale (2/3) */}
           <div className="md:col-span-2 space-y-6">
-            {/* Titre et informations de base */}
             <div>
               <h1 className="text-3xl md:text-4xl font-bold mb-3">
-                {listing?.title}
+                {listing.title}
               </h1>
 
-              <div className="flex flex-wrap items-center gap-4 text-gray-600 mb-4">
+              <div className="flex flex-wrap items-center gap-4 text-gray-600">
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
                   <span>
-                    {listing?.capacity}{" "}
-                    {listing?.capacity && listing.capacity > 1
-                      ? "personnes"
-                      : "personne"}
+                    {listing.capacity}{" "}
+                    {listing.capacity > 1 ? "personnes" : "personne"}
                   </span>
                 </div>
+
                 <div className="flex items-center gap-2">
                   <MapPin className="w-5 h-5" />
-                  <span>{listing?.category?.name}</span>
+                  <span>{listing.category.name}</span>
                 </div>
               </div>
             </div>
 
             <hr />
 
-            {/* Description */}
             <div>
               <h2 className="text-2xl font-semibold mb-3">Description</h2>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                {listing?.description}
+              <p className="text-gray-700 whitespace-pre-line">
+                {listing.description}
               </p>
             </div>
 
             <hr />
 
-            {/* Propriétaire */}
             <div>
               <h2 className="text-2xl font-semibold mb-3">Hébergé par</h2>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-linear-to-brrom-green-400 to-green-600 flex items-center justify-center text-white font-bold text-lg">
-                  {listing?.owner?.name?.charAt(0).toUpperCase()}
+                <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center text-white font-bold">
+                  {listing.owner.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="font-semibold text-lg">
-                    {listing?.owner?.name}
-                  </p>
+                  <p className="font-semibold">{listing.owner.name}</p>
                   <p className="text-sm text-gray-500">Propriétaire</p>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Carte de réservation (1/3) */}
-          <div className="md:col-span-1">
-            <div className="border border-gray-200 rounded-xl p-6 shadow-lg sticky top-24 bg-white">
-              <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-3xl font-bold">
-                  {listing?.pricePerNight}€
-                </span>
-                <span className="text-gray-600">/ nuit</span>
-              </div>
-
-              <button className="w-full bg-linear-to-r from-green-500 to-green-600 text-white py-3 rounded-lg hover:from-green-600 hover:to-green-700 transition font-semibold shadow-md hover:shadow-lg">
-                Réserver
-              </button>
-
-              <p className="text-center text-sm text-gray-500 mt-4">
-                Vous ne serez pas débité pour le moment
-              </p>
             </div>
           </div>
         </div>

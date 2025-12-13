@@ -1,13 +1,14 @@
 // app/layout.tsx
-import { FavoritesProvider } from "@/app/context/FavoritesContext"; // 💡 IMPORT DU PROVIDER
-import { Providers } from "@/app/context/Provider";
-import LoginModal from "@/components/modals/LoginModal";
-import RegisterModal from "@/components/modals/RegisterModal";
-import Navbar from "@/components/navbar/Navbar";
-import type { Metadata } from "next";
-import { Nunito } from "next/font/google";
-import { Toaster } from "react-hot-toast";
-import "./globals.css";
+import { FavoritesProvider } from "@/app/context/FavoritesContext" // 💡 IMPORT DU PROVIDER
+import {ReservationsProvider} from "@/app/context/ReservationsContext"
+import { Providers } from "@/app/context/Provider"
+import LoginModal from "@/components/modals/LoginModal"
+import RegisterModal from "@/components/modals/RegisterModal"
+import Navbar from "@/components/navbar/Navbar"
+import type { Metadata } from "next"
+import { Nunito } from "next/font/google"
+import { Toaster } from "react-hot-toast"
+import "./globals.css"
 
 const font = Nunito({
   subsets: ["latin"],
@@ -25,6 +26,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <Providers>
           {/* 💡 ENGLOBER L'APPLICATION AVEC LE CONTEXTE FAVORIS */}
           <FavoritesProvider>
+            <ReservationsProvider>
             <Toaster position="top-center" reverseOrder={false} />
             <RegisterModal />
             <LoginModal />
@@ -32,6 +34,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
             {/* Contenu de la page */}
             <div className="pt-32">{children}</div>
+            </ReservationsProvider>
           </FavoritesProvider>
         </Providers>
       </body>
