@@ -18,6 +18,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
+use App\Filter\ListingAvailabilityFilter;
 
 #[ORM\Entity(repositoryClass: ListingRepository::class)]
 #[ORM\Table(name: 'listing')]
@@ -32,7 +33,6 @@ use ApiPlatform\Metadata\ApiFilter;
     operations: [
         // GET Collection : Accessible à TOUS
         new GetCollection(
-            // 💡 CORRECTION APPLIQUÉE : On utilise listing:card:read pour garantir la catégorie sur la liste.
             normalizationContext: ['groups' => ['listing:card:read']]
         ),
 
@@ -62,6 +62,8 @@ use ApiPlatform\Metadata\ApiFilter;
     ]
 )]
 #[ApiFilter(SearchFilter::class, properties: ['category' => 'exact'])]
+//  AJOUT DU NOUVEAU FILTRE DE DISPONIBILITÉ
+#[ApiFilter(ListingAvailabilityFilter::class)]
 class Listing
 {
     #[ORM\Id]
@@ -92,7 +94,6 @@ class Listing
 
     // Relation ManyToOne avec User (Owner)
     #[ORM\ManyToOne(inversedBy: 'listings')]
-    // Retiré 'listing:read' pour éviter les boucles
     #[Groups(['booking:read', 'review:read', 'listing:item:read'])]
     #[Assert\Valid]
     private ?User $owner = null;
@@ -100,7 +101,6 @@ class Listing
     // Relation ManyToOne avec Category
     #[ORM\ManyToOne(inversedBy: 'listings')]
     #[ORM\JoinColumn(nullable: false)]
-    // Le groupe 'listing:read' est retiré pour éviter la boucle, mais 'listing:card:read' est là.
     #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
     #[Assert\NotNull]
     private ?Category $category = null;
@@ -116,7 +116,6 @@ class Listing
      * @var Collection<int, Image>
      */
     #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'listing', cascade: ['persist'], orphanRemoval: true)]
-    // Garder listing:read ici car la relation inverse est sécurisée
     #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:card:read', 'booking:read'])]
     #[Assert\Count(
         min: 1,

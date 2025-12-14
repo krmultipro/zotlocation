@@ -1,5 +1,4 @@
 <?php
-// src/Service/BookingAvailabilityChecker.php
 
 namespace App\Service;
 
