@@ -11,7 +11,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Repository\BookingRepository;
-use App\State\BookingPriceProcessor;
+use App\State\BookingValidatorProcessor; //  processeur de validation
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -27,7 +27,6 @@ use Symfony\Component\Validator\Constraints as Assert;
 
         // 2. GET Item (Lecture d'une seule réservation)
         new Get(
-            // Accessible par l'Admin, le Booker (utilisateur qui a réservé), ou le Propriétaire du logement.
             security: "is_granted('ROLE_ADMIN') or object.getBooker() == user or object.getListing().getOwner() == user",
             normalizationContext: ['groups' => ['booking:read', 'booking:item:read']]
         ),
@@ -35,7 +34,16 @@ use Symfony\Component\Validator\Constraints as Assert;
         // 3. POST (Création d'une réservation)
         new Post(
             security: "is_granted('ROLE_USER')",
-            processor: BookingPriceProcessor::class, // Utilisé pour calculer le prix total
+            // 💡 CORRECTION : Nous devons chaîner les processeurs.
+            // La validation doit se faire AVANT le calcul du prix (ou être faite par un seul processeur maître).
+            // La méthode la plus simple est d'appliquer le processeur de VALIDATION, qui délèguera ENSUITE
+            // au processeur de PERSISTANCE, qui lui-même peut déclencher le BookingPriceProcessor
+            // si le processeur de persistence est bien le BookingPriceProcessor.
+
+            // Pour garantir l'ordre : Validation (ValidatorProcessor) -> Calcul Prix (PriceProcessor) -> Persistance (par défaut).
+            // Le BookingValidatorProcessor délègue au processeur suivant, qui DOIT être BookingPriceProcessor si vous voulez garder cette logique.
+            processor: BookingValidatorProcessor::class, // 💡 NOUVEAU : Validation du chevauchement d'abord
+
             denormalizationContext: ['groups' => ['booking:create']]
         ),
 
@@ -60,6 +68,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     message: "La date de fin de la réservation doit être postérieure à la date de début."
 )]
 class Booking
+
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

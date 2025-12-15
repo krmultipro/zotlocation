@@ -19,6 +19,7 @@ class BookingRepository extends ServiceEntityRepository
 
     /**
      * Trouve toutes les réservations qui chevauchent la période donnée pour un Listing.
+     * Utilisé pour la validation de chevauchement (par BookingAvailabilityChecker).
      *
      * @param int $listingId L'ID du Listing
      * @param string $startDate Date de début (format 'Y-m-d')
@@ -29,14 +30,15 @@ class BookingRepository extends ServiceEntityRepository
     public function findOverlappingBookings(int $listingId, string $startDate, string $endDate, ?int $excludedBookingId = null): array
     {
         $qb = $this->createQueryBuilder('b')
-            ->andWhere('b.listing = :listingId')
+            // 💡 CORRECTION 1: Utiliser where pour la première condition afin de ne pas écraser les paramètres
+            ->where('b.listing = :listingId')
             ->setParameter('listingId', $listingId)
 
-            // Logique de chevauchement de dates :
-            // (La réservation existante commence avant la fin de la nouvelle) ET
-            // (La réservation existante se termine après le début de la nouvelle)
-            ->andWhere('b.startDate < :endDate')
-            ->andWhere('b.endDate > :startDate')
+            // 💡 CORRECTION 2: Logique de chevauchement INCLUSIVE et stable pour les bornes
+            ->andWhere('b.endDate >= :startDate')
+            ->andWhere('b.startDate <= :endDate')
+
+            // Les paramètres de date sont maintenant ajoutés sans conflit
             ->setParameter('startDate', $startDate)
             ->setParameter('endDate', $endDate);
 
@@ -52,6 +54,7 @@ class BookingRepository extends ServiceEntityRepository
 
     /**
      * Trouve les IDs des Listings ayant une réservation qui chevauche la période [startDate, endDate].
+     * Utilisé par le filtre API Platform pour masquer les annonces indisponibles.
      *
      * @param string $startDate Date de début de la recherche (format 'Y-m-d')
      * @param string $endDate Date de fin de la recherche (format 'Y-m-d')
@@ -60,23 +63,16 @@ class BookingRepository extends ServiceEntityRepository
     public function findConflictingListingIds(string $startDate, string $endDate): array
     {
         $qb = $this->createQueryBuilder('b')
-            // Sélectionner les IDs de Listing. IDENTITY(b.listing) est la fonction DQL pour récupérer l'ID de l'entité liée.
             ->select('DISTINCT IDENTITY(b.listing)')
 
-            // Logique de chevauchement :
-            // (La réservation existante se termine après le début de la nouvelle) ET
-            // (La réservation existante commence avant la fin de la nouvelle)
-            ->where('b.endDate > :startDate')
-            ->andWhere('b.startDate < :endDate')
+            // Logique de chevauchement INCLUSIVE (Harmonisation)
+            ->where('b.endDate >= :startDate')
+            ->andWhere('b.startDate <= :endDate')
 
             ->setParameter('startDate', $startDate)
             ->setParameter('endDate', $endDate);
 
-        // Exécuter la requête et récupérer les résultats (qui seront des tableaux d'IDs)
         $result = $qb->getQuery()->getResult();
-
-        // CORRECTION : L'index 0 est l'index le plus fiable pour récupérer le résultat d'un seul champ (IDENTITY)
-        // en utilisant getResult().
         return array_column($result, 0);
     }
 
