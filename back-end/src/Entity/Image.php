@@ -38,20 +38,25 @@ class Image
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    // 💡 CORRECTION : Ajout du groupe 'listing:card:read'
-    #[Groups(['image:read', 'image:create', 'listing:read', 'listing:create', 'listing:card:read'])]
+    #[Groups([
+        'image:read',
+        'image:create',
+        'listing:read',      // Nécessaire pour l'affichage de l'image sur le listing complet
+        'listing:create',
+        'listing:card:read', // Nécessaire pour l'affichage de l'image sur la carte (collection)
+        'booking:read'       // Nécessaire pour l'affichage de l'image sur les réservations
+    ])]
     #[Assert\NotBlank(message: "L'URL de l'image est obligatoire.")]
     #[Assert\Url(message: "Ceci n'est pas une URL valide.")]
     private ?string $url = null;
 
-    // Relation ManyToOne avec Listing
     #[ORM\ManyToOne(inversedBy: 'images')]
     #[ORM\JoinColumn(nullable: false)]
+    // 💡 IMPORTANT : Ce groupe doit UNIQUEMENT être en écriture pour éviter la boucle infinie.
     #[Groups(['image:create'])]
-    #[Assert\NotNull(message: "L'image doit être associée à un Listing.")]
     private ?Listing $listing = null;
 
-    // ... (Getters & Setters) ...
+
     public function getId(): ?int
     {
         return $this->id;

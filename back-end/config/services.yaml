@@ -1,5 +1,4 @@
-# This file is the entry point to configure your own services.
-# Files in the packages/ subdirectory configure your dependencies.
+# config/services.yaml
 
 parameters:
     # ajoute ici tes paramètres custom si besoin
@@ -10,11 +9,25 @@ services:
         autowire: true # Automatically injects dependencies.
         autoconfigure: true # Automatically registers commands, event subscribers, etc.
 
+    # === Booking Current User Provider pour ApiPlatform ===
+    App\State\CurrentUserBookingProvider:
+        arguments:
+            $security: '@security.helper'
+            $bookingRepository: '@App\Repository\BookingRepository'
+        tags: ['api_platform.state_provider']
+
     # === Décorateur OpenAPI Platform pour ajouter le BearerAuth JWT ===
     App\OpenApi\OpenApiFactory:
         decorates: "api_platform.openapi.factory"
         arguments: ['@App\OpenApi\OpenApiFactory.inner']
         public: false
+
+    # Extension Doctrine pour Booking (exemple déjà existant)
+    App\Doctrine\BookingCurrentUserExtension:
+        arguments:
+            $security: "@security.helper"
+        tags:
+            - { name: "api_platform.doctrine.orm.query_extension.collection" }
 
     # makes classes in src/ available as services
     App\:

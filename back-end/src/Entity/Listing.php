@@ -18,6 +18,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
+use App\Filter\ListingAvailabilityFilter;
 
 #[ORM\Entity(repositoryClass: ListingRepository::class)]
 #[ORM\Table(name: 'listing')]
@@ -32,10 +33,10 @@ use ApiPlatform\Metadata\ApiFilter;
     operations: [
         // GET Collection : Accessible à TOUS
         new GetCollection(
-            normalizationContext: ['groups' => ['listing:read']]
+            normalizationContext: ['groups' => ['listing:card:read']]
         ),
 
-        // GET Item : Accessible à TOUS
+        // GET Item : Accessible à TOUS (utilise toujours listing:read + listing:item:read)
         new Get(
             normalizationContext: ['groups' => ['listing:read', 'listing:item:read']]
         ),
@@ -61,16 +62,18 @@ use ApiPlatform\Metadata\ApiFilter;
     ]
 )]
 #[ApiFilter(SearchFilter::class, properties: ['category' => 'exact'])]
+//  AJOUT DU NOUVEAU FILTRE DE DISPONIBILITÉ
+#[ApiFilter(ListingAvailabilityFilter::class)]
 class Listing
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['listing:read', 'booking:read', 'review:read', 'listing:card:read'])] // 💡 AJOUT
+    #[Groups(['listing:read', 'booking:read', 'review:read', 'listing:card:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read'])] // 💡 AJOUT
+    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
     #[Assert\NotBlank]
     private ?string $title = null;
 
@@ -80,25 +83,25 @@ class Listing
     private ?string $description = null;
 
     #[ORM\Column]
-    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read'])] // 💡 AJOUT
+    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
     #[Assert\PositiveOrZero]
     private ?float $pricePerNight = null;
 
     #[ORM\Column]
-    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read'])] // 💡 AJOUT
+    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
     #[Assert\Positive]
     private ?int $capacity = null;
 
     // Relation ManyToOne avec User (Owner)
     #[ORM\ManyToOne(inversedBy: 'listings')]
-    #[Groups(['listing:read', 'booking:read', 'review:read'])]
+    #[Groups(['booking:read', 'review:read', 'listing:item:read'])]
     #[Assert\Valid]
     private ?User $owner = null;
 
     // Relation ManyToOne avec Category
     #[ORM\ManyToOne(inversedBy: 'listings')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read'])] // 💡 AJOUT
+    #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
     #[Assert\NotNull]
     private ?Category $category = null;
 
@@ -113,8 +116,7 @@ class Listing
      * @var Collection<int, Image>
      */
     #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'listing', cascade: ['persist'], orphanRemoval: true)]
-    #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:card:read'])] // 💡 AJOUT
-    // OBLIGATOIRE : Au moins une image
+    #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:card:read', 'booking:read'])]
     #[Assert\Count(
         min: 1,
         minMessage: "Une annonce doit obligatoirement avoir au moins une image."
@@ -133,7 +135,6 @@ class Listing
      */
     #[ORM\ManyToMany(targetEntity: Option::class, inversedBy: 'listings')]
     #[Groups(['listing:read', 'listing:create', 'listing:update'])]
-    // OBLIGATOIRE : Au moins une option
     #[Assert\Count(
         min: 1,
         minMessage: "Vous devez sélectionner au moins une option pour cette annonce."
@@ -152,7 +153,6 @@ class Listing
         $this->images = new ArrayCollection();
         $this->reviews = new ArrayCollection();
         $this->options = new ArrayCollection();
-
         $this->favoriteListings = new ArrayCollection();
     }
 
@@ -347,6 +347,9 @@ class Listing
         $this->options->removeElement($option);
         return $this;
     }
+
+    // --- RELATIONS OneToMany : Favorites ---
+
     /**
      * @return Collection<int, Favorite>
      */

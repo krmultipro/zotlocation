@@ -52,7 +52,10 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
         ),
 
         // DELETE : Retirer des favoris (si c'est le sien)
-        new Delete(security: "object.getFavoriteUser() == user"),
+        new Delete(
+        // Comparaison par ID pour une robustesse maximale
+            security: "is_granted('ROLE_ADMIN') or object.getFavoriteUser().getId() == user.getId()"
+        ),
     ],
     normalizationContext: ['groups' => ['favorite:read']],
 )]
