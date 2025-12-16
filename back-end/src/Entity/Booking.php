@@ -11,7 +11,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Repository\BookingRepository;
-use App\State\BookingValidatorProcessor; //  processeur de validation
+use App\State\BookingValidatorProcessor; // Processeur de validation
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -22,8 +22,12 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiResource(
     operations: [
-        // 1. Endpoint pour récupérer toutes les bookings (ADMIN UNIQUEMENT)
-        new GetCollection(security: "is_granted('ROLE_ADMIN')"),
+        // 1. Endpoint pour récupérer toutes les bookings (pour l'affichage du calendrier)
+        new GetCollection(
+            // 💡 CORRECTION CRITIQUE : Permettre l'accès public pour que le Front-end puisse charger les dates réservées.
+            security: "is_granted('PUBLIC_ACCESS')",
+            normalizationContext: ['groups' => ['booking:read']],
+        ),
 
         // 2. GET Item (Lecture d'une seule réservation)
         new Get(
@@ -34,16 +38,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         // 3. POST (Création d'une réservation)
         new Post(
             security: "is_granted('ROLE_USER')",
-            // 💡 CORRECTION : Nous devons chaîner les processeurs.
-            // La validation doit se faire AVANT le calcul du prix (ou être faite par un seul processeur maître).
-            // La méthode la plus simple est d'appliquer le processeur de VALIDATION, qui délèguera ENSUITE
-            // au processeur de PERSISTANCE, qui lui-même peut déclencher le BookingPriceProcessor
-            // si le processeur de persistence est bien le BookingPriceProcessor.
-
-            // Pour garantir l'ordre : Validation (ValidatorProcessor) -> Calcul Prix (PriceProcessor) -> Persistance (par défaut).
-            // Le BookingValidatorProcessor délègue au processeur suivant, qui DOIT être BookingPriceProcessor si vous voulez garder cette logique.
-            processor: BookingValidatorProcessor::class, // 💡 NOUVEAU : Validation du chevauchement d'abord
-
+            processor: BookingValidatorProcessor::class,
             denormalizationContext: ['groups' => ['booking:create']]
         ),
 
@@ -68,7 +63,6 @@ use Symfony\Component\Validator\Constraints as Assert;
     message: "La date de fin de la réservation doit être postérieure à la date de début."
 )]
 class Booking
-
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -128,9 +122,6 @@ class Booking
     public function getEndDate(): ?\DateTimeInterface
     {
         return $this->endDate;
-        // 💡 NOTE : Si le front-end a des problèmes de format de date,
-        // nous devrons soit modifier ici pour retourner une string Y-M-D,
-        // soit utiliser un Serializer Context spécial pour forcer le format.
     }
 
     public function setEndDate(\DateTimeInterface $endDate): static
@@ -139,7 +130,7 @@ class Booking
         return $this;
     }
 
-    // 💡 NOUVELLE PROPRIÉTÉ CALCULÉE : DURATION (Pour aider le front-end)
+    // Propriété calculée : DURATION
     #[Groups(['booking:read'])]
     public function getDuration(): ?int
     {
@@ -147,10 +138,7 @@ class Booking
             return null;
         }
 
-        // Calcule la différence en jours
         $interval = $this->startDate->diff($this->endDate);
-
-        // Retourne le nombre de jours comme la durée (nuits)
         return (int) $interval->days;
     }
 

@@ -15,6 +15,17 @@ interface DateSearchModalProps {
   onClose: () => void
 }
 
+// 💡 NOUVELLE FONCTION UTILITAIRE POUR ÉVITER LE DÉCALAGE UTC (-1 jour)
+// Elle force la date à être interprétée dans le fuseau horaire local
+const getLocalFormattedDate = (date: Date): string => {
+  // Crée une nouvelle date en soustrayant l'offset de fuseau horaire
+  // Ceci permet de ramener la date à minuit local (00:00:00) au lieu de UTC 00:00:00
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+
+  // Retourne la chaîne de date au format ISO (YYYY-MM-DD)
+  return localDate.toISOString().substring(0, 10)
+}
+
 const DateSearchModal: React.FC<DateSearchModalProps> = ({
   isOpen,
   onClose,
@@ -39,8 +50,9 @@ const DateSearchModal: React.FC<DateSearchModalProps> = ({
     setIsLoading(true)
 
     if (range?.from && range?.to) {
-      const start = format(range.from, "yyyy-MM-dd")
-      const end = format(range.to, "yyyy-MM-dd")
+      // 💡 UTILISATION DE LA NOUVELLE FONCTION POUR ÉVITER LE DÉCALAGE UTC
+      const start = getLocalFormattedDate(range.from)
+      const end = getLocalFormattedDate(range.to)
 
       // Construire l'URL de recherche
       const searchUrl = `/?startDate=${start}&endDate=${end}`
