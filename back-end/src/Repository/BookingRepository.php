@@ -93,4 +93,21 @@ class BookingRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Trouve toutes les réservations pour un Listing donné par son ID.
+     * Utilisé par BookingCollectionProvider.
+     * @param int $listingId
+     * @return Booking[]
+     */
+    public function findBookingsByListingId(int $listingId): array
+    {
+        return $this->createQueryBuilder('b')
+            ->where('b.listing = :listingId')
+            ->setParameter('listingId', $listingId)
+            // Optionnel : ajouter le listing en select si vous en avez besoin, sinon on peut laisser simple
+            // ->leftJoin('b.listing', 'l')->addSelect('l')
+            ->getQuery()
+            ->getResult();
+    }
 }

@@ -11,7 +11,8 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Repository\BookingRepository;
-use App\State\BookingValidatorProcessor; // Processeur de validation
+use App\State\BookingValidatorProcessor;
+use App\State\BookingCollectionProvider;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -24,9 +25,11 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         // 1. Endpoint pour récupérer toutes les bookings (pour l'affichage du calendrier)
         new GetCollection(
-            // 💡 CORRECTION CRITIQUE : Permettre l'accès public pour que le Front-end puisse charger les dates réservées.
+            // La sécurité 401 a été corrigée dans security.yaml, mais l'annotation reste pour l'intention.
             security: "is_granted('PUBLIC_ACCESS')",
             normalizationContext: ['groups' => ['booking:read']],
+            // Utilise le Provider pour gérer le filtre de Listing ID
+            provider: BookingCollectionProvider::class,
         ),
 
         // 2. GET Item (Lecture d'une seule réservation)
@@ -38,6 +41,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         // 3. POST (Création d'une réservation)
         new Post(
             security: "is_granted('ROLE_USER')",
+            // 💡 Correction Prix/Validation : Utilise le Validator pour vérifier la dispo et calculer le prix (via chaînage)
             processor: BookingValidatorProcessor::class,
             denormalizationContext: ['groups' => ['booking:create']]
         ),
@@ -45,6 +49,8 @@ use Symfony\Component\Validator\Constraints as Assert;
         // 4. PATCH (Mise à jour d'une réservation)
         new Patch(
             security: "is_granted('ROLE_ADMIN') or object.getBooker() == user",
+            // 💡 Correction Prix/Validation : Utilise AUSSI le Validator pour revérifier la dispo et recalculer le prix
+            processor: BookingValidatorProcessor::class,
             denormalizationContext: ['groups' => ['booking:update']]
         ),
 
@@ -57,6 +63,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiFilter(SearchFilter::class, properties: [
     'listing' => 'exact',
+    'booker' => 'exact', // 💡 AJOUT : Permet de filtrer les réservations par utilisateur pour le tableau de bord
 ])]
 #[Assert\Expression(
     "this.getEndDate() > this.getStartDate()",
