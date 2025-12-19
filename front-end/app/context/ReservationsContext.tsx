@@ -7,7 +7,6 @@ import React, {
   useEffect,
   useState,
 } from "react"
-import toast from "react-hot-toast"
 
 interface Listing {
   id: number
@@ -15,7 +14,6 @@ interface Listing {
   pricePerNight: number
   capacity: number
   category?: { name: string }
-  // Assurez-vous que l'entité Image.php est sérialisée avec 'booking:read' pour voir l'URL
   images?: { url: string }[]
 }
 
@@ -25,6 +23,7 @@ export interface Booking {
   endDate: string
   totalPrice: number
   listing: Listing
+  duration?: number
 }
 
 interface ReservationsContextType {
@@ -40,12 +39,13 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [trigger, setTrigger] = useState(0) // Utilisé pour forcer le rafraîchissement
+  const [trigger, setTrigger] = useState(0)
 
-  // Fonction de récupération principale
   const fetchBookings = useCallback(async () => {
     const token =
       typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
+    const storedUser =
+      typeof window !== "undefined" ? localStorage.getItem("user") : null
 
     if (!token) {
       setBookings([])
@@ -55,53 +55,73 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setIsLoading(true)
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
-      const res = await fetch(`${API_URL}/api/users/me/bookings`, {
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
+      let userId: number | null = null
+
+      // Tentative de récupération de l'ID utilisateur (Dynamique via /api/me)
+      try {
+        const meRes = await fetch(`${API_URL}/api/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        })
+        if (meRes.ok) {
+          const userData = await meRes.json()
+          userId = userData.id
+        }
+      } catch (e) {
+        // Secours via localStorage si la route /api/me échoue
+        if (storedUser) {
+          userId = JSON.parse(storedUser).id
+        }
+      }
+
+      if (!userId) {
+        setIsLoading(false)
+        return
+      }
+
+      // Récupération des réservations filtrées par l'ID du booker
+      const res = await fetch(`${API_URL}/api/bookings?booker=${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
-          Accept: "application/json", // Changé pour du JSON simple car le contrôleur le renvoie
+          Accept: "application/ld+json",
         },
       })
 
-      if (!res.ok) {
-        throw new Error("Impossible de récupérer vos réservations.")
-      }
+      if (!res.ok) throw new Error("Erreur lors du chargement des réservations")
 
       const data = await res.json()
 
-      // 💡 CORRECTION MAJEURE : Gérer la réponse de votre Contrôleur Symfony Classique (tableau direct)
-      // Si c'est un tableau, on l'utilise. Sinon, on essaie hydra:member, sinon un tableau vide.
-      const bookingsArray = Array.isArray(data) ? data : (data["hydra:member"] || [])
+      // Extraction compatible avec les formats JSON-LD (member ou hydra:member)
+      const bookingsArray =
+        data["member"] ||
+        data["hydra:member"] ||
+        (Array.isArray(data) ? data : [])
 
-      setBookings(bookingsArray as Booking[])
-
-    } catch (err: any) {
-      console.error(err)
-      toast.error(err.message || "Erreur lors de la récupération des réservations.")
+      setBookings(bookingsArray)
+    } catch (err) {
       setBookings([])
     } finally {
       setIsLoading(false)
     }
-  }, [trigger]) // fetchBookings dépend de 'trigger' pour être exécuté quand il change
+  }, [trigger])
 
-  // Exécution du fetch au montage et quand 'trigger' change
   useEffect(() => {
     fetchBookings()
 
-    // Gestion de l'événement de rafraîchissement global
     const handleUpdate = () => {
-        // Incrémente 'trigger' pour relancer fetchBookings
-        setTrigger((prev) => prev + 1)
+      setTrigger((prev) => prev + 1)
     }
 
     window.addEventListener("reservations:updated", handleUpdate)
-
     return () => {
       window.removeEventListener("reservations:updated", handleUpdate)
     }
-  }, [fetchBookings]) // fetchBookings est la seule dépendance ici, car 'trigger' est dans fetchBookings
+  }, [fetchBookings])
 
-  // Fonction exposée pour rafraîchir manuellement (via dispatchEvent)
   const refreshBookings = useCallback(() => {
     window.dispatchEvent(new Event("reservations:updated"))
   }, [])
@@ -118,6 +138,8 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
 export const useReservations = () => {
   const context = useContext(ReservationsContext)
   if (!context)
-    throw new Error("useReservations doit être utilisé dans un ReservationsProvider")
+    throw new Error(
+      "useReservations doit être utilisé dans un ReservationsProvider"
+    )
   return context
 }
