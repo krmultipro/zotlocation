@@ -1,39 +1,38 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// 🛑 DANS app/reservations/page.tsx
-
 "use client"
 
 import { useReservations } from "@/app/context/ReservationsContext"
 import Container from "@/components/Container"
 import ListingCard from "@/components/ListingCard"
+import BookingEditModal from "@/components/modals/BookingEditModal"
 import { differenceInDays, format } from "date-fns"
 import { Calendar, Edit, Loader2, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
-
-// Import de la modale de modification des dates
-import BookingEditModal from "@/components/modals/BookingEditModal"
 
 const ReservationsPage = () => {
   const router = useRouter()
-
-  // 💡 MODIFICATION CLÉ : Nous déstructurons 'refreshBookings'
-  // Nous l'utilisons pour mettre à jour la liste des réservations via l'événement global.
   const { bookings, isLoading, refreshBookings } = useReservations()
 
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [editingBookingId, setEditingBookingId] = useState<number | null>(null)
 
-  // 💡 CORRECTION SUPPRESSION : Utilisation de refreshBookings pour l'annulation
+  // 💡 SOLUTION AU PROBLÈME D'AFFICHAGE INITIAL
+  // On force le rafraîchissement dès que l'utilisateur arrive sur la page
+  // Cela garantit que si le contexte était "vide" à cause d'une connexion récente,
+  // les données sont récupérées immédiatement.
+  useEffect(() => {
+    refreshBookings()
+  }, [refreshBookings])
+
   const onCancel = useCallback(
     async (bookingId: number, event: React.MouseEvent) => {
       event.stopPropagation()
 
       const token =
         typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
-
       if (!token) {
         toast.error("Vous n'êtes plus connecté.")
         return
@@ -62,11 +61,11 @@ const ReservationsPage = () => {
 
         toast.success("Réservation annulée avec succès.")
 
-        // 1. Rechargement des données via la fonction cohérente du contexte
-        // Le `refreshBookings()` déclenche l'événement global.
+        // On rafraîchit la liste globale
         refreshBookings()
 
-        // 2. Redirection vers la page d'accueil (selon votre demande)
+        // Optionnel : Rediriger vers l'accueil ou rester sur la page
+        // Si vous restez sur la page, refreshBookings() suffit à mettre à jour la liste
         router.push("/")
       } catch (err: any) {
         toast.error(err.message || "Erreur lors de l'annulation.")
@@ -74,34 +73,24 @@ const ReservationsPage = () => {
         setDeletingId(null)
       }
     },
-    [refreshBookings, router] // 💡 DEPENDANCE : Remplacer fetchBookings par refreshBookings
+    [refreshBookings, router]
   )
 
-  // LOGIQUE DE CALCUL DES JOURS (Non modifiée)
   const calculateDays = (start: string, end: string) => {
     if (!start || !end) return 0
-
-    const cleanStartDate = start.split("T")[0]
-    const cleanEndDate = end.split("T")[0]
-
-    const startDate = new Date(cleanStartDate)
-    const endDate = new Date(cleanEndDate)
-
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      console.error("Date invalide détectée (calcul days):", start, end)
-      return 0
-    }
-
+    const startDate = new Date(start.split("T")[0])
+    const endDate = new Date(end.split("T")[0])
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return 0
     return differenceInDays(endDate, startDate)
   }
 
   if (isLoading) {
     return (
       <Container>
-        <div className="w-full h-[60vh] flex items-center justify-center">
-          <Loader2 className="animate-spin w-6 h-6 text-green-500" />
-          <p className="ml-3 text-xl font-semibold text-gray-700">
-            Chargement de vos réservations...
+        <div className="w-full h-[60vh] flex flex-col items-center justify-center">
+          <Loader2 className="animate-spin w-10 h-10 text-green-500 mb-4" />
+          <p className="text-xl font-semibold text-gray-700">
+            Synchronisation de vos réservations...
           </p>
         </div>
       </Container>
@@ -111,11 +100,19 @@ const ReservationsPage = () => {
   if (bookings.length === 0) {
     return (
       <Container>
-        <div className="pt-24 text-center font-semibold text-gray-600">
-          Vous n'avez aucune réservation pour le moment.
-          <p className="text-sm text-gray-500 mt-2">
-            Commencez par explorer nos annonces !
+        <div className="pt-24 text-center">
+          <h2 className="text-2xl font-bold text-gray-800">
+            Aucune réservation trouvée
+          </h2>
+          <p className="text-gray-500 mt-2 mb-6">
+            Il semble que vous n'ayez pas encore planifié de voyage.
           </p>
+          <button
+            onClick={() => router.push("/")}
+            className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+          >
+            Explorer les annonces
+          </button>
         </div>
       </Container>
     )
@@ -146,35 +143,27 @@ const ReservationsPage = () => {
             const isDateValid =
               start && end && !isNaN(start.getTime()) && !isNaN(end.getTime())
 
-            // Regroupement des boutons d'action (Non modifiée)
             const actionButtons = (
               <div className="flex items-center gap-2">
-                {/* Bouton Modifier */}
                 <button
                   onClick={(e) => {
-                    console.log("Clic sur modifier qui fonctionne")
-
                     e.stopPropagation()
                     setEditingBookingId(booking.id)
                   }}
-                  className="p-2 rounded-full transition text-sm font-semibold z-10 bg-blue-500 text-white hover:bg-blue-600"
-                  title="Modifier la réservation"
+                  className="p-2 rounded-full transition bg-blue-500 text-white hover:bg-blue-600 shadow-sm"
+                  title="Modifier les dates"
                 >
                   <Edit className="w-4 h-4" />
                 </button>
 
-                {/* Bouton Annuler/Supprimer */}
                 <button
                   onClick={(e) => onCancel(booking.id, e)}
                   disabled={isDeleting}
-                  className={`
-                            p-2 rounded-full transition text-sm font-semibold z-10
-                            ${
-                              isDeleting
-                                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                : "bg-red-500 text-white hover:bg-red-600"
-                            }
-                        `}
+                  className={`p-2 rounded-full transition shadow-sm ${
+                    isDeleting
+                      ? "bg-gray-300 text-gray-500"
+                      : "bg-red-500 text-white hover:bg-red-600"
+                  }`}
                   title="Annuler la réservation"
                 >
                   {isDeleting ? (
@@ -187,13 +176,13 @@ const ReservationsPage = () => {
             )
 
             return (
-              <div key={booking.id} className="relative">
+              <div key={booking.id} className="relative group">
                 <ListingCard
                   id={booking.listing.id}
                   title={booking.listing.title}
                   pricePerNight={booking.listing.pricePerNight}
                   capacity={booking.listing.capacity}
-                  category={booking.listing.category?.name || "Sans catégorie"}
+                  category={booking.listing.category?.name || "Hébergement"}
                   imageUrl={
                     booking.listing.images?.[0]?.url ||
                     "/images/placeholder.png"
@@ -203,25 +192,21 @@ const ReservationsPage = () => {
                     <div className="flex flex-col text-sm font-medium space-y-1 mt-2">
                       <span className="text-green-600 flex items-center">
                         <Calendar className="w-4 h-4 mr-1" />
-                        {isDateValid ? (
-                          <>
-                            Du {format(start!, "dd/MM/yyyy")} au{" "}
-                            {format(end!, "dd/MM/yyyy")}
-                          </>
-                        ) : (
-                          "Dates Invalides"
-                        )}
+                        {isDateValid
+                          ? `Du ${format(start!, "dd/MM/yyyy")} au ${format(
+                              end!,
+                              "dd/MM/yyyy"
+                            )}`
+                          : "Dates à confirmer"}
                       </span>
                       <span className="text-gray-700">
                         {days > 0 ? (
                           <>
-                            <strong>{days} nuits</strong> · Total payé:{" "}
-                            <span className="font-bold">
-                              {booking.totalPrice}€
-                            </span>
+                            <strong>{days} nuits</strong> · Total:{" "}
+                            <strong>{booking.totalPrice}€</strong>
                           </>
                         ) : (
-                          "Calcul des nuits impossible."
+                          "Séjour court"
                         )}
                       </span>
                     </div>
@@ -233,14 +218,15 @@ const ReservationsPage = () => {
         </div>
       </div>
 
-      {/* Rendu de la modale de modification des réservations */}
       {editingBooking && (
         <BookingEditModal
           isOpen={!!editingBooking}
           booking={editingBooking}
           onClose={() => setEditingBookingId(null)}
-          // 💡 C'EST LA CORRECTION FINALE : onSuccess appelle refreshBookings
-          onSuccess={refreshBookings}
+          onSuccess={() => {
+            refreshBookings()
+            setEditingBookingId(null)
+          }}
         />
       )}
     </Container>

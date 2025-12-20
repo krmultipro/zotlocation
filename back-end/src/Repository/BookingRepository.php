@@ -60,22 +60,20 @@ class BookingRepository extends ServiceEntityRepository
      * @param string $endDate Date de fin de la recherche (format 'Y-m-d')
      * @return int[] IDs des listings en conflit (c'est-à-dire non disponibles).
      */
-    public function findConflictingListingIds(string $startDate, string $endDate): array
+ public function findConflictingListingIds(string $startDate, string $endDate): array
     {
         $qb = $this->createQueryBuilder('b')
-            ->select('DISTINCT IDENTITY(b.listing)')
-
-            // Logique de chevauchement INCLUSIVE (Harmonisation)
+            ->select('DISTINCT IDENTITY(b.listing) as listing_id') // Alias pour plus de clarté
             ->where('b.endDate >= :startDate')
             ->andWhere('b.startDate <= :endDate')
-
             ->setParameter('startDate', $startDate)
             ->setParameter('endDate', $endDate);
 
-        $result = $qb->getQuery()->getResult();
-        return array_column($result, 0);
-    }
+        $result = $qb->getQuery()->getScalarResult();
 
+        // array_column va extraire uniquement les valeurs de 'listing_id'
+        return array_column($result, 'listing_id');
+    }
 
     /**
      * Récupère toutes les réservations d'un utilisateur, en chargeant immédiatement le Listing associé (Join Fetch).
@@ -90,6 +88,23 @@ class BookingRepository extends ServiceEntityRepository
             ->leftJoin('b.listing', 'l') // Jointure
             ->addSelect('l')             // Sélection de l'entité jointe (Eager Loading)
             ->orderBy('b.startDate', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Trouve toutes les réservations pour un Listing donné par son ID.
+     * Utilisé par BookingCollectionProvider.
+     * @param int $listingId
+     * @return Booking[]
+     */
+    public function findBookingsByListingId(int $listingId): array
+    {
+        return $this->createQueryBuilder('b')
+            // 💡 RENDU PLUS ROBUSTE : Joindre explicitement le Listing et filtrer sur son ID
+            ->innerJoin('b.listing', 'l')
+            ->where('l.id = :listingId')
+            ->setParameter('listingId', $listingId)
             ->getQuery()
             ->getResult();
     }
