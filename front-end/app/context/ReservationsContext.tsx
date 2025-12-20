@@ -47,6 +47,8 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
     const storedUser =
       typeof window !== "undefined" ? localStorage.getItem("user") : null
 
+    // Si pas de token, on ne peut rien charger.
+    // On attend que l'utilisateur soit connecté.
     if (!token) {
       setBookings([])
       setIsLoading(false)
@@ -59,8 +61,17 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
         process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
       let userId: number | null = null
 
-      // Tentative de récupération de l'ID utilisateur (Dynamique via /api/me)
-      try {
+      // 1. On tente l'ID du localStorage d'abord (plus rapide pour l'affichage initial)
+      if (storedUser) {
+        try {
+          userId = JSON.parse(storedUser).id
+        } catch (e) {
+          console.error("Erreur parsing user local")
+        }
+      }
+
+      // 2. Si pas d'ID en local, ou pour vérifier la validité, on appelle /api/me
+      if (!userId) {
         const meRes = await fetch(`${API_URL}/api/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -71,19 +82,11 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
           const userData = await meRes.json()
           userId = userData.id
         }
-      } catch (e) {
-        // Secours via localStorage si la route /api/me échoue
-        if (storedUser) {
-          userId = JSON.parse(storedUser).id
-        }
       }
 
-      if (!userId) {
-        setIsLoading(false)
-        return
-      }
+      if (!userId) throw new Error("Utilisateur non identifié")
 
-      // Récupération des réservations filtrées par l'ID du booker
+      // 3. Récupération des réservations
       const res = await fetch(`${API_URL}/api/bookings?booker=${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -91,11 +94,9 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
         },
       })
 
-      if (!res.ok) throw new Error("Erreur lors du chargement des réservations")
+      if (!res.ok) throw new Error("Erreur serveur")
 
       const data = await res.json()
-
-      // Extraction compatible avec les formats JSON-LD (member ou hydra:member)
       const bookingsArray =
         data["member"] ||
         data["hydra:member"] ||
@@ -103,28 +104,32 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
       setBookings(bookingsArray)
     } catch (err) {
+      console.error("Erreur ReservationsContext:", err)
       setBookings([])
     } finally {
       setIsLoading(false)
     }
-  }, [trigger])
+  }, [trigger]) // Dépend de trigger pour permettre le refresh manuel
+
+  // Fonction exposée pour forcer le rechargement
+  const refreshBookings = useCallback(() => {
+    setTrigger((prev) => prev + 1)
+  }, [])
 
   useEffect(() => {
     fetchBookings()
 
-    const handleUpdate = () => {
-      setTrigger((prev) => prev + 1)
-    }
+    // Gestion des événements globaux
+    const handleAuthChange = () => fetchBookings()
 
-    window.addEventListener("reservations:updated", handleUpdate)
+    window.addEventListener("reservations:updated", handleAuthChange)
+    window.addEventListener("storage", handleAuthChange)
+
     return () => {
-      window.removeEventListener("reservations:updated", handleUpdate)
+      window.removeEventListener("reservations:updated", handleAuthChange)
+      window.removeEventListener("storage", handleAuthChange)
     }
   }, [fetchBookings])
-
-  const refreshBookings = useCallback(() => {
-    window.dispatchEvent(new Event("reservations:updated"))
-  }, [])
 
   return (
     <ReservationsContext.Provider
