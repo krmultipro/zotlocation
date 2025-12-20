@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
@@ -8,28 +7,47 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Review;
 use App\Entity\User;
+use App\Repository\BookingRepository; // 💡 Import nécessaire
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Attribute\Autowire; // 💡 Importez ceci
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 final class ReviewAuthorProcessor implements ProcessorInterface
 {
     public function __construct(
-        // 💡 CORRECTION : Utilisation de #[Autowire] pour cibler le service exact
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private ProcessorInterface $persistProcessor,
-        private Security $security
+        private Security $security,
+        private BookingRepository $bookingRepository // 💡 Injection du repo
     ) {
     }
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        // Assigne l'utilisateur connecté comme auteur lors de la création
         if ($data instanceof Review && ($operation instanceof Post)) {
             $user = $this->security->getUser();
+            $listing = $data->getListing();
 
-            if ($user && $user instanceof User) {
-                $data->setAuthor($user);
+            if (!$user instanceof User) {
+                throw new AccessDeniedHttpException("Vous devez être connecté.");
             }
+
+            // 💡 LOGIQUE MÉTIER : Vérifier si une réservation terminée existe
+            // On utilise la méthode de ton repository (ou une simple recherche)
+            $hasPastBooking = $this->bookingRepository->findOneBy([
+                'booker' => $user,
+                'listing' => $listing,
+            ]);
+
+            // Optionnel : On peut vérifier que la date de fin est < à aujourd'hui
+            $now = new \DateTime();
+            if (!$hasPastBooking || $hasPastBooking->getEndDate() > $now) {
+                throw new AccessDeniedHttpException(
+                    "Vous ne pouvez laisser un avis qu'après la fin de votre séjour."
+                );
+            }
+
+            $data->setAuthor($user);
         }
 
         return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
