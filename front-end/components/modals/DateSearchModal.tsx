@@ -15,14 +15,8 @@ interface DateSearchModalProps {
   onClose: () => void
 }
 
-// 💡 NOUVELLE FONCTION UTILITAIRE POUR ÉVITER LE DÉCALAGE UTC (-1 jour)
-// Elle force la date à être interprétée dans le fuseau horaire local
 const getLocalFormattedDate = (date: Date): string => {
-  // Crée une nouvelle date en soustrayant l'offset de fuseau horaire
-  // Ceci permet de ramener la date à minuit local (00:00:00) au lieu de UTC 00:00:00
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-
-  // Retourne la chaîne de date au format ISO (YYYY-MM-DD)
   return localDate.toISOString().substring(0, 10)
 }
 
@@ -39,34 +33,28 @@ const DateSearchModal: React.FC<DateSearchModalProps> = ({
     return range?.from && range?.to ? "Rechercher" : "Sélectionner les dates"
   }, [range])
 
-  const disabled = useMemo(() => {
+  // On sépare le 'disabled' pour le bouton et l'état de chargement
+  const isSubmitDisabled = useMemo(() => {
     return isLoading || !range?.from || !range?.to
   }, [isLoading, range])
 
   // --- 2. GESTION DE LA RECHERCHE (Soumission) ---
   const handleSubmit = useCallback(() => {
-    if (disabled) return
+    // Si on clique sur le bouton mais que ce n'est pas prêt, on ne fait rien
+    if (isSubmitDisabled) return
 
     setIsLoading(true)
 
     if (range?.from && range?.to) {
-      // 💡 UTILISATION DE LA NOUVELLE FONCTION POUR ÉVITER LE DÉCALAGE UTC
       const start = getLocalFormattedDate(range.from)
       const end = getLocalFormattedDate(range.to)
-
-      // Construire l'URL de recherche
       const searchUrl = `/?startDate=${start}&endDate=${end}`
-
-      // Redirection vers la page d'accueil avec les paramètres
       router.push(searchUrl)
-    } else {
-      // Optionnel : Rechercher sans filtre de date si le bouton le permet
-      router.push("/")
     }
 
     setIsLoading(false)
     onClose()
-  }, [disabled, range, router, onClose])
+  }, [isSubmitDisabled, range, router, onClose])
 
   // --- 3. Rendu du contenu de la modale ---
   const bodyContent = (
@@ -79,18 +67,13 @@ const DateSearchModal: React.FC<DateSearchModalProps> = ({
         mode="range"
         selected={range}
         onSelect={setRange}
-        numberOfMonths={1} // afficher seulement 1 mois pour l'instant a voir le rendu
-        disabled={[{ before: new Date() }]} // Désactive les dates passées
-        className="rounded-md border [
-          &_.rdp-day_selected]:bg-green-600
-          [&_.rdp-day_selected]:text-white
-          [&_.rdp-day_range_middle]:bg-green-200
-          [&_.rdp-day_range_middle]:text-gray-800
-        "
+        numberOfMonths={1}
+        disabled={[{ before: new Date() }]}
+        className="rounded-md border shadow-sm p-3"
       />
 
       {range?.from && range?.to && (
-        <div className="text-center mt-4 text-lg font-medium">
+        <div className="text-center mt-4 text-lg font-medium text-green-700 bg-green-50 px-4 py-2 rounded-full border border-green-100">
           Sélection: {format(range.from, "dd/MM/yyyy")} au{" "}
           {format(range.to, "dd/MM/yyyy")}
         </div>
@@ -106,7 +89,11 @@ const DateSearchModal: React.FC<DateSearchModalProps> = ({
       onSubmit={handleSubmit}
       onClose={onClose}
       body={bodyContent}
-      disabled={disabled}
+      /* 💡 IMPORTANT : On passe 'isSubmitDisabled' ici.
+         Vérifiez bien que votre composant Modal.tsx n'utilise
+         PAS cette prop 'disabled' pour bloquer la fonction 'handleClose'.
+      */
+      disabled={isSubmitDisabled}
     />
   )
 }

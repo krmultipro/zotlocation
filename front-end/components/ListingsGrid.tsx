@@ -4,9 +4,8 @@
 import Container from "@/components/Container"
 import ListingCard from "@/components/ListingCard"
 import axios from "axios"
-import { useEffect, useState } from "react"
-
 import { useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react"
 
 // Types
 interface Listing {
@@ -48,6 +47,8 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
   const searchParams = useSearchParams()
   const startDate = searchParams.get("startDate")
   const endDate = searchParams.get("endDate")
+  // 💡 AJOUT : Récupération du paramètre de capacité
+  const capacity = searchParams.get("capacity[gte]")
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -61,19 +62,22 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
         // Construction des paramètres pour le filtrage côté SERVEUR
         const params: Record<string, string> = {}
 
-        // 1. Filtrage par Catégorie (Existant)
+        // 1. Filtrage par Catégorie
         if (categoryFilter) {
           params["category"] = `/api/categories/${categoryFilter}`
         }
 
-        // FILTRAGE PAR DISPONIBILITÉ
+        // 2. Filtrage par Disponibilité
         if (startDate) {
-          // (startDate) pour le filtre custom du backend
           params["startDate"] = startDate
         }
         if (endDate) {
-          // (endDate) pour le filtre custom du backend
           params["endDate"] = endDate
+        }
+
+        // 3. 💡 AJOUT : Filtrage par Capacité (transmis à l'API Symfony)
+        if (capacity) {
+          params["capacity[gte]"] = capacity
         }
 
         // Appel API
@@ -82,22 +86,18 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
         })
 
         const data = response.data["hydra:member"] || response.data.member || []
-
         setListings(data)
       } catch (err: any) {
         console.error("Erreur lors du chargement des listings:", err)
-
-        const debugUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/listings`
-        setError(
-          `Erreur lors de la récupération des annonces. Vérifiez la console et l'URL : ${debugUrl}`
-        )
+        setError("Erreur lors de la récupération des annonces.")
       } finally {
         setLoading(false)
       }
     }
 
     fetchListings()
-  }, [categoryFilter, startDate, endDate]) //  L'effet se relance quand les dates dans l'URL changent
+    // 💡 AJOUT de 'capacity' dans les dépendances pour relancer le fetch
+  }, [categoryFilter, startDate, endDate, capacity])
 
   // --- Affichage de l'état de chargement ---
   if (loading) {
@@ -116,16 +116,10 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
     )
   }
 
-  // --- Affichage de l'état d'erreur ---
   if (error) {
     return (
       <Container>
-        <div className="py-20 text-center">
-          <p className="text-red-500 text-lg">Erreur : {error}</p>
-          <p className="text-gray-600 mt-2">
-            Vérifiez que le serveur backend est démarré et accessible.
-          </p>
-        </div>
+        <div className="py-20 text-center text-red-500">{error}</div>
       </Container>
     )
   }
@@ -136,19 +130,20 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
       ? `Annonces disponibles du ${startDate} au ${endDate}`
       : null
 
+  const guestSummary = capacity ? `pour au moins ${capacity} personnes` : null
+
   // --- Affichage de l'état vide ---
   if (listings.length === 0) {
     return (
       <Container>
         <div className="py-20 text-center">
-          <p className="text-gray-600 text-lg">
-            {dateSummary || categoryFilter
-              ? `Aucune annonce disponible ne correspond à vos critères de recherche.`
-              : "Aucune annonce disponible pour le moment."}
+          <p className="text-gray-600 text-lg font-medium">
+            Aucune annonce ne correspond à vos critères.
           </p>
-          {dateSummary && (
-            <p className="text-gray-500 mt-2 text-sm">{dateSummary}</p>
-          )}
+          <p className="text-gray-400 mt-2">
+            Essayez de modifier vos filtres ou de réduire le nombre de
+            voyageurs.
+          </p>
         </div>
       </Container>
     )
@@ -157,23 +152,28 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
   // --- Affichage de la grille d'annonces ---
   return (
     <Container>
-      {dateSummary && (
-        <div className="pt-8 text-center text-lg font-medium text-gray-700">
-          {dateSummary}
+      <div className="pt-8">
+        {(dateSummary || guestSummary) && (
+          <div className="text-center mb-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <span className="text-gray-700 font-medium">
+              {dateSummary} {guestSummary}
+            </span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          {listings.map((listing) => (
+            <ListingCard
+              key={listing.id}
+              id={listing.id}
+              title={listing.title}
+              pricePerNight={listing.pricePerNight}
+              capacity={listing.capacity}
+              category={listing.category?.name || "Non spécifiée"}
+              imageUrl={listing.images?.[0]?.url || "/images/placeholder.png"}
+            />
+          ))}
         </div>
-      )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 py-8">
-        {listings.map((listing) => (
-          <ListingCard
-            key={listing.id}
-            id={listing.id}
-            title={listing.title}
-            pricePerNight={listing.pricePerNight}
-            capacity={listing.capacity}
-            category={listing.category?.name || "Non spécifiée"}
-            imageUrl={listing.images?.[0]?.url || "/images/placeholder.png"}
-          />
-        ))}
       </div>
     </Container>
   )
