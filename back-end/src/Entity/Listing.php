@@ -2,12 +2,15 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
+use App\Filter\ListingAvailabilityFilter;
 use App\Repository\ListingRepository;
 use App\State\ListingOwnerProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -16,9 +19,6 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
-use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
-use ApiPlatform\Metadata\ApiFilter;
-use App\Filter\ListingAvailabilityFilter;
 
 #[ORM\Entity(repositoryClass: ListingRepository::class)]
 #[ORM\Table(name: 'listing')]
@@ -31,17 +31,17 @@ use App\Filter\ListingAvailabilityFilter;
 ])]
 #[ApiResource(
     operations: [
-        // GET Collection : Accessible à TOUS
+        // GET Collection : Accessible à TOUS (affichage en grille)
         new GetCollection(
             normalizationContext: ['groups' => ['listing:card:read']]
         ),
 
-        // GET Item : Accessible à TOUS (utilise toujours listing:read + listing:item:read)
+        // GET Item : Accessible à TOUS (affichage détaillé)
         new Get(
             normalizationContext: ['groups' => ['listing:read', 'listing:item:read']]
         ),
 
-        // POST : SEULEMENT si 'ROLE_ADMIN' & Utilisation du Processeur
+        // POST : Réservé aux ADMINS via ListingOwnerProcessor
         new Post(
             processor: ListingOwnerProcessor::class,
             security: "is_granted('ROLE_ADMIN')",
@@ -61,8 +61,13 @@ use App\Filter\ListingAvailabilityFilter;
         ),
     ]
 )]
+// --- FILTRES API ---
 #[ApiFilter(SearchFilter::class, properties: ['category' => 'exact'])]
-//  AJOUT DU NOUVEAU FILTRE DE DISPONIBILITÉ
+
+/** * 💡 NOTE : On a supprimé le NumericFilter ici.
+ * La capacité est désormais gérée manuellement dans ListingAvailabilityFilter
+ * pour forcer le comportement "supérieur ou égal" (>=).
+ */
 #[ApiFilter(ListingAvailabilityFilter::class)]
 class Listing
 {
@@ -92,13 +97,11 @@ class Listing
     #[Assert\Positive]
     private ?int $capacity = null;
 
-    // Relation ManyToOne avec User (Owner)
     #[ORM\ManyToOne(inversedBy: 'listings')]
     #[Groups(['booking:read', 'review:read', 'listing:item:read'])]
     #[Assert\Valid]
     private ?User $owner = null;
 
-    // Relation ManyToOne avec Category
     #[ORM\ManyToOne(inversedBy: 'listings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
@@ -117,10 +120,7 @@ class Listing
      */
     #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'listing', cascade: ['persist'], orphanRemoval: true)]
     #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:card:read', 'booking:read'])]
-    #[Assert\Count(
-        min: 1,
-        minMessage: "Une annonce doit obligatoirement avoir au moins une image."
-    )]
+    #[Assert\Count(min: 1, minMessage: "Une annonce doit obligatoirement avoir au moins une image.")]
     private Collection $images;
 
     /**
@@ -135,10 +135,7 @@ class Listing
      */
     #[ORM\ManyToMany(targetEntity: Option::class, inversedBy: 'listings')]
     #[Groups(['listing:read', 'listing:create', 'listing:update'])]
-    #[Assert\Count(
-        min: 1,
-        minMessage: "Vous devez sélectionner au moins une option pour cette annonce."
-    )]
+    #[Assert\Count(min: 1, minMessage: "Vous devez sélectionner au moins une option.")]
     private Collection $options;
 
     /**
@@ -156,226 +153,93 @@ class Listing
         $this->favoriteListings = new ArrayCollection();
     }
 
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
+    // --- GETTERS & SETTERS ---
 
-    public function setId(?int $id): static
-    {
-        $this->id = $id;
-        return $this;
-    }
+    public function getId(): ?int { return $this->id; }
+    public function setId(?int $id): static { $this->id = $id; return $this; }
 
-    // --- GETTERS & SETTERS PROPRIÉTÉS DE BASE ---
+    public function getTitle(): ?string { return $this->title; }
+    public function setTitle(string $title): static { $this->title = $title; return $this; }
 
-    public function getTitle(): ?string
-    {
-        return $this->title;
-    }
+    public function getDescription(): ?string { return $this->description; }
+    public function setDescription(string $description): static { $this->description = $description; return $this; }
 
-    public function setTitle(string $title): static
-    {
-        $this->title = $title;
-        return $this;
-    }
+    public function getPricePerNight(): ?float { return $this->pricePerNight; }
+    public function setPricePerNight(float $pricePerNight): static { $this->pricePerNight = $pricePerNight; return $this; }
 
-    public function getDescription(): ?string
-    {
-        return $this->description;
-    }
+    public function getCapacity(): ?int { return $this->capacity; }
+    public function setCapacity(int $capacity): static { $this->capacity = $capacity; return $this; }
 
-    public function setDescription(string $description): static
-    {
-        $this->description = $description;
-        return $this;
-    }
+    public function getOwner(): ?User { return $this->owner; }
+    public function setOwner(?User $owner): static { $this->owner = $owner; return $this; }
 
-    public function getPricePerNight(): ?float
-    {
-        return $this->pricePerNight;
-    }
+    public function getCategory(): ?Category { return $this->category; }
+    public function setCategory(?Category $category): static { $this->category = $category; return $this; }
 
-    public function setPricePerNight(float $pricePerNight): static
-    {
-        $this->pricePerNight = $pricePerNight;
-        return $this;
-    }
-
-    public function getCapacity(): ?int
-    {
-        return $this->capacity;
-    }
-
-    public function setCapacity(int $capacity): static
-    {
-        $this->capacity = $capacity;
-        return $this;
-    }
-
-    // --- GETTERS & SETTERS RELATIONS ManyToOne ---
-
-    public function getOwner(): ?User
-    {
-        return $this->owner;
-    }
-
-    public function setOwner(?User $owner): static
-    {
-        $this->owner = $owner;
-        return $this;
-    }
-
-    public function getCategory(): ?Category
-    {
-        return $this->category;
-    }
-
-    public function setCategory(?Category $category): static
-    {
-        $this->category = $category;
-        return $this;
-    }
-
-    // --- RELATIONS OneToMany : Bookings ---
-
-    /**
-     * @return Collection<int, Booking>
-     */
-    public function getBookings(): Collection
-    {
-        return $this->bookings;
-    }
-
-    public function addBooking(Booking $booking): static
-    {
+    public function getBookings(): Collection { return $this->bookings; }
+    public function addBooking(Booking $booking): static {
         if (!$this->bookings->contains($booking)) {
             $this->bookings->add($booking);
             $booking->setListing($this);
         }
         return $this;
     }
-
-    public function removeBooking(Booking $booking): static
-    {
-        if ($this->bookings->removeElement($booking)) {
-            if ($booking->getListing() === $this) {
-                $booking->setListing(null);
-            }
+    public function removeBooking(Booking $booking): static {
+        if ($this->bookings->removeElement($booking) && $booking->getListing() === $this) {
+            $booking->setListing(null);
         }
         return $this;
     }
 
-    // --- RELATIONS OneToMany : Images ---
-
-    /**
-     * @return Collection<int, Image>
-     */
-    public function getImages(): Collection
-    {
-        return $this->images;
-    }
-
-    public function addImage(Image $image): static
-    {
+    public function getImages(): Collection { return $this->images; }
+    public function addImage(Image $image): static {
         if (!$this->images->contains($image)) {
             $this->images->add($image);
             $image->setListing($this);
         }
         return $this;
     }
-
-    public function removeImage(Image $image): static
-    {
-        if ($this->images->removeElement($image)) {
-            if ($image->getListing() === $this) {
-                $image->setListing(null);
-            }
+    public function removeImage(Image $image): static {
+        if ($this->images->removeElement($image) && $image->getListing() === $this) {
+            $image->setListing(null);
         }
         return $this;
     }
 
-    // --- RELATIONS OneToMany : Reviews ---
-
-    /**
-     * @return Collection<int, Review>
-     */
-    public function getReviews(): Collection
-    {
-        return $this->reviews;
-    }
-
-    public function addReview(Review $review): static
-    {
+    public function getReviews(): Collection { return $this->reviews; }
+    public function addReview(Review $review): static {
         if (!$this->reviews->contains($review)) {
             $this->reviews->add($review);
             $review->setListing($this);
         }
         return $this;
     }
-
-    public function removeReview(Review $review): static
-    {
-        if ($this->reviews->removeElement($review)) {
-            if ($review->getListing() === $this) {
-                $review->setListing(null);
-            }
+    public function removeReview(Review $review): static {
+        if ($this->reviews->removeElement($review) && $review->getListing() === $this) {
+            $review->setListing(null);
         }
         return $this;
     }
 
-    // --- RELATIONS ManyToMany : Options ---
-
-    /**
-     * @return Collection<int, Option>
-     */
-    public function getOptions(): Collection
-    {
-        return $this->options;
-    }
-
-    public function addOption(Option $option): static
-    {
-        if (!$this->options->contains($option)) {
-            $this->options->add($option);
-        }
+    public function getOptions(): Collection { return $this->options; }
+    public function addOption(Option $option): static {
+        if (!$this->options->contains($option)) { $this->options->add($option); }
         return $this;
     }
+    public function removeOption(Option $option): static { $this->options->removeElement($option); return $this; }
 
-    public function removeOption(Option $option): static
-    {
-        $this->options->removeElement($option);
-        return $this;
-    }
-
-    // --- RELATIONS OneToMany : Favorites ---
-
-    /**
-     * @return Collection<int, Favorite>
-     */
-    public function getFavoriteListings(): Collection
-    {
-        return $this->favoriteListings;
-    }
-
-    public function addFavoriteListing(Favorite $favoriteListing): static
-    {
+    public function getFavoriteListings(): Collection { return $this->favoriteListings; }
+    public function addFavoriteListing(Favorite $favoriteListing): static {
         if (!$this->favoriteListings->contains($favoriteListing)) {
             $this->favoriteListings->add($favoriteListing);
             $favoriteListing->setListing($this);
         }
-
         return $this;
     }
-
-    public function removeFavoriteListing(Favorite $favoriteListing): static
-    {
-        if ($this->favoriteListings->removeElement($favoriteListing)) {
-            if ($favoriteListing->getListing() === $this) {
-                $favoriteListing->setListing(null);
-            }
+    public function removeFavoriteListing(Favorite $favoriteListing): static {
+        if ($this->favoriteListings->removeElement($favoriteListing) && $favoriteListing->getListing() === $this) {
+            $favoriteListing->setListing(null);
         }
-
         return $this;
     }
 }

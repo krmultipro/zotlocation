@@ -8,7 +8,6 @@ use ApiPlatform\Metadata\Operation;
 use App\Repository\BookingRepository;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\PropertyInfo\Type;
 
 final class ListingAvailabilityFilter extends AbstractFilter
 {
@@ -20,7 +19,6 @@ final class ListingAvailabilityFilter extends AbstractFilter
         parent::__construct($properties);
     }
 
-    // API Platform appelle filterProperty pour chaque paramètre de l'URL
     protected function filterProperty(
         string $property,
         $value,
@@ -30,34 +28,39 @@ final class ListingAvailabilityFilter extends AbstractFilter
         ?Operation $operation = null,
         array $context = []
     ): void {
-        // On ne déclenche la logique qu'une seule fois (quand on passe sur 'startDate')
-        if ($property !== 'startDate') {
-            return;
-        }
+        $rootAlias = $queryBuilder->getRootAliases()[0];
 
-        $request = $this->requestStack->getCurrentRequest();
-        $startDate = $request?->query->get('startDate');
-        $endDate = $request?->query->get('endDate');
-
-        if (!$startDate || !$endDate) {
-            return;
-        }
-
-        // Récupération des IDs indisponibles
-        $conflictingListingIds = $this->bookingRepository->findConflictingListingIds(
-            (string) $startDate,
-            (string) $endDate
-        );
-
-
-
-        if (!empty($conflictingListingIds)) {
-            $alias = $queryBuilder->getRootAliases()[0];
-            $paramName = $queryNameGenerator->generateParameterName('conflictingIds');
+        // 1. GESTION DE LA CAPACITÉ (Voyageurs)
+        // On intercepte 'capacity' ou 'capacity[gte]' pour être sûr de capter le front
+        if ($property === 'capacity' || $property === 'capacity[gte]') {
+            $parameterName = $queryNameGenerator->generateParameterName('capacity');
 
             $queryBuilder
-                ->andWhere($queryBuilder->expr()->notIn($alias . '.id', ':' . $paramName))
-                ->setParameter($paramName, $conflictingListingIds);
+                ->andWhere(sprintf('%s.capacity >= :%s', $rootAlias, $parameterName))
+                ->setParameter($parameterName, $value);
+            return;
+        }
+
+        // 2. GESTION DES DATES (Disponibilité)
+        // On ne déclenche la logique des dates que sur le paramètre 'startDate'
+        if ($property === 'startDate') {
+            $request = $this->requestStack->getCurrentRequest();
+            $startDate = $request?->query->get('startDate');
+            $endDate = $request?->query->get('endDate');
+
+            if ($startDate && $endDate) {
+                $conflictingListingIds = $this->bookingRepository->findConflictingListingIds(
+                    (string) $startDate,
+                    (string) $endDate
+                );
+
+                if (!empty($conflictingListingIds)) {
+                    $paramName = $queryNameGenerator->generateParameterName('conflictingIds');
+                    $queryBuilder
+                        ->andWhere($queryBuilder->expr()->notIn($rootAlias . '.id', ':' . $paramName))
+                        ->setParameter($paramName, $conflictingListingIds);
+                }
+            }
         }
     }
 
@@ -75,6 +78,18 @@ final class ListingAvailabilityFilter extends AbstractFilter
                 'type' => 'string',
                 'required' => false,
                 'description' => 'Format YYYY-MM-DD',
+            ],
+            'capacity' => [
+                'property' => 'capacity',
+                'type' => 'integer',
+                'required' => false,
+                'description' => 'Nombre minimum de voyageurs',
+            ],
+            'capacity[gte]' => [
+                'property' => 'capacity',
+                'type' => 'integer',
+                'required' => false,
+                'description' => 'Nombre minimum de voyageurs (alias gte)',
             ],
         ];
     }
