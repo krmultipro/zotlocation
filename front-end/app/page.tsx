@@ -4,7 +4,7 @@ import CategoryListings from "@/components/CategoryListings"
 
 export default function HomePage() {
   return (
-    <div className="pt-32">
+    <div className="">
       <CategoryListings />
     </div>
   )

@@ -33,7 +33,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <Navbar />
 
             {/* Contenu de la page */}
-            <div className="pt-32">{children}</div>
+            <div className="pt-62 min-h-screen">{children}</div>
             </ReservationsProvider>
           </FavoritesProvider>
         </Providers>
