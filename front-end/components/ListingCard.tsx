@@ -83,22 +83,14 @@ export default function ListingCard({
         )}
       </CardFooter>
     </Card>
-  );
+  )
 
   // 2. Logique de rendu conditionnel :
   // Si actionButton est fourni (page des réservations), on ne met PAS de Link parent.
   if (actionButton) {
-    return (
-      <div className="relative">
-        {cardContent}
-      </div>
-    );
+    return <div className="relative">{cardContent}</div>
   }
 
   // 3. Sinon (page d'accueil/sans boutons d'action), on enveloppe le tout dans un Link pour la navigation.
-  return (
-    <Link href={isIdValid ? `/listings/${id}` : "#"}>
-      {cardContent}
-    </Link>
-  )
+  return <Link href={isIdValid ? `/listings/${id}` : "#"}>{cardContent}</Link>
 }
