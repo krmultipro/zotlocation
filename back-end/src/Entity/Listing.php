@@ -31,6 +31,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 ])]
 #[ApiResource(
     operations: [
+            new GetCollection(
+            uriTemplate: '/my-listings',
+            security: "is_granted('ROLE_USER')",
+            normalizationContext: ['groups' => ['listing:card:read']]
+        ),
         // GET Collection : Accessible à TOUS (affichage en grille)
         new GetCollection(
             normalizationContext: ['groups' => ['listing:card:read']]

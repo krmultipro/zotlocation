@@ -1,4 +1,5 @@
 import FavorisPage from "./favoris/page"
+import LocationsPage from "./locations/page"
 import ReservationsContent from "./reservations/ReservationsContent"
 
 export default function ReservationsPage() {
@@ -10,7 +11,10 @@ export default function ReservationsPage() {
       <ReservationsContent />
            <div className="mt-12">
         <FavorisPage />
-
+     
+      </div>
+      <div className="mt-12">
+         <LocationsPage />
       </div>
     </>)
 
