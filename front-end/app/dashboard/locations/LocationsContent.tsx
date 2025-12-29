@@ -59,10 +59,10 @@ export default function LocationsContent() {
     <Container>
           <Heading
         title="Mes Locations"
-        subtitle={`Vous avez ${locations.length} annonces`}
+        subtitle={`Vous avez ${locations.length} locations`}
       />
 
-      {locations.length === 0 && <p>Aucune annonce créée.</p>}
+      {locations.length === 0 && <p>Aucune location créée.</p>}
 
         <div className=" grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {locations.map((location) => (
