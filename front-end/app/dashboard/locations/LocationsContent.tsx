@@ -1,5 +1,8 @@
 "use client"
 
+import ListingCard from "@/components/ListingCard"
+import Container from "@/components/Container"
+import Heading from "@/components/Heading"
 import { useEffect, useState, useCallback } from "react"
 import { toast } from "react-hot-toast"
 
@@ -35,7 +38,8 @@ export default function LocationsContent() {
       }
 
       const data = await res.json()
-      setLocations(data["hydra:member"] || [])
+      console.log("data: ",data)
+      setLocations(data.member ?? data["hydra:member"] ?? [])
     } catch (err: any) {
       toast.error(err.message)
       setError("Impossible de charger vos locations.")
@@ -52,18 +56,31 @@ export default function LocationsContent() {
   if (error) return <p>{error}</p>
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-4">Mes locations</h2>
+    <Container>
+          <Heading
+        title="Mes Locations"
+        subtitle={`Vous avez ${locations.length} annonces`}
+      />
 
       {locations.length === 0 && <p>Aucune annonce créée.</p>}
 
-      <ul>
-        {locations.map((location) => (
-          <li key={location.id}>
-            {location.title}
-          </li>
-        ))}
-      </ul>
-    </div>
+        <div className=" grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+          {locations.map((location) => (
+            <ListingCard 
+              key={location.id}
+              id={location.id}
+              title={location.title}
+              pricePerNight={location.pricePerNight}
+              capacity={location.capacity}
+              category={location.category?.name || "Sans catégorie"}
+              imageUrl={location.images?.[0]?.url || "/images/placeholder.png"}
+              >
+            </ListingCard>
+          ))}
+        </div>
+
+
+
+    </Container>
   )
 }
