@@ -44,7 +44,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         // POST : Réservé aux ADMINS via ListingOwnerProcessor
         new Post(
             processor: ListingOwnerProcessor::class,
-            security: "is_granted('ROLE_ADMIN')",
+            security: "is_granted('ROLE_PROPRIETAIRE') or is_granted('ROLE_ADMIN')",
             denormalizationContext: ['groups' => ['listing:create']]
         ),
 
