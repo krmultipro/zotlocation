@@ -1,7 +1,7 @@
 /**
  * Composant ListingCard
- *
- * Affiche une carte visuelle représentant une annonce de location.
+ * * Affiche une carte visuelle représentant une annonce de location.
+ * Corrigé pour éviter les erreurs d'hydratation Next.js.
  */
 
 "use client"
@@ -9,6 +9,7 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import Image from "next/image"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import HeartButton from "./HeartButton"
 
 /**
@@ -22,7 +23,7 @@ interface ListingCardProps {
   category: string
   imageUrl: string
   actionButton?: React.ReactNode
-  extraInfo?: React.ReactNode // Changé en React.ReactNode pour supporter les DIVs de page.tsx
+  extraInfo?: React.ReactNode
 }
 
 export default function ListingCard({
@@ -35,69 +36,80 @@ export default function ListingCard({
   actionButton,
   extraInfo,
 }: ListingCardProps) {
+  // 💡 Empêche les erreurs d'hydratation en attendant que le composant soit monté sur le client
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const listingIdString = id?.toString() || ""
   const isIdValid = !!id
 
-  // 1. Définir le contenu de la carte sans l'enveloppe Link
+  // Contenu principal de la carte
   const cardContent = (
-    <Card className="group cursor-pointer overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="relative aspect-square overflow-hidden">
+    <Card className="group cursor-pointer overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full border-none shadow-sm">
+      <div className="relative aspect-square overflow-hidden rounded-xl">
         <Image
           src={imageUrl || "/images/placeholder.png"}
           alt={title || "Image de l'annonce"}
           fill
-          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
           className="object-cover group-hover:scale-110 transition-transform duration-300"
+          priority={false}
         />
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
-          {/* Le bouton Heart reste actif si actionButton n'est PAS là (page d'accueil) */}
+        <div className="absolute top-3 right-3 z-10">
           {!actionButton && isIdValid && (
             <HeartButton listingId={listingIdString} />
           )}
         </div>
       </div>
 
-      <CardContent className="p-4">
-        <h3 className="font-semibold text-sm truncate mb-2">{title}</h3>
-        <p className="text-gray-600 text-sm truncate mb-2">{category}</p>
-        <p className="text-gray-500 text-xs flex items-center gap-1">
-          <span>👥</span>
-          <span>
-            {capacity} {capacity > 1 ? "personnes" : "personne"}
-          </span>
-        </p>
+      <CardContent className="p-3">
+        <div className="flex flex-col gap-1">
+          <h3 className="font-bold text-sm truncate">{title}</h3>
+          <p className="text-gray-500 text-sm truncate">{category}</p>
+          <div className="text-gray-400 text-xs flex items-center gap-1 mt-1">
+            <span>👥</span>
+            <span>
+              {capacity} {capacity > 1 ? "personnes" : "personne"}
+            </span>
+          </div>
+        </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-0 flex flex-col gap-1">
+      <CardFooter className="p-3 pt-0 flex flex-col gap-2">
         <div className="flex justify-between items-center w-full">
-          <p className="font-semibold">
+          <div className="font-semibold text-sm">
             {pricePerNight}€{" "}
-            <span className="font-normal text-gray-600">/ nuit</span>
-          </p>
-          {/* L'actionButton est rendu ici */}
-          {actionButton}
+            <span className="font-normal text-gray-500">/ nuit</span>
+          </div>
+          {actionButton && <div className="z-20 relative">{actionButton}</div>}
         </div>
         {extraInfo && (
-          // 💡 Correction HTML : Changement de <p> à <div>
-          <div className="text-gray-500 text-sm mt-1">{extraInfo}</div>
+          <div className="text-gray-500 text-xs mt-1 border-t pt-2 w-full">
+            {extraInfo}
+          </div>
         )}
       </CardFooter>
     </Card>
-  );
+  )
 
-  // 2. Logique de rendu conditionnel :
-  // Si actionButton est fourni (page des réservations), on ne met PAS de Link parent.
-  if (actionButton) {
+  // 💡 Rendu pendant l'hydratation : on affiche un squelette simple pour éviter le flash
+  if (!mounted) {
     return (
-      <div className="relative">
-        {cardContent}
-      </div>
-    );
+      <div className="w-full h-full min-h-[300px] bg-gray-50 animate-pulse rounded-xl" />
+    )
   }
 
-  // 3. Sinon (page d'accueil/sans boutons d'action), on enveloppe le tout dans un Link pour la navigation.
+  // Si on a un bouton d'action (ex: page réservations), on évite le Link global
+  if (actionButton) {
+    return <div className="relative h-full">{cardContent}</div>
+  }
+
+  // Rendu standard avec lien vers le détail
   return (
-    <Link href={isIdValid ? `/listings/${id}` : "#"}>
+    <Link href={isIdValid ? `/listings/${id}` : "#"} className="block h-full">
       {cardContent}
     </Link>
   )

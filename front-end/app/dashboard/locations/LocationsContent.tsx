@@ -38,7 +38,7 @@ export default function LocationsContent() {
       }
 
       const data = await res.json()
-      console.log("data: ",data)
+      console.log("data: ", data)
       setLocations(data.member ?? data["hydra:member"] ?? [])
     } catch (err: any) {
       toast.error(err.message)
@@ -57,30 +57,26 @@ export default function LocationsContent() {
 
   return (
     <Container>
-          <Heading
+      <Heading
         title="Mes Locations"
         subtitle={`Vous avez ${locations.length} locations`}
       />
 
       {locations.length === 0 && <p>Aucune location créée.</p>}
 
-        <div className=" grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-          {locations.map((location) => (
-            <ListingCard 
-              key={location.id}
-              id={location.id}
-              title={location.title}
-              pricePerNight={location.pricePerNight}
-              capacity={location.capacity}
-              category={location.category?.name || "Sans catégorie"}
-              imageUrl={location.images?.[0]?.url || "/images/placeholder.png"}
-              >
-            </ListingCard>
-          ))}
-        </div>
-
-
-
+      <div className=" grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        {locations.map((location) => (
+          <ListingCard
+            key={location.id}
+            id={location.id}
+            title={location.title}
+            pricePerNight={location.pricePerNight}
+            capacity={location.capacity}
+            category={location.category?.name || "Sans catégorie"}
+            imageUrl={location.images?.[0]?.url || "/images/placeholder.png"}
+          ></ListingCard>
+        ))}
+      </div>
     </Container>
   )
 }
