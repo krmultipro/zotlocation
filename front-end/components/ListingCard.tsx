@@ -1,12 +1,8 @@
-/**
- * Composant ListingCard
- * * Affiche une carte visuelle représentant une annonce de location.
- * Corrigé pour éviter les erreurs d'hydratation Next.js.
- */
-
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Edit, Trash2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -24,6 +20,8 @@ interface ListingCardProps {
   imageUrl: string
   actionButton?: React.ReactNode
   extraInfo?: React.ReactNode
+  onDelete?: (id: number) => void
+  onEdit?: (id: number) => void
 }
 
 export default function ListingCard({
@@ -35,8 +33,9 @@ export default function ListingCard({
   imageUrl,
   actionButton,
   extraInfo,
+  onDelete,
+  onEdit,
 }: ListingCardProps) {
-  // 💡 Empêche les erreurs d'hydratation en attendant que le composant soit monté sur le client
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -46,23 +45,60 @@ export default function ListingCard({
   const listingIdString = id?.toString() || ""
   const isIdValid = !!id
 
-  // Contenu principal de la carte
+  // Fonction pour gérer les actions de gestion (Edit/Delete) - Située en bas à droite
+  const renderManagementButtons = () => {
+    if (!isIdValid) return null
+
+    return (
+      <div className="flex items-center gap-1">
+        {onEdit && (
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onEdit(id as number)
+            }}
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="Modifier"
+          >
+            <Edit size={18} />
+          </button>
+        )}
+        {onDelete && (
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onDelete(id as number)
+            }}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Supprimer"
+          >
+            <Trash2 size={18} />
+          </button>
+        )}
+      </div>
+    )
+  }
+
   const cardContent = (
-    <Card className="group cursor-pointer overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full border-none shadow-sm">
+    <Card className="group cursor-pointer overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full border-none shadow-sm bg-white">
       <div className="relative aspect-square overflow-hidden rounded-xl">
         <Image
           src={imageUrl || "/images/placeholder.png"}
           alt={title || "Image de l'annonce"}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className="object-cover group-hover:scale-110 transition-transform duration-300"
+          className="object-cover group-hover:scale-105 transition-transform duration-300"
           priority={false}
         />
-        <div className="absolute top-3 right-3 z-10">
-          {!actionButton && isIdValid && (
+
+        {/* On garde le HeartButton en haut à droite seulement si on n'est pas en mode gestion */}
+        {!onDelete && !onEdit && !actionButton && isIdValid && (
+          <div className="absolute top-3 right-3 z-10">
             <HeartButton listingId={listingIdString} />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <CardContent className="p-3">
@@ -80,12 +116,19 @@ export default function ListingCard({
 
       <CardFooter className="p-3 pt-0 flex flex-col gap-2">
         <div className="flex justify-between items-center w-full">
-          <div className="font-semibold text-sm">
+          <div className="font-semibold text-sm text-neutral-800">
             {pricePerNight}€{" "}
             <span className="font-normal text-gray-500">/ nuit</span>
           </div>
-          {actionButton && <div className="z-20 relative">{actionButton}</div>}
+
+          {/* Zone d'action en bas à droite */}
+          <div className="z-20 relative">
+            {onDelete || onEdit
+              ? renderManagementButtons()
+              : actionButton && <div>{actionButton}</div>}
+          </div>
         </div>
+
         {extraInfo && (
           <div className="text-gray-500 text-xs mt-1 border-t pt-2 w-full">
             {extraInfo}
@@ -95,19 +138,14 @@ export default function ListingCard({
     </Card>
   )
 
-  // 💡 Rendu pendant l'hydratation : on affiche un squelette simple pour éviter le flash
   if (!mounted) {
     return (
-      <div className="w-full h-full min-h-[300px] bg-gray-50 animate-pulse rounded-xl" />
+      <div className="w-full h-full min-h-[300px] bg-gray-100 animate-pulse rounded-xl" />
     )
   }
 
-  // Si on a un bouton d'action (ex: page réservations), on évite le Link global
-  if (actionButton) {
-    return <div className="relative h-full">{cardContent}</div>
-  }
-
-  // Rendu standard avec lien vers le détail
+  // Si on a des boutons (gestion ou actionButton), on enveloppe quand même dans un lien
+  // mais le e.stopPropagation() dans les boutons empêchera le conflit.
   return (
     <Link href={isIdValid ? `/listings/${id}` : "#"} className="block h-full">
       {cardContent}

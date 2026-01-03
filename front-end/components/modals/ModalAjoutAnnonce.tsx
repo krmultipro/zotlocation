@@ -8,18 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-  FieldTitle,
-} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -32,338 +21,318 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import axios from "axios"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { toast } from "react-hot-toast"
 
 interface ModalAjoutAnnonceProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  listing?: any
 }
 
 export default function ModalAjoutAnnonce({
   open,
   onOpenChange,
+  listing,
 }: ModalAjoutAnnonceProps) {
-  const [isOpen, setOpen] = useState(false)
   const [typeLogement, setTypeLogement] = useState<"maison" | "appartement">(
     "maison"
   )
   const [imageFile, setImageFile] = useState<File | null>(null)
 
+  const [categories, setCategories] = useState<any[]>([])
+  const [availableOptions, setAvailableOptions] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+
+  const isEditing = !!listing
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
+
+  // 1. Chargement synchronisé des Catégories et des Options
+  useEffect(() => {
+    if (!open) return
+
+    const fetchData = async () => {
+      setIsLoading(true)
+      try {
+        const [catRes, optRes] = await Promise.all([
+          fetch(`${apiUrl}/api/categories`).then((res) => res.json()),
+          fetch(`${apiUrl}/api/options`).then((res) => res.json()),
+        ])
+
+        setCategories(catRes.member || catRes["hydra:member"] || catRes || [])
+        setAvailableOptions(
+          optRes.member || optRes["hydra:member"] || optRes || []
+        )
+      } catch (err) {
+        console.error("Erreur chargement API :", err)
+        toast.error("Erreur lors de la récupération des options/catégories")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [open, apiUrl])
+
+  useEffect(() => {
+    if (listing) {
+      setTypeLogement(
+        listing.pieces || listing.balcon ? "appartement" : "maison"
+      )
+    }
+  }, [listing, open])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const form = e.target as HTMLFormElement
     const formData = new FormData(form)
-
-    if (imageFile) {
-      formData.append("images[0][file]", imageFile) // API Platform attend un array pour images
-    }
+    const token = localStorage.getItem("jwtToken")
 
     try {
-      const token = localStorage.getItem("jwtToken")
-      await axios.post("https://localhost:8000/api/listings", formData, {
-        headers: {
-          // NE PAS définir Content-Type pour FormData
-          Authorization: token ? `Bearer ${token}` : undefined,
-        },
-      })
+      const url = `${apiUrl}/api/listings/${isEditing ? listing.id : ""}`
 
-      // Fermeture et reset
-      setOpen(false)
-      form.reset()
-      setImageFile(null)
+      if (isEditing && !imageFile) {
+        // --- MODE PATCH (JSON) ---
+        const rawData = Object.fromEntries(formData.entries())
+        // On récupère toutes les options cochées sous forme de tableau d'IRIs
+        const selectedOptions = formData.getAll("options[]")
 
-      // Refresh pour voir la nouvelle annonce
+        const payload: any = {
+          title: rawData.title,
+          description: rawData.description,
+          pricePerNight: parseFloat(rawData.pricePerNight as string),
+          capacity: parseInt(rawData.capacity as string, 10),
+          category: rawData.category,
+          options: selectedOptions,
+        }
+
+        if (typeLogement === "maison")
+          payload.jardin = parseFloat(rawData.jardin as string)
+        else payload.pieces = parseInt(rawData.pieces as string, 10)
+
+        await axios.patch(url, payload, {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : undefined,
+            "Content-Type": "application/merge-patch+json",
+          },
+        })
+      } else {
+        // --- MODE POST (FormData) ---
+        if (imageFile) formData.append("images[0][file]", imageFile)
+        const finalUrl = isEditing ? `${url}?_method=PATCH` : url
+        await axios.post(finalUrl, formData, {
+          headers: { Authorization: token ? `Bearer ${token}` : undefined },
+        })
+      }
+
+      toast.success(isEditing ? "Annonce mise à jour !" : "Annonce créée !")
+      onOpenChange?.(false)
       window.location.reload()
     } catch (err: any) {
-      console.error(
-        "Erreur lors de la création :",
-        err.response?.data || err.message
-      )
-      alert("Erreur lors de la création de l'annonce")
+      console.error(err.response?.data)
+      toast.error("Erreur lors de la sauvegarde")
     }
   }
 
   return (
-    <Dialog open={open ?? isOpen} onOpenChange={onOpenChange ?? setOpen}>
-      <DialogTrigger asChild></DialogTrigger>
-
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Ajouter votre logement</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Modifier l'annonce" : "Ajouter un logement"}
+          </DialogTitle>
         </DialogHeader>
 
         <form className="space-y-6" onSubmit={handleSubmit}>
-          {/* Type de logement */}
-          <FieldGroup>
-            <FieldSet>
-              <FieldLabel>Que souhaitez-vous proposer ?</FieldLabel>
-              <RadioGroup
-                defaultValue="maison"
-                onValueChange={(value) =>
-                  setTypeLogement(value as "maison" | "appartement")
-                }
-              >
-                <FieldLabel htmlFor="maison">
-                  <Field orientation="horizontal">
-                    <FieldContent>
-                      <FieldTitle>Maison</FieldTitle>
-                    </FieldContent>
-                    <RadioGroupItem value="maison" id="maison" />
-                  </Field>
-                </FieldLabel>
-                <FieldLabel htmlFor="appartement">
-                  <Field orientation="horizontal">
-                    <FieldContent>
-                      <FieldTitle>Appartement</FieldTitle>
-                    </FieldContent>
-                    <RadioGroupItem value="appartement" id="appartement" />
-                  </Field>
-                </FieldLabel>
-              </RadioGroup>
-            </FieldSet>
-          </FieldGroup>
+          {/* Type de bien */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Type de bien</Label>
+            <RadioGroup
+              key={listing?.id || "new"}
+              defaultValue={
+                isEditing
+                  ? listing.pieces
+                    ? "appartement"
+                    : "maison"
+                  : "maison"
+              }
+              onValueChange={(v) => setTypeLogement(v as any)}
+            >
+              <div className="flex gap-6 mt-2">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="maison" id="m" />
+                  <Label htmlFor="m" className="cursor-pointer">
+                    Maison
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="appartement" id="a" />
+                  <Label htmlFor="a" className="cursor-pointer">
+                    Appartement
+                  </Label>
+                </div>
+              </div>
+            </RadioGroup>
+          </div>
 
-          {/* Titre */}
           <div className="grid gap-2">
             <Label htmlFor="title">Titre</Label>
             <Input
               id="title"
               name="title"
-              type="text"
-              placeholder="Magnifique villa à la Réunion"
+              defaultValue={listing?.title || ""}
               required
-              placeholder="Ex: Villa créole avec vue sur l'océan"
             />
           </div>
 
-          {/* Description */}
-          <Field>
-            <FieldLabel htmlFor="description">Description</FieldLabel>
+          <div className="grid gap-2">
+            <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               name="description"
-              placeholder="Ex: Villa luxueuse avec piscine, 3 chambres, vue imprenable sur l’océan..."
-              rows={4}
+              defaultValue={listing?.description || ""}
               required
+              rows={4}
             />
-          </Field>
+          </div>
 
-          {/* Maison */}
-          {typeLogement === "maison" && (
-            <>
-              <div className="grid gap-2">
-                <Label htmlFor="jardin">Taille du jardin (m²)</Label>
-                <Input
-                  id="jardin"
-                  name="jardin"
-                  type="number"
-                  placeholder="200"
-                  min="0"
-                />
-              </div>
-
-              <FieldGroup>
-                <FieldSet>
-                  <FieldLabel>Garage</FieldLabel>
-                  <RadioGroup defaultValue="non" name="garage">
-                    <FieldLabel htmlFor="garage-oui">
-                      <Field orientation="horizontal">
-                        <FieldContent>
-                          <FieldTitle>Oui</FieldTitle>
-                        </FieldContent>
-                        <RadioGroupItem value="oui" id="garage-oui" />
-                      </Field>
-                    </FieldLabel>
-                    <FieldLabel htmlFor="garage-non">
-                      <Field orientation="horizontal">
-                        <FieldContent>
-                          <FieldTitle>Non</FieldTitle>
-                        </FieldContent>
-                        <RadioGroupItem value="non" id="garage-non" />
-                      </Field>
-                    </FieldLabel>
-                  </RadioGroup>
-                </FieldSet>
-              </FieldGroup>
-            </>
-          )}
-
-          {/* Appartement */}
-          {typeLogement === "appartement" && (
-            <>
-              <div className="grid gap-2">
-                <Label htmlFor="pieces">Nombre de pièces</Label>
-                <Input
-                  id="pieces"
-                  name="pieces"
-                  type="number"
-                  placeholder="3"
-                  min="1"
-                  required
-                />
-              </div>
-
-              <FieldGroup>
-                <FieldSet>
-                  <FieldLabel>Balcon</FieldLabel>
-                  <RadioGroup defaultValue="non" name="balcon">
-                    <FieldLabel htmlFor="balcon-oui">
-                      <Field orientation="horizontal">
-                        <FieldContent>
-                          <FieldTitle>Oui</FieldTitle>
-                        </FieldContent>
-                        <RadioGroupItem value="oui" id="balcon-oui" />
-                      </Field>
-                    </FieldLabel>
-                    <FieldLabel htmlFor="balcon-non">
-                      <Field orientation="horizontal">
-                        <FieldContent>
-                          <FieldTitle>Non</FieldTitle>
-                        </FieldContent>
-                        <RadioGroupItem value="non" id="balcon-non" />
-                      </Field>
-                    </FieldLabel>
-                  </RadioGroup>
-                </FieldSet>
-              </FieldGroup>
-            </>
-          )}
-
-          {/* Prix */}
+          {/* Catégories */}
           <div className="grid gap-2">
-            <Label htmlFor="price">Prix par nuit</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                €
-              </span>
+            <Label>Catégorie</Label>
+            <Select
+              name="category"
+              key={listing?.id}
+              defaultValue={
+                listing?.category?.["@id"] ||
+                `/api/categories/${listing?.category?.id}` ||
+                ""
+              }
+            >
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={
+                    isLoading ? "Chargement..." : "Sélectionner une catégorie"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c: any) => (
+                  <SelectItem key={c.id} value={`/api/categories/${c.id}`}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Options et Équipements */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">
+              Équipements et Options
+            </Label>
+            <div className="grid grid-cols-2 gap-4 p-4 border rounded-xl bg-slate-50/50">
+              {availableOptions.map((opt: any) => {
+                const optIri = `/api/options/${opt.id}`
+                // On vérifie si l'IRI de l'option est présent dans les options du listing
+                const isChecked = listing?.options?.some(
+                  (listingOpt: any) =>
+                    listingOpt["@id"] === optIri || listingOpt.id === opt.id
+                )
+
+                return (
+                  <div key={opt.id} className="flex items-center space-x-3">
+                    <Checkbox
+                      id={`opt-${opt.id}`}
+                      name="options[]"
+                      value={optIri}
+                      defaultChecked={isChecked}
+                    />
+                    <label
+                      htmlFor={`opt-${opt.id}`}
+                      className="text-sm font-medium leading-none cursor-pointer"
+                    >
+                      {opt.name}
+                    </label>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="pricePerNight">Prix par nuit (€)</Label>
               <Input
-                id="price"
+                id="pricePerNight"
                 name="pricePerNight"
                 type="number"
-                placeholder="150"
-                min="0"
-                step="1"
-                className="pl-8"
+                step="0.01"
+                defaultValue={listing?.pricePerNight || ""}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="capacity">Capacité (personnes)</Label>
+              <Input
+                id="capacity"
+                name="capacity"
+                type="number"
+                defaultValue={listing?.capacity || ""}
                 required
               />
             </div>
           </div>
 
-          {/* Capacité */}
-          <div className="grid gap-2">
-            <Label htmlFor="capacity">Capacité (nombre de personnes)</Label>
-            <Input
-              id="capacity"
-              name="capacity"
-              type="number"
-              min={1}
-              step={1}
-            />
-          </div>
+          {typeLogement === "maison" ? (
+            <div className="grid gap-2">
+              <Label htmlFor="jardin">Taille du jardin (m²)</Label>
+              <Input
+                id="jardin"
+                name="jardin"
+                type="number"
+                defaultValue={listing?.jardin || ""}
+              />
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              <Label htmlFor="pieces">Nombre de pièces</Label>
+              <Input
+                id="pieces"
+                name="pieces"
+                type="number"
+                defaultValue={listing?.pieces || ""}
+              />
+            </div>
+          )}
 
-          {/* Image */}
-          <div className="grid gap-2">
-            <Label htmlFor="imageUrl">URL de l&apos;image</Label>
-            <Input
-              id="imageUrl"
-              name="imageUrl"
-              type="text"
-              placeholder="https://..."
-            />
-          </div>
-
-          {/* Catégorie */}
-          <Field>
-            <FieldLabel>Catégorie</FieldLabel>
-            <Select name="category">
-              <SelectTrigger>
-                <SelectValue placeholder="Choisissez une catégorie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="camping">Camping</SelectItem>
-                <SelectItem value="montagne">Montagne</SelectItem>
-                <SelectItem value="plage">Plage</SelectItem>
-                <SelectItem value="bassin">Bassin</SelectItem>
-                <SelectItem value="luxe">Luxe</SelectItem>
-                <SelectItem value="moderne">Moderne</SelectItem>
-                <SelectItem value="foret">Forêt</SelectItem>
-                <SelectItem value="volcan">Volcan</SelectItem>
-                <SelectItem value="insolite">Insolite</SelectItem>
-                <SelectItem value="traditionnelle">Traditionnelle</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldDescription>
-              Sélectionnez la catégorie qui correspond le mieux à votre
-              logement.
-            </FieldDescription>
-          </Field>
-
-          {/* Options */}
-          <FieldGroup>
-            <FieldSet>
-              <FieldLegend variant="label">
-                Choisissez une ou plusieurs options
-              </FieldLegend>
-              <FieldGroup className="flex flex-row flex-wrap gap-3">
-                <Field orientation="horizontal">
-                  <Checkbox
-                    id="wifi"
-                    name="options[]"
-                    value="wifi"
-                    defaultChecked
-                  />
-                  <FieldLabel htmlFor="wifi" className="font-normal">
-                    WiFi
-                  </FieldLabel>
-                </Field>
-                <Field orientation="horizontal">
-                  <Checkbox id="parking" name="options[]" value="parking" />
-                  <FieldLabel htmlFor="parking" className="font-normal">
-                    Parking
-                  </FieldLabel>
-                </Field>
-                <Field orientation="horizontal">
-                  <Checkbox id="piscine" name="options[]" value="piscine" />
-                  <FieldLabel htmlFor="piscine" className="font-normal">
-                    Piscine
-                  </FieldLabel>
-                </Field>
-                <Field orientation="horizontal">
-                  <Checkbox id="clim" name="options[]" value="clim" />
-                  <FieldLabel htmlFor="clim" className="font-normal">
-                    Climatisation
-                  </FieldLabel>
-                </Field>
-              </FieldGroup>
-            </FieldSet>
-          </FieldGroup>
-
-          {/* Image */}
-          <div className="grid gap-2">
-            <Label htmlFor="image">Image principale</Label>
+          <div className="grid gap-2 border-t pt-4">
+            <Label htmlFor="image">
+              Image principale{" "}
+              {isEditing && "(Laissez vide pour conserver l'actuelle)"}
+            </Label>
             <Input
               type="file"
               id="image"
               accept="image/*"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  setImageFile(e.target.files[0])
-                }
-              }}
-              required
+              onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+              required={!isEditing}
             />
           </div>
 
-          {/* Boutons */}
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-3 justify-end sticky bottom-0 bg-white py-4 border-t">
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => onOpenChange?.(false)}
             >
               Annuler
             </Button>
-            <Button type="submit">Ajouter le logement</Button>
+            <Button
+              type="submit"
+              className="bg-rose-500 hover:bg-rose-600 text-white font-bold px-8"
+            >
+              {isEditing ? "Mettre à jour" : "Créer l'annonce"}
+            </Button>
           </div>
         </form>
       </DialogContent>
