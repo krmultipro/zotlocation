@@ -94,21 +94,38 @@ export default function ModalAjoutAnnonce({
       if (isEditing && !imageFile) {
         // --- MODE PATCH (JSON) ---
         const rawData = Object.fromEntries(formData.entries())
-        // On récupère toutes les options cochées sous forme de tableau d'IRIs
-        const selectedOptions = formData.getAll("options[]")
+
+        // 1. On récupère les options cochées dans le formulaire
+        let selectedOptions = formData.getAll("options[]")
+
+        // 2. SÉCURITÉ : Si aucune option n'est cochée dans le formulaire,
+        // on reprend les options déjà existantes pour ne pas envoyer un tableau vide
+        if (selectedOptions.length === 0 && listing?.options) {
+          selectedOptions = listing.options.map(
+            (o: any) => o["@id"] || `/api/options/${o.id}`
+          )
+        }
 
         const payload: any = {
           title: rawData.title,
           description: rawData.description,
           pricePerNight: parseFloat(rawData.pricePerNight as string),
           capacity: parseInt(rawData.capacity as string, 10),
-          category: rawData.category,
+          // On s'assure que la catégorie est bien envoyée
+          category: rawData.category || listing?.category?.["@id"],
           options: selectedOptions,
         }
 
-        if (typeLogement === "maison")
-          payload.jardin = parseFloat(rawData.jardin as string)
-        else payload.pieces = parseInt(rawData.pieces as string, 10)
+        // Gestion dynamique Jardin / Pièces
+        if (typeLogement === "maison") {
+          payload.jardin = rawData.jardin
+            ? parseFloat(rawData.jardin as string)
+            : listing?.jardin || 0
+        } else {
+          payload.pieces = rawData.pieces
+            ? parseInt(rawData.pieces as string, 10)
+            : listing?.pieces || 0
+        }
 
         await axios.patch(url, payload, {
           headers: {
@@ -117,7 +134,7 @@ export default function ModalAjoutAnnonce({
           },
         })
       } else {
-        // --- MODE POST (FormData) ---
+        // --- MODE POST / PATCH avec IMAGE (FormData) ---
         if (imageFile) formData.append("images[0][file]", imageFile)
         const finalUrl = isEditing ? `${url}?_method=PATCH` : url
         await axios.post(finalUrl, formData, {
@@ -125,12 +142,22 @@ export default function ModalAjoutAnnonce({
         })
       }
 
-      toast.success(isEditing ? "Annonce mise à jour !" : "Annonce créée !")
+      toast.success("Mise à jour réussie !")
       onOpenChange?.(false)
       window.location.reload()
     } catch (err: any) {
-      console.error(err.response?.data)
-      toast.error("Erreur lors de la sauvegarde")
+      // Affiche la violation précise de Symfony dans la console pour débugger
+      const violations = err.response?.data?.violations
+      if (violations) {
+        console.log("Violations détaillées :", violations)
+        violations.forEach((v: any) =>
+          toast.error(`${v.propertyPath}: ${v.message}`)
+        )
+      } else {
+        toast.error(
+          err.response?.data?.detail || "Erreur lors de la sauvegarde"
+        )
+      }
     }
   }
 
