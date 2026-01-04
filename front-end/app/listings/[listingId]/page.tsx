@@ -5,7 +5,7 @@ import { useUser } from "@/app/context/UserProvider"
 import Container from "@/components/Container"
 import BookingCalendar from "@/components/reservations/BookingCalendar"
 import axios from "axios"
-import { ArrowLeft, MapPin, Star, Users } from "lucide-react"
+import { ArrowLeft, CheckCircle2, MapPin, Star, Users } from "lucide-react"
 import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
@@ -17,6 +17,12 @@ interface Review {
   author: {
     name: string
   }
+}
+
+// 💡 Interface pour les options/équipements
+interface Option {
+  id: number
+  name: string
 }
 
 interface ListingDetail {
@@ -38,6 +44,7 @@ interface ListingDetail {
     url: string
   }>
   reviews: Review[]
+  options: Option[] // 💡 Ajouté pour supporter les équipements dynamiques
 }
 
 export default function ListingDetailPage() {
@@ -71,7 +78,6 @@ export default function ListingDetailPage() {
     }
   }, [listingId])
 
-  // 💡 Calcul de la moyenne des avis
   const averageRating = useMemo(() => {
     if (!listing?.reviews || listing.reviews.length === 0) return null
     const sum = listing.reviews.reduce((acc, r) => acc + r.rating, 0)
@@ -205,6 +211,7 @@ export default function ListingDetailPage() {
 
             <hr className="border-gray-100" />
 
+            {/* À propos */}
             <div>
               <h2 className="text-2xl font-bold mb-4 text-gray-800">
                 À propos de ce logement
@@ -212,6 +219,32 @@ export default function ListingDetailPage() {
               <p className="text-gray-600 text-lg leading-relaxed whitespace-pre-line">
                 {listing.description}
               </p>
+            </div>
+
+            <hr className="border-gray-100" />
+
+            {/* 💡 NOUVELLE SECTION : ÉQUIPEMENTS / OPTIONS */}
+            <div>
+              <h2 className="text-2xl font-bold mb-6 text-gray-800">
+                Ce que propose ce logement
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
+                {listing.options && listing.options.length > 0 ? (
+                  listing.options.map((option) => (
+                    <div
+                      key={option.id}
+                      className="flex items-center gap-3 text-gray-700"
+                    >
+                      <CheckCircle2 className="w-6 h-6 text-green-600" />
+                      <span className="text-lg font-medium">{option.name}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 italic">
+                    Aucun équipement particulier n'est listé.
+                  </p>
+                )}
+              </div>
             </div>
 
             <hr className="border-gray-100" />
