@@ -31,43 +31,50 @@ use Symfony\Component\Validator\Constraints as Assert;
 ])]
 #[ApiResource(
     operations: [
-        // GET Collection : Accessible à TOUS (affichage en grille)
+        // Route pour le Dashboard : "Mes annonces"
+        new GetCollection(
+            uriTemplate: '/my-listings',
+            // On remplace openapiContext par openapi
+            openapi: new \ApiPlatform\OpenApi\Model\Operation(
+                summary: 'Récupère les annonces de l\'utilisateur connecté',
+                description: 'Retourne uniquement les annonces appartenant au token JWT fourni.'
+            ),
+            security: "is_granted('ROLE_USER')",
+            normalizationContext: ['groups' => ['listing:card:read']]
+        ),
+
+        // GET Collection standard (public)
         new GetCollection(
             normalizationContext: ['groups' => ['listing:card:read']]
         ),
 
-        // GET Item : Accessible à TOUS (affichage détaillé)
+        // GET Collection : Public
+        new GetCollection(
+            normalizationContext: ['groups' => ['listing:card:read']]
+        ),
+
         new Get(
             normalizationContext: ['groups' => ['listing:read', 'listing:item:read']]
         ),
 
-        // POST : Réservé aux ADMINS via ListingOwnerProcessor
         new Post(
             processor: ListingOwnerProcessor::class,
             security: "is_granted('ROLE_PROPRIETAIRE') or is_granted('ROLE_ADMIN')",
             denormalizationContext: ['groups' => ['listing:create']]
         ),
 
-        // PATCH : SEULEMENT si l'utilisateur est le propriétaire ou un ADMIN
         new Patch(
             processor: ListingOwnerProcessor::class,
             security: "is_granted('ROLE_ADMIN') or object.getOwner() == user",
             denormalizationContext: ['groups' => ['listing:update']]
         ),
 
-        // DELETE : SEULEMENT si l'utilisateur est le propriétaire ou un ADMIN
         new Delete(
             security: "is_granted('ROLE_ADMIN') or object.getOwner() == user"
         ),
     ]
 )]
-// --- FILTRES API ---
 #[ApiFilter(SearchFilter::class, properties: ['category' => 'exact'])]
-
-/** * 💡 NOTE : On a supprimé le NumericFilter ici.
- * La capacité est désormais gérée manuellement dans ListingAvailabilityFilter
- * pour forcer le comportement "supérieur ou égal" (>=).
- */
 #[ApiFilter(ListingAvailabilityFilter::class)]
 class Listing
 {
@@ -98,7 +105,7 @@ class Listing
     private ?int $capacity = null;
 
     #[ORM\ManyToOne(inversedBy: 'listings')]
-    #[Groups(['booking:read', 'review:read', 'listing:item:read'])]
+    #[Groups(['booking:read', 'review:read', 'listing:item:read', 'listing:card:read'])]
     #[Assert\Valid]
     private ?User $owner = null;
 
@@ -108,39 +115,24 @@ class Listing
     #[Assert\NotNull]
     private ?Category $category = null;
 
-    /**
-     * @var Collection<int, Booking>
-     */
     #[ORM\OneToMany(targetEntity: Booking::class, mappedBy: 'listing', orphanRemoval: true)]
     #[Groups(['listing:item:read'])]
     private Collection $bookings;
 
-    /**
-     * @var Collection<int, Image>
-     */
     #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'listing', cascade: ['persist'], orphanRemoval: true)]
     #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:card:read', 'booking:read'])]
     #[Assert\Count(min: 1, minMessage: "Une annonce doit obligatoirement avoir au moins une image.")]
     private Collection $images;
 
-    /**
-     * @var Collection<int, Review>
-     */
     #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'listing', orphanRemoval: true)]
     #[Groups(['listing:item:read'])]
     private Collection $reviews;
 
-    /**
-     * @var Collection<int, Option>
-     */
     #[ORM\ManyToMany(targetEntity: Option::class, inversedBy: 'listings')]
     #[Groups(['listing:read', 'listing:create', 'listing:update'])]
     #[Assert\Count(min: 1, minMessage: "Vous devez sélectionner au moins une option.")]
     private Collection $options;
 
-    /**
-     * @var Collection<int, Favorite>
-     */
     #[ORM\OneToMany(targetEntity: Favorite::class, mappedBy: 'listing', orphanRemoval: true)]
     private Collection $favoriteListings;
 
@@ -153,93 +145,34 @@ class Listing
         $this->favoriteListings = new ArrayCollection();
     }
 
-    // --- GETTERS & SETTERS ---
-
+    // --- GETTERS & SETTERS (Inchangés) ---
     public function getId(): ?int { return $this->id; }
     public function setId(?int $id): static { $this->id = $id; return $this; }
-
     public function getTitle(): ?string { return $this->title; }
     public function setTitle(string $title): static { $this->title = $title; return $this; }
-
     public function getDescription(): ?string { return $this->description; }
     public function setDescription(string $description): static { $this->description = $description; return $this; }
-
     public function getPricePerNight(): ?float { return $this->pricePerNight; }
     public function setPricePerNight(float $pricePerNight): static { $this->pricePerNight = $pricePerNight; return $this; }
-
     public function getCapacity(): ?int { return $this->capacity; }
     public function setCapacity(int $capacity): static { $this->capacity = $capacity; return $this; }
-
     public function getOwner(): ?User { return $this->owner; }
     public function setOwner(?User $owner): static { $this->owner = $owner; return $this; }
-
     public function getCategory(): ?Category { return $this->category; }
     public function setCategory(?Category $category): static { $this->category = $category; return $this; }
-
     public function getBookings(): Collection { return $this->bookings; }
-    public function addBooking(Booking $booking): static {
-        if (!$this->bookings->contains($booking)) {
-            $this->bookings->add($booking);
-            $booking->setListing($this);
-        }
-        return $this;
-    }
-    public function removeBooking(Booking $booking): static {
-        if ($this->bookings->removeElement($booking) && $booking->getListing() === $this) {
-            $booking->setListing(null);
-        }
-        return $this;
-    }
-
+    public function addBooking(Booking $booking): static { if (!$this->bookings->contains($booking)) { $this->bookings->add($booking); $booking->setListing($this); } return $this; }
+    public function removeBooking(Booking $booking): static { if ($this->bookings->removeElement($booking) && $booking->getListing() === $this) { $booking->setListing(null); } return $this; }
     public function getImages(): Collection { return $this->images; }
-    public function addImage(Image $image): static {
-        if (!$this->images->contains($image)) {
-            $this->images->add($image);
-            $image->setListing($this);
-        }
-        return $this;
-    }
-    public function removeImage(Image $image): static {
-        if ($this->images->removeElement($image) && $image->getListing() === $this) {
-            $image->setListing(null);
-        }
-        return $this;
-    }
-
+    public function addImage(Image $image): static { if (!$this->images->contains($image)) { $this->images->add($image); $image->setListing($this); } return $this; }
+    public function removeImage(Image $image): static { if ($this->images->removeElement($image) && $image->getListing() === $this) { $image->setListing(null); } return $this; }
     public function getReviews(): Collection { return $this->reviews; }
-    public function addReview(Review $review): static {
-        if (!$this->reviews->contains($review)) {
-            $this->reviews->add($review);
-            $review->setListing($this);
-        }
-        return $this;
-    }
-    public function removeReview(Review $review): static {
-        if ($this->reviews->removeElement($review) && $review->getListing() === $this) {
-            $review->setListing(null);
-        }
-        return $this;
-    }
-
+    public function addReview(Review $review): static { if (!$this->reviews->contains($review)) { $this->reviews->add($review); $review->setListing($this); } return $this; }
+    public function removeReview(Review $review): static { if ($this->reviews->removeElement($review) && $review->getListing() === $this) { $review->setListing(null); } return $this; }
     public function getOptions(): Collection { return $this->options; }
-    public function addOption(Option $option): static {
-        if (!$this->options->contains($option)) { $this->options->add($option); }
-        return $this;
-    }
+    public function addOption(Option $option): static { if (!$this->options->contains($option)) { $this->options->add($option); } return $this; }
     public function removeOption(Option $option): static { $this->options->removeElement($option); return $this; }
-
     public function getFavoriteListings(): Collection { return $this->favoriteListings; }
-    public function addFavoriteListing(Favorite $favoriteListing): static {
-        if (!$this->favoriteListings->contains($favoriteListing)) {
-            $this->favoriteListings->add($favoriteListing);
-            $favoriteListing->setListing($this);
-        }
-        return $this;
-    }
-    public function removeFavoriteListing(Favorite $favoriteListing): static {
-        if ($this->favoriteListings->removeElement($favoriteListing) && $favoriteListing->getListing() === $this) {
-            $favoriteListing->setListing(null);
-        }
-        return $this;
-    }
+    public function addFavoriteListing(Favorite $favoriteListing): static { if (!$this->favoriteListings->contains($favoriteListing)) { $this->favoriteListings->add($favoriteListing); $favoriteListing->setListing($this); } return $this; }
+    public function removeFavoriteListing(Favorite $favoriteListing): static { if ($this->favoriteListings->removeElement($favoriteListing) && $favoriteListing->getListing() === $this) { $favoriteListing->setListing(null); } return $this; }
 }

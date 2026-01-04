@@ -3,10 +3,7 @@ import type { NextConfig } from "next"
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: {
-    /* 💡 SOLUTION FINALE : unoptimized: true
-       Cela permet d'afficher tes images locales (127.0.0.1) même si le certificat
-       SSL de Symfony est auto-signé, en évitant le proxy d'optimisation de Next.js.
-    */
+    // 💡 Garde ceci pour éviter les erreurs 400 avec le SSL local de Symfony
     unoptimized: true,
 
     remotePatterns: [
@@ -35,7 +32,7 @@ const nextConfig: NextConfig = {
         hostname: "picsum.photos",
         pathname: "/**",
       },
-      // Configuration pour ton API Symfony (HTTPS)
+      // 💡 CONFIGURATION LOCALE INDISPENSABLE
       {
         protocol: "https",
         hostname: "127.0.0.1",
@@ -48,16 +45,10 @@ const nextConfig: NextConfig = {
         port: "8000",
         pathname: "/uploads/**",
       },
-      // Configuration de secours (HTTP)
+      // Au cas où tu lances ton Symfony sans HTTPS
       {
         protocol: "http",
         hostname: "127.0.0.1",
-        port: "8000",
-        pathname: "/uploads/**",
-      },
-      {
-        protocol: "http",
-        hostname: "localhost",
         port: "8000",
         pathname: "/uploads/**",
       },

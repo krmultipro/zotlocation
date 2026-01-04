@@ -56,6 +56,11 @@ const UserMenu = () => {
     router.push("/dashboard/favoris")
   }, [router])
 
+  const handleLocationsClick = useCallback(() => {
+    setIsOpen(false)
+    router.push("/dashboard/locations")
+  }, [router])
+
   if (isLoading) {
     return (
       <div className="relative">
@@ -104,6 +109,7 @@ const UserMenu = () => {
                   label="Mes réservations"
                 />
                 <MenuItem onClick={handleFavoritesClick} label="Mes favoris" />
+                <MenuItem onClick={handleLocationsClick} label="Mes locations" />
                 {user.isOwner && (
                   <MenuItem
                     onClick={() => {
