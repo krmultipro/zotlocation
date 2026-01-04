@@ -1,7 +1,7 @@
 // app/layout.tsx
-import { FavoritesProvider } from "@/app/context/FavoritesContext" // 💡 IMPORT DU PROVIDER
-import {ReservationsProvider} from "@/app/context/ReservationsContext"
+import { FavoritesProvider } from "@/app/context/FavoritesContext"
 import { Providers } from "@/app/context/Provider"
+import { ReservationsProvider } from "@/app/context/ReservationsContext"
 import LoginModal from "@/components/modals/LoginModal"
 import RegisterModal from "@/components/modals/RegisterModal"
 import Navbar from "@/components/navbar/Navbar"
@@ -18,22 +18,23 @@ export const metadata: Metadata = {
   title: "🌴 ZotLocation",
   description: "Réservez vos meilleurs séjours à la Réunion",
 }
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    /* 💡 Ajout de suppressHydrationWarning pour ignorer les attributs injectés par les extensions (ex: data-yd-content-ready) */
+    <html lang="fr" suppressHydrationWarning>
       <body className={font.className}>
         {/* Wrapper client principal */}
         <Providers>
-          {/* 💡 ENGLOBER L'APPLICATION AVEC LE CONTEXTE FAVORIS */}
           <FavoritesProvider>
             <ReservationsProvider>
-            <Toaster position="top-center" reverseOrder={false} />
-            <RegisterModal />
-            <LoginModal />
-            <Navbar />
+              <Toaster position="top-center" reverseOrder={false} />
+              <RegisterModal />
+              <LoginModal />
+              <Navbar />
 
-            {/* Contenu de la page */}
-            <div className="pt-62 min-h-screen">{children}</div>
+              {/* Contenu de la page */}
+              <div className="pt-62 min-h-screen">{children}</div>
             </ReservationsProvider>
           </FavoritesProvider>
         </Providers>
