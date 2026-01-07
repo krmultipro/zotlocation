@@ -13,7 +13,7 @@ class UploadImageController extends AbstractController
     #[Route('/api/upload-image', name: 'api_upload_image', methods: ['POST'])]
     public function __invoke(Request $request, SluggerInterface $slugger): JsonResponse
     {
-        // 💡 CORRECTION : Utiliser ->files et non .files
+
         $file = $request->files->get('file');
 
         if (!$file) {
