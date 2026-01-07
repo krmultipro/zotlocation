@@ -7,12 +7,12 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Booking;
 use Symfony\Bundle\SecurityBundle\Security;
 use RuntimeException;
-use Symfony\Component\DependencyInjection\Attribute\Autowire; // 💡 Import de Autowire
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 class BookingPriceProcessor implements ProcessorInterface
 {
     public function __construct(
-        // ✅ CORRECTION : On revient à Autowire pour forcer l'injection du service existant
+       // On revient à Autowire pour forcer l'injection du service existant
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private ProcessorInterface $persistProcessor,
         private Security $security,
