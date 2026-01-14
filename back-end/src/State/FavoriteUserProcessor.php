@@ -8,7 +8,7 @@ use App\Entity\Favorite;
 use App\Entity\User;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException; // 💡 Ajoutez ceci
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 final class FavoriteUserProcessor implements ProcessorInterface
 {
@@ -24,7 +24,7 @@ final class FavoriteUserProcessor implements ProcessorInterface
         if ($data instanceof Favorite && ($operation instanceof Post)) {
             $user = $this->security->getUser();
 
-            // 🚨 CONTRÔLE DE SÉCURITÉ CRITIQUE
+
             // Si l'utilisateur est null (non connecté), on bloque la requête ici.
             if (!$user || !$user instanceof \App\Entity\User) {
                 throw new UnauthorizedHttpException('Bearer', 'Vous devez être connecté pour effectuer cette action.');
