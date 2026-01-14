@@ -34,7 +34,6 @@ use Symfony\Component\Validator\Constraints as Assert;
         // Route pour le Dashboard : "Mes annonces"
         new GetCollection(
             uriTemplate: '/my-listings',
-            // On remplace openapiContext par openapi
             openapi: new \ApiPlatform\OpenApi\Model\Operation(
                 summary: 'Récupère les annonces de l\'utilisateur connecté',
                 description: 'Retourne uniquement les annonces appartenant au token JWT fourni.'

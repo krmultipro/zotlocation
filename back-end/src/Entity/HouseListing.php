@@ -2,11 +2,11 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource; // 💡 NOUVEAU
+use ApiPlatform\Metadata\ApiResource;
 use App\Repository\HouseListingRepository;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups; // 💡 NOUVEAU
-use Symfony\Component\Validator\Constraints as Assert; // 💡 NOUVEAU
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: HouseListingRepository::class)]
 #[ApiResource(

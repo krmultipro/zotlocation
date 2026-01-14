@@ -52,7 +52,7 @@ class Image
 
     #[ORM\ManyToOne(inversedBy: 'images')]
     #[ORM\JoinColumn(nullable: false)]
-    // 💡 IMPORTANT : Ce groupe doit UNIQUEMENT être en écriture pour éviter la boucle infinie.
+    // Ce groupe doit UNIQUEMENT être en écriture pour éviter la boucle infinie.
     #[Groups(['image:create'])]
     private ?Listing $listing = null;
 

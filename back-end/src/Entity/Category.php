@@ -33,13 +33,13 @@ class Category
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    // 💡 CORRIGÉ : Ajout du groupe 'listing:item:read'
+    // Ajout du groupe 'listing:item:read'
     #[Groups(['category:read', 'listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
     #[Assert\NotBlank]
     private ?string $name = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    // 💡 CORRIGÉ : Ajout du groupe 'listing:item:read'
+    //  Ajout du groupe 'listing:item:read'
     #[Groups(['category:read', 'listing:read', 'listing:card:read', 'listing:item:read'])]
     private ?string $description = null;
 

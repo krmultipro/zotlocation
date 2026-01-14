@@ -42,7 +42,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    // 💡 CORRIGÉ : Ajout de 'listing:item:read'
+    // Ajout de 'listing:item:read'
     #[Groups(['user:read', 'listing:read', 'booking:read', 'review:read', 'listing:item:read'])]
     #[Assert\NotBlank]
     private ?string $name = null;
@@ -117,8 +117,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->favoritesUser = new ArrayCollection();
     }
 
-    // --- Reste des getters et setters inchangés ---
-    // ... (omitted for brevity, keep all original methods)
+
 
     public function getRoles(): array
     {
@@ -127,7 +126,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return array_unique($roles);
     }
 
-    // ... (continue with the rest of the original methods)
+
     public function getId(): ?int
     {
         return $this->id;

@@ -41,7 +41,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         // 3. POST (Création d'une réservation)
         new Post(
             security: "is_granted('ROLE_USER')",
-            // 💡 Correction Prix/Validation : Utilise le Validator pour vérifier la dispo et calculer le prix (via chaînage)
+            // Utilise le Validator pour vérifier la dispo et calculer le prix (via chaînage)
             processor: BookingValidatorProcessor::class,
             denormalizationContext: ['groups' => ['booking:create']]
         ),
@@ -49,7 +49,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         // 4. PATCH (Mise à jour d'une réservation)
         new Patch(
             security: "is_granted('ROLE_ADMIN') or object.getBooker() == user",
-            // 💡 Correction Prix/Validation : Utilise AUSSI le Validator pour revérifier la dispo et recalculer le prix
+            // Utilise AUSSI le Validator pour revérifier la dispo et recalculer le prix
             processor: BookingValidatorProcessor::class,
             denormalizationContext: ['groups' => ['booking:update']]
         ),
@@ -63,7 +63,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiFilter(SearchFilter::class, properties: [
     'listing' => 'exact',
-    'booker' => 'exact', // 💡 AJOUT : Permet de filtrer les réservations par utilisateur pour le tableau de bord
+    'booker' => 'exact', //Permet de filtrer les réservations par utilisateur pour le tableau de bord
 ])]
 #[Assert\Expression(
     "this.getEndDate() > this.getStartDate()",
