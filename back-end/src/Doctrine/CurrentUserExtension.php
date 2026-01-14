@@ -19,7 +19,7 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface
         QueryBuilder $queryBuilder,
         QueryNameGeneratorInterface $queryNameGenerator,
         string $resourceClass,
-        ?Operation $operation = null, // 💡 Changement ici : Type Operation au lieu de string
+        ?Operation $operation = null,
         array $context = []
     ): void {
         $this->addWhere($queryBuilder, $resourceClass, $operation);
@@ -29,7 +29,7 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface
     {
         $user = $this->security->getUser();
 
-        // 💡 On vérifie si l'uriTemplate correspond à notre route personnalisée
+        // On vérifie si l'uriTemplate correspond à notre route personnalisée
         $isMyListings = $operation && $operation->getUriTemplate() === '/my-listings';
 
         if (Listing::class !== $resourceClass || !$isMyListings || null === $user) {
