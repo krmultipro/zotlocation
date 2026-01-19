@@ -30,11 +30,11 @@ class BookingRepository extends ServiceEntityRepository
     public function findOverlappingBookings(int $listingId, string $startDate, string $endDate, ?int $excludedBookingId = null): array
     {
         $qb = $this->createQueryBuilder('b')
-            // 💡 CORRECTION 1: Utiliser where pour la première condition afin de ne pas écraser les paramètres
+            //  Utiliser where pour la première condition afin de ne pas écraser les paramètres
             ->where('b.listing = :listingId')
             ->setParameter('listingId', $listingId)
 
-            // 💡 CORRECTION 2: Logique de chevauchement INCLUSIVE et stable pour les bornes
+            // Logique de chevauchement INCLUSIVE et stable pour les bornes
             ->andWhere('b.endDate >= :startDate')
             ->andWhere('b.startDate <= :endDate')
 
@@ -101,7 +101,7 @@ class BookingRepository extends ServiceEntityRepository
     public function findBookingsByListingId(int $listingId): array
     {
         return $this->createQueryBuilder('b')
-            // 💡 RENDU PLUS ROBUSTE : Joindre explicitement le Listing et filtrer sur son ID
+            // Joindre explicitement le Listing et filtrer sur son ID
             ->innerJoin('b.listing', 'l')
             ->where('l.id = :listingId')
             ->setParameter('listingId', $listingId)

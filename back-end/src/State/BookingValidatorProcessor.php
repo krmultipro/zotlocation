@@ -1,5 +1,5 @@
 <?php
-// src/State/BookingValidatorProcessor.php (Correction)
+
 
 namespace App\State;
 
@@ -8,7 +8,7 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Booking;
 use App\Service\BookingAvailabilityChecker;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
-use App\State\BookingPriceProcessor; // 💡 NOUVEL IMPORT
+use App\State\BookingPriceProcessor;
 
 final class BookingValidatorProcessor implements ProcessorInterface
 {
@@ -17,7 +17,7 @@ final class BookingValidatorProcessor implements ProcessorInterface
      * @param BookingAvailabilityChecker $checker Votre service de validation de disponibilité.
      */
     public function __construct(
-        // 💡 CORRECTION: Injecter directement le BookingPriceProcessor
+        // Injecter directement le BookingPriceProcessor
         private BookingPriceProcessor $priceProcessor,
         private BookingAvailabilityChecker $checker
     ) {}

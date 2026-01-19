@@ -7,7 +7,7 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Review;
 use App\Entity\User;
-use App\Repository\BookingRepository; // 💡 Import nécessaire
+use App\Repository\BookingRepository;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -18,7 +18,7 @@ final class ReviewAuthorProcessor implements ProcessorInterface
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private ProcessorInterface $persistProcessor,
         private Security $security,
-        private BookingRepository $bookingRepository // 💡 Injection du repo
+        private BookingRepository $bookingRepository
     ) {
     }
 
@@ -32,8 +32,8 @@ final class ReviewAuthorProcessor implements ProcessorInterface
                 throw new AccessDeniedHttpException("Vous devez être connecté.");
             }
 
-            // 💡 LOGIQUE MÉTIER : Vérifier si une réservation terminée existe
-            // On utilise la méthode de ton repository (ou une simple recherche)
+            // Vérifier si une réservation terminée existe
+            // On utilise la méthode du repository (ou une simple recherche)
             $hasPastBooking = $this->bookingRepository->findOneBy([
                 'booker' => $user,
                 'listing' => $listing,

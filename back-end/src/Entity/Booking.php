@@ -33,11 +33,13 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new Post(
             security: "is_granted('ROLE_USER')",
+            // Utilise le Validator pour vérifier la dispo et calculer le prix (via chaînage)
             processor: BookingValidatorProcessor::class,
             denormalizationContext: ['groups' => ['booking:create']]
         ),
         new Patch(
             security: "is_granted('ROLE_ADMIN') or object.getBooker() == user",
+            // Utilise AUSSI le Validator pour revérifier la dispo et recalculer le prix
             processor: BookingValidatorProcessor::class,
             denormalizationContext: ['groups' => ['booking:update']]
         ),
@@ -48,7 +50,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'listing' => 'exact',
-    'booker' => 'exact',
+    'booker' => 'exact', //Permet de filtrer les réservations par utilisateur pour le tableau de bord
 ])]
 #[Assert\Expression(
     "this.getEndDate() > this.getStartDate()",
