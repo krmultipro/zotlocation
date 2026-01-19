@@ -1,11 +1,11 @@
 /* eslint-disable react/no-unescaped-entities */
 "use client"
 
-import { useCallback, useState } from "react"
-import { BiSearch } from "react-icons/bi"
-import CountrySearchModal from "../modals/CountrySearchModal"
-import DateSearchModal from "../modals/DateSearchModal"
-import GuestSearchModal from "../modals/GuestSearchModal"
+import { useCallback, useState } from "react";
+import { BiSearch } from "react-icons/bi";
+import CountrySearchModal from "../modals/CountrySearchModal";
+import DateSearchModal from "../modals/DateSearchModal";
+import GuestSearchModal from "../modals/GuestSearchModal";
 
 const Search = () => {
   const [openLocationModal, setOpenLocationModal] = useState(false)
@@ -18,7 +18,7 @@ const Search = () => {
 
   return (
     <>
-      <div className="border-[1px] w-full md:w-auto py-2 rounded-full shadow-sm hover:shadow-md transition cursor-pointer bg-white">
+      <div className="border w-full md:w-auto py-2 rounded-full shadow-sm hover:shadow-md transition cursor-pointer bg-white">
         <div className="flex flex-row items-center justify-between">
           {/* Section Localisation */}
           <div
@@ -29,7 +29,7 @@ const Search = () => {
           </div>
 
           <div
-            className="hidden sm:block text-sm font-semibold px-6 border-x-[1px] flex-1 text-center"
+            className="hidden sm:block text-sm font-semibold px-6 border-x flex-1 text-center"
             onClick={() => setOpenDateModal(true)}
           >
             N'importe quand
