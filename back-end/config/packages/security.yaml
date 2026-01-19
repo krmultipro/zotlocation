@@ -55,6 +55,8 @@ security:
     # ACCESS CONTROL
     # -----------------------
     access_control:
+        - { path: ^/api/webhook/stripe, roles: PUBLIC_ACCESS }
+
         # Autoriser OPTIONS sinon Swagger casse
         - { path: ^/api, roles: PUBLIC_ACCESS, methods: [OPTIONS] }
 

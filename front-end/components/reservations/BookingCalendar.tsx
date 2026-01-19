@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
@@ -15,13 +16,13 @@ interface BookingCalendarProps {
   pricePerNight: number
 }
 
-// 💡 Utilitaire pour formater la date pour l'envoi API (YYYY-MM-DD)
+//  Utilitaire pour formater la date pour l'envoi API (YYYY-MM-DD)
 const getLocalFormattedDate = (date: Date): string => {
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
   return localDate.toISOString().substring(0, 10)
 }
 
-// 💡 Utilitaire pour créer une date locale sans décalage à partir d'une string API
+// Utilitaire pour créer une date locale sans décalage à partir d'une string API
 const createLocalDay = (dateString: string): Date => {
   const parts = dateString.split("T")[0].split("-")
   return new Date(
@@ -42,7 +43,7 @@ export default function BookingCalendar({
   const [disabledDates, setDisabledDates] = useState<Date[]>([])
   const [loading, setLoading] = useState(false)
 
-  // 🔹 Charger les réservations existantes pour griser les dates
+  // Charger les réservations existantes pour griser les dates
   useEffect(() => {
     const fetchBookings = async () => {
       try {
@@ -59,7 +60,7 @@ export default function BookingCalendar({
           }
         )
 
-        // 💡 Support des deux formats de réponse API Platform
+        // Support des deux formats de réponse API Platform
         const bookingsData =
           res.data["member"] || res.data["hydra:member"] || []
         const dates: Date[] = []
@@ -68,7 +69,7 @@ export default function BookingCalendar({
           const current = createLocalDay(booking.startDate)
           const end = createLocalDay(booking.endDate)
 
-          // 💡 On grise du début jusqu'à la veille de la fin
+          //  On grise du début jusqu'à la veille de la fin
           // (le jour du check-out est disponible pour le prochain voyageur)
           while (current < end) {
             dates.push(new Date(current))
@@ -87,7 +88,7 @@ export default function BookingCalendar({
     }
   }, [listingId])
 
-  // 🔹 Calcul du nombre de nuits et du prix total
+  //  Calcul du nombre de nuits et du prix total
   const nights = useMemo(() => {
     if (!range?.from || !range?.to) return 0
     return Math.ceil(
@@ -97,7 +98,8 @@ export default function BookingCalendar({
 
   const total = nights * pricePerNight
 
-  // 🔹 Action de réservation
+  //  Action de réservation
+  // Action de réservation avec Paiement Stripe
   const handleBooking = async () => {
     if (!user) {
       toast.error("Vous devez être connecté pour réserver")
@@ -114,7 +116,8 @@ export default function BookingCalendar({
       const token = localStorage.getItem("jwtToken")
       const apiUrl = process.env.NEXT_PUBLIC_API_URL
 
-      await axios.post(
+      // 1. Étape : Création de la réservation en base de données (Statut 'pending')
+      const bookingRes = await axios.post(
         `${apiUrl}/api/bookings`,
         {
           listing: `/api/listings/${listingId}`,
@@ -122,15 +125,39 @@ export default function BookingCalendar({
           endDate: getLocalFormattedDate(range.to),
         },
         {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      )
+
+      // On récupère l'ID de la réservation créée
+      const newBookingId = bookingRes.data.id
+
+      toast.loading("Redirection vers le paiement sécurisé...")
+
+      // 2. Étape : Appel nouveau contrôleur Symfony pour Stripe
+      const stripeRes = await axios.post(
+        `${apiUrl}/api/bookings/${newBookingId}/create-checkout-session`,
+        {},
+        {
           headers: { Authorization: `Bearer ${token}` },
         }
       )
 
-      toast.success("Réservation confirmée 🎉")
-      window.dispatchEvent(new Event("reservations:updated"))
-      router.push("/dashboard/reservations")
+      // 3. Étape : Redirection vers la page Stripe Checkout
+      if (stripeRes.data.url) {
+        window.location.href = stripeRes.data.url
+      } else {
+        throw new Error("URL de paiement introuvable")
+      }
     } catch (err: any) {
-      const msg = err.response?.data?.detail || "Dates indisponibles"
+      console.error("Erreur flux réservation/paiement:", err)
+      const msg =
+        err.response?.data?.detail ||
+        "Une erreur est survenue lors de la réservation"
+      toast.dismiss() // On retire le toast de chargement
       toast.error(msg)
     } finally {
       setLoading(false)

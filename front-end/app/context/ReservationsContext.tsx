@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
 import React, {
@@ -24,6 +26,7 @@ export interface Booking {
   totalPrice: number
   listing: Listing
   duration?: number
+  status: string //  Pour gérer les états 'pending', 'paid', 'cancelled'
 }
 
 interface ReservationsContextType {
@@ -47,8 +50,6 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
     const storedUser =
       typeof window !== "undefined" ? localStorage.getItem("user") : null
 
-    // Si pas de token, on ne peut rien charger.
-    // On attend que l'utilisateur soit connecté.
     if (!token) {
       setBookings([])
       setIsLoading(false)
@@ -61,7 +62,6 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
         process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
       let userId: number | null = null
 
-      // 1. On tente l'ID du localStorage d'abord (plus rapide pour l'affichage initial)
       if (storedUser) {
         try {
           userId = JSON.parse(storedUser).id
@@ -70,7 +70,6 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
 
-      // 2. Si pas d'ID en local, ou pour vérifier la validité, on appelle /api/me
       if (!userId) {
         const meRes = await fetch(`${API_URL}/api/me`, {
           headers: {
@@ -86,7 +85,6 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (!userId) throw new Error("Utilisateur non identifié")
 
-      // 3. Récupération des réservations
       const res = await fetch(`${API_URL}/api/bookings?booker=${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -109,9 +107,8 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setIsLoading(false)
     }
-  }, [trigger]) // Dépend de trigger pour permettre le refresh manuel
+  }, [trigger])
 
-  // Fonction exposée pour forcer le rechargement
   const refreshBookings = useCallback(() => {
     setTrigger((prev) => prev + 1)
   }, [])
@@ -119,7 +116,6 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     fetchBookings()
 
-    // Gestion des événements globaux
     const handleAuthChange = () => fetchBookings()
 
     window.addEventListener("reservations:updated", handleAuthChange)

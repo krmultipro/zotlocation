@@ -20,47 +20,34 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: BookingRepository::class)]
 #[ORM\Table(name: 'booking')]
-
 #[ApiResource(
     operations: [
-        // 1. Endpoint pour récupérer toutes les bookings (pour l'affichage du calendrier)
         new GetCollection(
-            // La sécurité 401 a été corrigée dans security.yaml, mais l'annotation reste pour l'intention.
             security: "is_granted('PUBLIC_ACCESS')",
             normalizationContext: ['groups' => ['booking:read']],
-            // Utilise le Provider pour gérer le filtre de Listing ID
             provider: BookingCollectionProvider::class,
         ),
-
-        // 2. GET Item (Lecture d'une seule réservation)
         new Get(
             security: "is_granted('ROLE_ADMIN') or object.getBooker() == user or object.getListing().getOwner() == user",
             normalizationContext: ['groups' => ['booking:read', 'booking:item:read']]
         ),
-
-        // 3. POST (Création d'une réservation)
         new Post(
             security: "is_granted('ROLE_USER')",
             // Utilise le Validator pour vérifier la dispo et calculer le prix (via chaînage)
             processor: BookingValidatorProcessor::class,
             denormalizationContext: ['groups' => ['booking:create']]
         ),
-
-        // 4. PATCH (Mise à jour d'une réservation)
         new Patch(
             security: "is_granted('ROLE_ADMIN') or object.getBooker() == user",
             // Utilise AUSSI le Validator pour revérifier la dispo et recalculer le prix
             processor: BookingValidatorProcessor::class,
             denormalizationContext: ['groups' => ['booking:update']]
         ),
-
-        // 5. DELETE (Suppression d'une réservation)
         new Delete(security: "is_granted('ROLE_ADMIN') or object.getBooker() == user"),
     ],
     normalizationContext: ['groups' => ['booking:read']],
     denormalizationContext: ['groups' => ['booking:create', 'booking:update']],
 )]
-
 #[ApiFilter(SearchFilter::class, properties: [
     'listing' => 'exact',
     'booker' => 'exact', //Permet de filtrer les réservations par utilisateur pour le tableau de bord
@@ -77,7 +64,6 @@ class Booking
     #[Groups(['booking:read', 'listing:item:read'])]
     private ?int $id = null;
 
-    // Dates
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     #[Groups(['booking:read', 'booking:create', 'booking:update', 'listing:item:read'])]
     #[Assert\NotBlank]
@@ -89,26 +75,26 @@ class Booking
     #[Assert\NotBlank]
     private ?\DateTimeInterface $endDate = null;
 
-    // Prix
     #[ORM\Column]
     #[Groups(['booking:read', 'booking:item:read'])]
     #[Assert\PositiveOrZero]
     private ?float $totalPrice = null;
 
-    // Relation ManyToOne avec Listing
     #[ORM\ManyToOne(inversedBy: 'bookings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['booking:read', 'booking:create'])]
     #[Assert\NotNull]
     private ?Listing $listing = null;
 
-    // Relation ManyToOne avec User (Booker)
     #[ORM\ManyToOne(inversedBy: 'bookings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['booking:read', 'listing:item:read'])]
     private ?User $booker = null;
 
-    // --- Getters et Setters ---
+    // Nouveau champ pour Stripe
+    #[ORM\Column(length: 20)]
+    #[Groups(['booking:read'])] // Permet au front de savoir si c'est payé
+    private string $status = 'pending'; // Valeurs possibles : 'pending', 'paid', 'cancelled'
 
     public function getId(): ?int
     {
@@ -137,19 +123,15 @@ class Booking
         return $this;
     }
 
-    // Propriété calculée : DURATION
     #[Groups(['booking:read'])]
     public function getDuration(): ?int
     {
         if (!$this->startDate || !$this->endDate) {
             return null;
         }
-
         $interval = $this->startDate->diff($this->endDate);
         return (int) $interval->days;
     }
-
-    // --- Reste des getters et setters inchangés ---
 
     public function getTotalPrice(): ?float
     {
@@ -181,6 +163,18 @@ class Booking
     public function setBooker(?User $booker): static
     {
         $this->booker = $booker;
+        return $this;
+    }
+
+    // 💡 Getters et Setters pour le status
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(string $status): static
+    {
+        $this->status = $status;
         return $this;
     }
 }
