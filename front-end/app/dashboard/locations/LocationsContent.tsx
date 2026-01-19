@@ -3,13 +3,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import Container from "@/components/Container"
-import Heading from "@/components/Heading"
-import ListingCard from "@/components/ListingCard"
-import ModalAjoutAnnonce from "@/components/modals/ModalAjoutAnnonce"
-import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useState } from "react"
-import { toast } from "react-hot-toast"
+import Container from "@/components/Container";
+import Heading from "@/components/Heading";
+import ListingCard from "@/components/ListingCard";
+import ModalAjoutAnnonce from "@/components/modals/ModalAjoutAnnonce";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 
 export default function LocationsContent() {
   const router = useRouter()
@@ -19,8 +19,6 @@ export default function LocationsContent() {
 
   const [selectedListing, setSelectedListing] = useState<any>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-
-  // 1. Récupération du token avec sécurité SSR
   const [token, setToken] = useState<string | null>(null)
 
   useEffect(() => {
@@ -35,7 +33,6 @@ export default function LocationsContent() {
     }
 
     try {
-      console.log("Appel API vers my-listings...")
       const res = await fetch("https://localhost:8000/api/my-listings", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -46,13 +43,9 @@ export default function LocationsContent() {
       if (!res.ok) throw new Error(`Erreur HTTP: ${res.status}`)
 
       const data = await res.json()
-      console.log("Données reçues :", data)
-
-      // API Platform : les données sont souvent dans hydra:member
       const fetchedData = data["hydra:member"] || data["member"] || data || []
       setLocations(Array.isArray(fetchedData) ? fetchedData : [])
     } catch (err: any) {
-      console.error("Erreur Fetch Locations:", err)
       setError("Impossible de charger vos locations.")
     } finally {
       setIsLoading(false)
@@ -64,18 +57,15 @@ export default function LocationsContent() {
     else if (token === null && !isLoading) setIsLoading(false)
   }, [fetchLocations, token, isLoading])
 
-  // --- ACTIONS ---
   const onDelete = useCallback(
     async (id: number) => {
       if (!token || !confirm("Supprimer cette annonce ?")) return
-
       try {
         const res = await fetch(`https://localhost:8000/api/listings/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         })
         if (!res.ok) throw new Error("Erreur suppression")
-
         setLocations((prev) => prev.filter((item) => item.id !== id))
         toast.success("Supprimé !")
       } catch (err: any) {
@@ -85,35 +75,23 @@ export default function LocationsContent() {
     [token]
   )
 
+  // 💡 Ouvre la modale en passant l'objet complet
   const onEdit = useCallback((location: any) => {
     setSelectedListing(location)
     setIsModalOpen(true)
   }, [])
 
-  // --- RENDU ---
-  if (isLoading)
-    return (
-      <Container>
-        <p className="py-20 text-center">Chargement...</p>
-      </Container>
-    )
-
-  if (error)
-    return (
-      <Container>
-        <p className="py-20 text-center text-red-500">{error}</p>
-      </Container>
-    )
+  if (isLoading) return <Container><p className="py-20 text-center">Chargement...</p></Container>
 
   return (
     <Container>
       <ModalAjoutAnnonce
         open={isModalOpen}
-        onOpenChange={(open) => {
+        onOpenChange={(open: boolean) => {
           setIsModalOpen(open)
-          if (!open) setSelectedListing(null)
+          if (!open) setSelectedListing(null) // Reset au moment de la fermeture
         }}
-        listing={selectedListing}
+        listingToEdit={selectedListing} // 💡 Doit correspondre à la prop de la modale
       />
 
       <Heading
@@ -131,20 +109,16 @@ export default function LocationsContent() {
               pricePerNight={location.pricePerNight}
               capacity={location.capacity}
               category={location.category?.name || "Sans catégorie"}
+              location={location.localisation?.name} // 💡 Affiche la ville
               imageUrl={location.images?.[0]?.url || "/images/placeholder.png"}
               onDelete={onDelete}
-              onEdit={() => onEdit(location)}
+              onEdit={() => onEdit(location)} // Passe l'objet à onEdit
             />
           ))
         ) : (
           <div className="col-span-full py-20 text-center border-2 border-dashed rounded-xl">
-            <p className="text-gray-500 mb-4">
-              Vous n'avez pas encore créé d'annonces.
-            </p>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="text-rose-500 font-bold hover:underline"
-            >
+            <p className="text-gray-500 mb-4">Vous n'avez pas encore créé d'annonces.</p>
+            <button onClick={() => { setSelectedListing(null); setIsModalOpen(true); }} className="text-rose-500 font-bold hover:underline">
               Créer une annonce maintenant
             </button>
           </div>

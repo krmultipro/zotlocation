@@ -4,7 +4,7 @@
 import Container from "@/components/Container";
 import ListingCard from "@/components/ListingCard";
 import axios from "axios";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPinOff } from "lucide-react"; // Import d'icône pour le vide
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -22,6 +22,10 @@ interface Listing {
   pricePerNight: number
   capacity: number
   category: {
+    id: number
+    name: string
+  }
+  localisation?: {
     id: number
     name: string
   }
@@ -57,10 +61,12 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
   const startDate = searchParams.get("startDate")
   const endDate = searchParams.get("endDate")
   const capacity = searchParams.get("capacity[gte]")
+  // On récupère l'ID de la ville depuis l'URL
+  const cityFilter = searchParams.get("localisation")
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [categoryFilter, startDate, endDate, capacity])
+  }, [categoryFilter, startDate, endDate, capacity, cityFilter])
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -78,6 +84,12 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
         if (categoryFilter) {
           params["category"] = `/api/categories/${categoryFilter}`
         }
+
+        //  ajout du filtre de localisation pour l'API Symfony
+        if (cityFilter) {
+          params["localisation"] = `/api/localisations/${cityFilter}`
+        }
+
         if (startDate) params["startDate"] = startDate
         if (endDate) params["endDate"] = endDate
         if (capacity) params["capacity[gte]"] = capacity
@@ -100,7 +112,8 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
     }
 
     fetchListings()
-  }, [categoryFilter, startDate, endDate, capacity, currentPage])
+    //  ajout cityFilter aux dépendances pour déclencher la recherche
+  }, [categoryFilter, startDate, endDate, capacity, currentPage, cityFilter])
 
   const totalPages = Math.ceil(totalItems / itemsPerPage)
 
@@ -144,14 +157,11 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
   return (
     <Container>
       <div className="pt-8 pb-20">
+        {/* Grille d'annonces */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {listings.map((listing) => {
-
-            // CALCUL DE LA MOYENNE
             const reviews = listing.reviews || [];
             const reviewsCount = reviews.length;
-
-            // Si pas d'avis, on renvoie null pour ne rien afficher dans la card
             const averageRating = reviewsCount > 0
               ? (reviews.reduce((acc, r) => acc + (r.rating || 0), 0) / reviewsCount).toFixed(1)
               : null;
@@ -163,9 +173,9 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
                 title={listing.title}
                 pricePerNight={listing.pricePerNight}
                 capacity={listing.capacity}
-                category={listing.category?.name || "Non spécifiée"}
+                category={listing.category?.name || "Logement"}
+                location={listing.localisation?.name || "La Réunion"}
                 imageUrl={listing.images?.[0]?.url || "/images/placeholder.png"}
-                // On ne passe les props que si reviewsCount > 0
                 rating={averageRating}
                 reviewsCount={reviewsCount > 0 ? reviewsCount : undefined}
               />
@@ -173,6 +183,7 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
           })}
         </div>
 
+        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex flex-col items-center justify-center mt-16 space-y-4">
             <div className="flex items-center gap-6">
@@ -198,15 +209,26 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
                 <ChevronRight size={24} />
               </button>
             </div>
-            <p className="text-sm text-gray-500 italic">
-              {totalItems} logements trouvés
-            </p>
           </div>
         )}
 
+        {/*  État vide si aucune annonce ne correspond à la ville */}
         {listings.length === 0 && (
-          <div className="py-20 text-center">
-            <p className="text-gray-600 text-lg font-medium">Aucune annonce trouvée.</p>
+          <div className="py-32 flex flex-col items-center justify-center text-center">
+            <div className="p-6 bg-gray-50 rounded-full mb-6">
+              <MapPinOff size={48} className="text-gray-300" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800">Aucun résultat trouvé</h3>
+            <p className="text-gray-500 mt-2 max-w-sm">
+              Il n'y a pas encore d'annonces disponibles pour cette localisation.
+              Essayez de modifier votre recherche ou d'enlever les filtres.
+            </p>
+            <button
+              onClick={() => window.location.href = "/"}
+              className="mt-8 px-6 py-2 border border-black rounded-lg font-semibold hover:bg-gray-50 transition"
+            >
+              Réinitialiser les filtres
+            </button>
           </div>
         )}
       </div>
