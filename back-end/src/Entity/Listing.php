@@ -30,6 +30,11 @@ use Symfony\Component\Validator\Constraints as Assert;
     'apartment' => ApartmentListing::class
 ])]
 #[ApiResource(
+    // 💡 CONFIGURATION DE LA PAGINATION
+    paginationItemsPerPage: 5,           // On affiche 5 annonces par page
+    paginationClientItemsPerPage: true,  // Permet au client de modifier si besoin
+    paginationMaximumItemsPerPage: 50,   // Sécurité max pour le serveur
+
     operations: [
         // Route pour le Dashboard : "Mes annonces"
         new GetCollection(
@@ -43,11 +48,6 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
 
         // GET Collection standard (public)
-        new GetCollection(
-            normalizationContext: ['groups' => ['listing:card:read']]
-        ),
-
-        // GET Collection : Public
         new GetCollection(
             normalizationContext: ['groups' => ['listing:card:read']]
         ),
@@ -73,7 +73,11 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
     ]
 )]
-#[ApiFilter(SearchFilter::class, properties: ['category' => 'exact'])]
+// 💡 AJOUT : Filtre sur la capacité (gte = supérieur ou égal)
+#[ApiFilter(SearchFilter::class, properties: [
+    'category' => 'exact',
+    'capacity' => 'gte'
+])]
 #[ApiFilter(ListingAvailabilityFilter::class)]
 class Listing
 {
@@ -144,7 +148,7 @@ class Listing
         $this->favoriteListings = new ArrayCollection();
     }
 
-    // --- GETTERS & SETTERS (Inchangés) ---
+    // --- GETTERS & SETTERS ---
     public function getId(): ?int { return $this->id; }
     public function setId(?int $id): static { $this->id = $id; return $this; }
     public function getTitle(): ?string { return $this->title; }
