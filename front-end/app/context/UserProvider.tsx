@@ -8,6 +8,7 @@ interface CurrentUser {
   email: string
   name: string
   isOwner: boolean
+  roles: string[]
   avatarUrl: string | null
 }
 
@@ -46,6 +47,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         email: data.email,
         name: data.full_name || data.email,
         isOwner: data.isOwner || false,
+        roles: data.roles || [],
         avatarUrl: data.avatarUrl || null,
       })
     } catch (err) {

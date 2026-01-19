@@ -63,7 +63,7 @@ export default function ListingDetailPage() {
       try {
         const baseApiUrl = process.env.NEXT_PUBLIC_API_URL
         const response = await axios.get(
-          `${baseApiUrl}/api/listings/${listingId}`
+          `${baseApiUrl}/api/listings/${listingId}/`
         )
         setListing(response.data)
       } catch (err) {

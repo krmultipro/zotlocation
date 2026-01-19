@@ -6,7 +6,7 @@
 import Container from "@/components/Container"
 import Heading from "@/components/Heading"
 import ListingCard from "@/components/ListingCard"
-import ModalAjoutAnnonce from "@/components/modals/ModalAjoutAnnonce"
+import AddListingModal from "@/components/modals/AddListingModal"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
@@ -107,7 +107,7 @@ export default function LocationsContent() {
 
   return (
     <Container>
-      <ModalAjoutAnnonce
+      <AddListingModal
         open={isModalOpen}
         onOpenChange={(open) => {
           setIsModalOpen(open)

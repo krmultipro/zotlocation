@@ -8,7 +8,7 @@ import { useCallback, useState } from "react"
 import { AiOutlineMenu } from "react-icons/ai"
 
 import { useFavorites } from "@/app/context/FavoritesContext"
-import ModalAjoutAnnonce from "@/components/modals/ModalAjoutAnnonce"
+import AddListingModal from "@/components/modals/AddListingModal"
 import Avatar from "../Avatar"
 import MenuItem from "./MenuItem"
 
@@ -20,6 +20,8 @@ const UserMenu = () => {
   const { refreshFavorites } = useFavorites()
   const [isOpen, setIsOpen] = useState(false)
   const [openModal, setOpenModal] = useState(false)
+
+  console.log("User :",user)
 
   const toggleOpen = useCallback(() => setIsOpen((prev) => !prev), [])
 
@@ -59,6 +61,11 @@ const UserMenu = () => {
   const handleLocationsClick = useCallback(() => {
     setIsOpen(false)
     router.push("/dashboard/locations")
+  }, [router])
+
+  const handleAdminArea = useCallback(() => {
+    setIsOpen(false)
+    router.push("/admin")
   }, [router])
 
   if (isLoading) {
@@ -110,7 +117,7 @@ const UserMenu = () => {
                 />
                 <MenuItem onClick={handleFavoritesClick} label="Mes favoris" />
                 <MenuItem onClick={handleLocationsClick} label="Mes locations" />
-                {user.isOwner && (
+                {user.isOwner || user.roles?.includes('ROLE_ADMIN') && (
                   <MenuItem
                     onClick={() => {
                       setOpenModal(true)
@@ -119,6 +126,8 @@ const UserMenu = () => {
                     label="Créer une annonce"
                   />
                 )}
+
+                  <MenuItem onClick={handleAdminArea} label="Espace admin"  />
                 <hr className="my-1 border-neutral-100" />
                 <MenuItem onClick={handleLogoutClick} label="Déconnexion" />
               </>
@@ -132,7 +141,7 @@ const UserMenu = () => {
         </div>
       )}
 
-      <ModalAjoutAnnonce open={openModal} onOpenChange={setOpenModal} />
+      <AddListingModal open={openModal} onOpenChange={setOpenModal} />
     </div>
   )
 }

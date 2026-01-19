@@ -25,7 +25,7 @@ import axios from "axios"
 import { useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
 
-export default function ModalAjoutAnnonce({ open, onOpenChange }: any) {
+export default function AddListingModal({ open, onOpenChange }: any) {
   const [mounted, setMounted] = useState(false)
   const [typeLogement, setTypeLogement] = useState<"maison" | "appartement">(
     "maison"
