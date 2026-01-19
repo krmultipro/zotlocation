@@ -4,10 +4,14 @@
 import Container from "@/components/Container";
 import ListingCard from "@/components/ListingCard";
 import axios from "axios";
-import { ChevronLeft, ChevronRight } from "lucide-react"; // Pour les icônes de pagination
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+interface Review {
+  id: number;
+  rating: number;
+}
 
 interface Listing {
   "@id": string
@@ -26,6 +30,7 @@ interface Listing {
     id: number
     url: string
   }>
+  reviews: Review[]
 }
 
 interface ApiPlatformResponse {
@@ -44,18 +49,15 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  //  ÉTATS POUR LA PAGINATION
   const [currentPage, setCurrentPage] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
-  const itemsPerPage = 5 // Doit correspondre à paginationItemsPerPage dans Symfony
+  const itemsPerPage = 5
 
-  // Récupérer les paramètres de l'URL
   const searchParams = useSearchParams()
   const startDate = searchParams.get("startDate")
   const endDate = searchParams.get("endDate")
   const capacity = searchParams.get("capacity[gte]")
 
-  // Reset de la page à 1 si les filtres changent
   useEffect(() => {
     setCurrentPage(1)
   }, [categoryFilter, startDate, endDate, capacity])
@@ -69,9 +71,8 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
         const baseApiUrl = process.env.NEXT_PUBLIC_API_URL
         const endpoint = `${baseApiUrl}/api/listings`
 
-        // Construction des paramètres
         const params: Record<string, any> = {
-          page: currentPage, // On envoie le numéro de page à Symfony
+          page: currentPage,
         }
 
         if (categoryFilter) {
@@ -101,10 +102,8 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
     fetchListings()
   }, [categoryFilter, startDate, endDate, capacity, currentPage])
 
-  // Calcul du nombre total de pages
   const totalPages = Math.ceil(totalItems / itemsPerPage)
 
-  // Gestionnaires de changement de page
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage((prev) => prev + 1)
@@ -119,7 +118,6 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
     }
   }
 
-  // --- États de chargement et d'erreur ---
   if (loading) {
     return (
       <Container>
@@ -146,22 +144,35 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
   return (
     <Container>
       <div className="pt-8 pb-20">
-        {/* Grille d'annonces */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-          {listings.map((listing) => (
-            <ListingCard
-              key={listing.id}
-              id={listing.id}
-              title={listing.title}
-              pricePerNight={listing.pricePerNight}
-              capacity={listing.capacity}
-              category={listing.category?.name || "Non spécifiée"}
-              imageUrl={listing.images?.[0]?.url || "/images/placeholder.png"}
-            />
-          ))}
+          {listings.map((listing) => {
+
+            // CALCUL DE LA MOYENNE
+            const reviews = listing.reviews || [];
+            const reviewsCount = reviews.length;
+
+            // Si pas d'avis, on renvoie null pour ne rien afficher dans la card
+            const averageRating = reviewsCount > 0
+              ? (reviews.reduce((acc, r) => acc + (r.rating || 0), 0) / reviewsCount).toFixed(1)
+              : null;
+
+            return (
+              <ListingCard
+                key={listing.id}
+                id={listing.id}
+                title={listing.title}
+                pricePerNight={listing.pricePerNight}
+                capacity={listing.capacity}
+                category={listing.category?.name || "Non spécifiée"}
+                imageUrl={listing.images?.[0]?.url || "/images/placeholder.png"}
+                // On ne passe les props que si reviewsCount > 0
+                rating={averageRating}
+                reviewsCount={reviewsCount > 0 ? reviewsCount : undefined}
+              />
+            );
+          })}
         </div>
 
-        {/* BARRE DE PAGINATION */}
         {totalPages > 1 && (
           <div className="flex flex-col items-center justify-center mt-16 space-y-4">
             <div className="flex items-center gap-6">
@@ -193,7 +204,6 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
           </div>
         )}
 
-        {/* État vide */}
         {listings.length === 0 && (
           <div className="py-20 text-center">
             <p className="text-gray-600 text-lg font-medium">Aucune annonce trouvée.</p>

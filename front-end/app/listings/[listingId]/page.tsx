@@ -19,7 +19,7 @@ interface Review {
   }
 }
 
-// 💡 Interface pour les options/équipements
+//  Interface pour les options/équipements
 interface Option {
   id: number
   name: string
@@ -223,7 +223,7 @@ export default function ListingDetailPage() {
 
             <hr className="border-gray-100" />
 
-            {/* 💡 NOUVELLE SECTION : ÉQUIPEMENTS / OPTIONS */}
+            {/*  ÉQUIPEMENTS / OPTIONS */}
             <div>
               <h2 className="text-2xl font-bold mb-6 text-gray-800">
                 Ce que propose ce logement

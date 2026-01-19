@@ -30,7 +30,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     'apartment' => ApartmentListing::class
 ])]
 #[ApiResource(
-    // 💡 CONFIGURATION DE LA PAGINATION
+    // CONFIGURATION DE LA PAGINATION
     paginationItemsPerPage: 5,           // On affiche 5 annonces par page
     paginationClientItemsPerPage: true,  // Permet au client de modifier si besoin
     paginationMaximumItemsPerPage: 50,   // Sécurité max pour le serveur
@@ -128,7 +128,7 @@ class Listing
     private Collection $images;
 
     #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'listing', orphanRemoval: true)]
-    #[Groups(['listing:item:read'])]
+    #[Groups(['listing:item:read', 'listing:card:read'])]
     private Collection $reviews;
 
     #[ORM\ManyToMany(targetEntity: Option::class, inversedBy: 'listings')]
