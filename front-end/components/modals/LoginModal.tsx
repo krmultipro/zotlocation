@@ -1,20 +1,20 @@
 "use client"
 
-import axios from "axios"
-import { useState } from "react"
-import { FieldValues, SubmitHandler, useForm } from "react-hook-form"
-import toast from "react-hot-toast"
+import axios from "axios";
+import { useState } from "react";
+import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 
-import { useUser } from "@/app/context/UserProvider"
-import useLoginModal from "@/app/hooks/useLoginModal"
-import useRegisterModal from "@/app/hooks/useRegisterModal"
+import { useUser } from "@/app/context/UserProvider";
+import useLoginModal from "@/app/hooks/useLoginModal";
+import useRegisterModal from "@/app/hooks/useRegisterModal";
 
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useRouter } from "next/navigation"
-import CustomButton from "../CustomButton"
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
+import CustomButton from "../CustomButton";
 
 const SYMFONY_LOGIN_CHECK_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/login_check`;
 const LoginModal = () => {

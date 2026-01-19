@@ -1,16 +1,16 @@
 "use client"
 
-import { useUser } from "@/app/context/UserProvider"
-import useLoginModal from "@/app/hooks/useLoginModal"
-import useRegisterModal from "@/app/hooks/useRegisterModal"
-import { useRouter } from "next/navigation"
-import { useCallback, useState } from "react"
-import { AiOutlineMenu } from "react-icons/ai"
+import { useUser } from "@/app/context/UserProvider";
+import useLoginModal from "@/app/hooks/useLoginModal";
+import useRegisterModal from "@/app/hooks/useRegisterModal";
+import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
+import { AiOutlineMenu } from "react-icons/ai";
 
-import { useFavorites } from "@/app/context/FavoritesContext"
-import ModalAjoutAnnonce from "@/components/modals/ModalAjoutAnnonce"
-import Avatar from "../Avatar"
-import MenuItem from "./MenuItem"
+import { useFavorites } from "@/app/context/FavoritesContext";
+import ModalAjoutAnnonce from "@/components/modals/ModalAjoutAnnonce";
+import Avatar from "../Avatar";
+import MenuItem from "./MenuItem";
 
 const UserMenu = () => {
   const router = useRouter()
@@ -82,7 +82,7 @@ const UserMenu = () => {
   return (
     <div className="relative flex items-center gap-3">
       <div className="hidden md:block text-sm font-semibold py-3 px-4 rounded-full hover:bg-neutral-100 transition cursor-default">
-        {user ? `Bienvenue, ${user.name}` : "Mon compte"}
+        {user ? `Bienvenue, ${user.name}` : ""}
       </div>
 
       <div
@@ -124,7 +124,7 @@ const UserMenu = () => {
               </>
             ) : (
               <>
-                <MenuItem onClick={handleLoginClick} label="Se connecter" />
+                <MenuItem onClick={handleLoginClick} label="Connexion" />
                 <MenuItem onClick={handleRegisterClick} label="S'inscrire" />
               </>
             )}
