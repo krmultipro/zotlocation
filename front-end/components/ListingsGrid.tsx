@@ -4,9 +4,9 @@
 import Container from "@/components/Container";
 import ListingCard from "@/components/ListingCard";
 import axios from "axios";
-import { ChevronLeft, ChevronRight, MapPinOff } from "lucide-react"; // Import d'icône pour le vide
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, MapPinOff } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 interface Review {
   id: number;
@@ -49,24 +49,32 @@ interface ListingsGridProps {
 }
 
 export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  const [currentPage, setCurrentPage] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const itemsPerPage = 5
 
-  const searchParams = useSearchParams()
+  //  RÉCUPÉRATION DES PARAMÈTRES DEPUIS L'URL
   const startDate = searchParams.get("startDate")
   const endDate = searchParams.get("endDate")
   const capacity = searchParams.get("capacity[gte]")
-  // On récupère l'ID de la ville depuis l'URL
   const cityFilter = searchParams.get("localisation")
 
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [categoryFilter, startDate, endDate, capacity, cityFilter])
+  // LA PAGE EST PILOTÉE PAR L'URL (Source de vérité)
+  const currentPage = Number(searchParams.get("page")) || 1;
+
+  // FONCTION POUR CHANGER DE PAGE SANS PERDRE LES AUTRES FILTRES
+  const setPage = useCallback((pageNumber: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", pageNumber.toString());
+
+    // On met à jour l'URL (cela déclenchera le useEffect via le changement de searchParams)
+    router.push(`?${params.toString()}`, { scroll: false });
+  }, [searchParams, router]);
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -78,25 +86,16 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
         const endpoint = `${baseApiUrl}/api/listings`
 
         const params: Record<string, any> = {
-          page: currentPage,
+          page: currentPage, // On envoie la page actuelle à l'API
         }
 
-        if (categoryFilter) {
-          params["category"] = `/api/categories/${categoryFilter}`
-        }
-
-        //  ajout du filtre de localisation pour l'API Symfony
-        if (cityFilter) {
-          params["localisation"] = `/api/localisations/${cityFilter}`
-        }
-
+        if (categoryFilter) params["category"] = `/api/categories/${categoryFilter}`
+        if (cityFilter) params["localisation"] = `/api/localisations/${cityFilter}`
         if (startDate) params["startDate"] = startDate
         if (endDate) params["endDate"] = endDate
         if (capacity) params["capacity[gte]"] = capacity
 
-        const response = await axios.get<ApiPlatformResponse>(endpoint, {
-          params,
-        })
+        const response = await axios.get<ApiPlatformResponse>(endpoint, { params })
 
         const data = response.data["hydra:member"] || response.data.member || []
         const total = response.data["hydra:totalItems"] || response.data.totalItems || 0
@@ -112,22 +111,21 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
     }
 
     fetchListings()
-    //  ajout cityFilter aux dépendances pour déclencher la recherche
   }, [categoryFilter, startDate, endDate, capacity, currentPage, cityFilter])
 
   const totalPages = Math.ceil(totalItems / itemsPerPage)
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage((prev) => prev + 1)
-      window.scrollTo({ top: 0, behavior: "smooth" })
+      setPage(currentPage + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      setCurrentPage((prev) => prev - 1)
-      window.scrollTo({ top: 0, behavior: "smooth" })
+      setPage(currentPage - 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
 
@@ -157,13 +155,11 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
   return (
     <Container>
       <div className="pt-8 pb-20">
-        {/* Grille d'annonces */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {listings.map((listing) => {
             const reviews = listing.reviews || [];
-            const reviewsCount = reviews.length;
-            const averageRating = reviewsCount > 0
-              ? (reviews.reduce((acc, r) => acc + (r.rating || 0), 0) / reviewsCount).toFixed(1)
+            const averageRating = reviews.length > 0
+              ? (reviews.reduce((acc, r) => acc + (r.rating || 0), 0) / reviews.length).toFixed(1)
               : null;
 
             return (
@@ -177,13 +173,13 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
                 location={listing.localisation?.name || "La Réunion"}
                 imageUrl={listing.images?.[0]?.url || "/images/placeholder.png"}
                 rating={averageRating}
-                reviewsCount={reviewsCount > 0 ? reviewsCount : undefined}
+                reviewsCount={reviews.length > 0 ? reviews.length : undefined}
               />
             );
           })}
         </div>
 
-        {/* Pagination */}
+        {/* Pagination contrôlée par l'URL */}
         {totalPages > 1 && (
           <div className="flex flex-col items-center justify-center mt-16 space-y-4">
             <div className="flex items-center gap-6">
@@ -212,19 +208,19 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
           </div>
         )}
 
-        {/*  État vide si aucune annonce ne correspond à la ville */}
-        {listings.length === 0 && (
+        {/* État vide si aucune annonce ne correspond */}
+        {listings.length === 0 && !loading && (
           <div className="py-32 flex flex-col items-center justify-center text-center">
             <div className="p-6 bg-gray-50 rounded-full mb-6">
               <MapPinOff size={48} className="text-gray-300" />
             </div>
             <h3 className="text-2xl font-bold text-gray-800">Aucun résultat trouvé</h3>
             <p className="text-gray-500 mt-2 max-w-sm">
-              Il n'y a pas encore d'annonces disponibles pour cette localisation.
+              Il n'y a pas encore d'annonces disponibles pour ces critères.
               Essayez de modifier votre recherche ou d'enlever les filtres.
             </p>
             <button
-              onClick={() => window.location.href = "/"}
+              onClick={() => router.push("/")}
               className="mt-8 px-6 py-2 border border-black rounded-lg font-semibold hover:bg-gray-50 transition"
             >
               Réinitialiser les filtres
