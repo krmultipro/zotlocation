@@ -22,6 +22,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ListingRepository::class)]
 #[ORM\Table(name: 'listing')]
+// 🚀 OPTIMISATION SQL : Index pour accélérer le filtrage par catégorie et ville
+#[ORM\Index(columns: ['category_id'], name: 'idx_listing_category')]
+#[ORM\Index(columns: ['localisation_id'], name: 'idx_listing_localisation')]
 #[ORM\InheritanceType('JOINED')]
 #[ORM\DiscriminatorColumn(name: 'type', type: 'string')]
 #[ORM\DiscriminatorMap([
@@ -30,9 +33,16 @@ use Symfony\Component\Validator\Constraints as Assert;
     'apartment' => ApartmentListing::class
 ])]
 #[ApiResource(
-    paginationItemsPerPage: 5,
+    paginationItemsPerPage: 14,
     paginationClientItemsPerPage: true,
     paginationMaximumItemsPerPage: 50,
+    // ⚡ VITESSE : Désactive le COUNT(*) total qui ralentit PostgreSQL sur Alwaysdata
+    paginationPartial: true,
+    cacheHeaders: [
+        'max_age' => 60,
+        'shared_max_age' => 3600,
+        'vary' => ['Authorization', 'Accept']
+    ],
     operations: [
         new GetCollection(
             uriTemplate: '/my-listings',
@@ -95,18 +105,18 @@ class Listing
     private ?int $capacity = null;
 
     #[ORM\ManyToOne(inversedBy: 'listings')]
-    #[Groups(['booking:read', 'review:read', 'listing:item:read', 'listing:card:read'])]
+    // ❌ Nettoyage : On retire 'listing:card:read' pour éviter les requêtes Profile en boucle
+    #[Groups(['listing:read', 'listing:item:read'])]
     #[Assert\Valid]
     private ?User $owner = null;
 
-    #[ORM\ManyToOne(inversedBy: 'listings')]
+    #[ORM\ManyToOne(inversedBy: 'listings', fetch: 'EAGER')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
     #[Assert\NotNull]
     private ?Category $category = null;
 
-    // 💡 RELATION UNIDIRECTIONNELLE (Solution du bug 500)
-    #[ORM\ManyToOne(targetEntity: Localisation::class)]
+    #[ORM\ManyToOne(targetEntity: Localisation::class, fetch: 'EAGER')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['listing:read', 'listing:item:read', 'listing:card:read', 'listing:create', 'listing:update'])]
     #[Assert\NotNull(message: "La localisation est obligatoire.")]
@@ -116,7 +126,7 @@ class Listing
     #[Groups(['listing:item:read'])]
     private Collection $bookings;
 
-    #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'listing', cascade: ['persist'], orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'listing', cascade: ['persist', 'remove'], orphanRemoval: true, fetch: 'EAGER')]
     #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:card:read', 'booking:read'])]
     #[Assert\Count(min: 1, minMessage: "Une annonce doit obligatoirement avoir au moins une image.")]
     private Collection $images;
@@ -142,6 +152,7 @@ class Listing
         $this->favoriteListings = new ArrayCollection();
     }
 
+    // --- GETTERS & SETTERS ---
     public function getId(): ?int { return $this->id; }
     public function getTitle(): ?string { return $this->title; }
     public function setTitle(string $title): static { $this->title = $title; return $this; }
@@ -155,17 +166,41 @@ class Listing
     public function setOwner(?User $owner): static { $this->owner = $owner; return $this; }
     public function getCategory(): ?Category { return $this->category; }
     public function setCategory(?Category $category): static { $this->category = $category; return $this; }
-
     public function getLocalisation(): ?Localisation { return $this->localisation; }
     public function setLocalisation(?Localisation $localisation): static { $this->localisation = $localisation; return $this; }
-
     public function getBookings(): Collection { return $this->bookings; }
     public function getImages(): Collection { return $this->images; }
     public function getReviews(): Collection { return $this->reviews; }
     public function getOptions(): Collection { return $this->options; }
     public function getFavoriteListings(): Collection { return $this->favoriteListings; }
 
-    // Méthodes add/remove simplifiées pour l'espace
-    public function addImage(Image $image): static { if (!$this->images->contains($image)) { $this->images->add($image); $image->setListing($this); } return $this; }
-    public function addOption(Option $option): static { if (!$this->options->contains($option)) { $this->options->add($option); } return $this; }
+    // --- MAPPING LOGIQUE (ADD / REMOVE) ---
+    public function addImage(Image $image): static
+    {
+        if (!$this->images->contains($image)) {
+            $this->images->add($image);
+            $image->setListing($this);
+        }
+        return $this;
+    }
+
+    public function removeImage(Image $image): static
+    {
+        if ($this->images->removeElement($image)) {
+            if ($image->getListing() === $this) { $image->setListing(null); }
+        }
+        return $this;
+    }
+
+    public function addOption(Option $option): static
+    {
+        if (!$this->options->contains($option)) { $this->options->add($option); }
+        return $this;
+    }
+
+    public function removeOption(Option $option): static
+    {
+        $this->options->removeElement($option);
+        return $this;
+    }
 }
