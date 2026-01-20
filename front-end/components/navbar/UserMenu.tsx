@@ -117,7 +117,7 @@ const UserMenu = () => {
                 />
                 <MenuItem onClick={handleFavoritesClick} label="Mes favoris" />
                 <MenuItem onClick={handleLocationsClick} label="Mes locations" />
-                {user.isOwner || user.roles?.includes('ROLE_ADMIN') && (
+                {user.isOwner || user.roles?.includes('ROLE_PROPRIETAIRE') && (
                   <MenuItem
                     onClick={() => {
                       setOpenModal(true)
@@ -126,8 +126,8 @@ const UserMenu = () => {
                     label="Créer une annonce"
                   />
                 )}
-
-                  <MenuItem onClick={handleAdminArea} label="Espace admin"  />
+                { user.roles?.includes('ROLE_ADMIN') && (
+                  <MenuItem onClick={handleAdminArea} label="Espace admin"  /> )}
                 <hr className="my-1 border-neutral-100" />
                 <MenuItem onClick={handleLogoutClick} label="Déconnexion" />
               </>
