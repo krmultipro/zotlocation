@@ -1,16 +1,16 @@
 "use client"
 
-import { useUser } from "@/app/context/UserProvider";
-import useLoginModal from "@/app/hooks/useLoginModal";
-import useRegisterModal from "@/app/hooks/useRegisterModal";
-import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
-import { AiOutlineMenu } from "react-icons/ai";
+import { useUser } from "@/app/context/UserProvider"
+import useLoginModal from "@/app/hooks/useLoginModal"
+import useRegisterModal from "@/app/hooks/useRegisterModal"
+import { useRouter } from "next/navigation"
+import { useCallback, useState } from "react"
+import { AiOutlineMenu } from "react-icons/ai"
 
-import { useFavorites } from "@/app/context/FavoritesContext";
-import ModalAjoutAnnonce from "@/components/modals/ModalAjoutAnnonce";
-import Avatar from "../Avatar";
-import MenuItem from "./MenuItem";
+import { useFavorites } from "@/app/context/FavoritesContext"
+import AddListingModal from "@/components/modals/AddListingModal"
+import Avatar from "../Avatar"
+import MenuItem from "./MenuItem"
 
 const UserMenu = () => {
   const router = useRouter()
@@ -20,6 +20,8 @@ const UserMenu = () => {
   const { refreshFavorites } = useFavorites()
   const [isOpen, setIsOpen] = useState(false)
   const [openModal, setOpenModal] = useState(false)
+
+  console.log("User :",user)
 
   const toggleOpen = useCallback(() => setIsOpen((prev) => !prev), [])
 
@@ -61,6 +63,11 @@ const UserMenu = () => {
     router.push("/dashboard/locations")
   }, [router])
 
+  const handleAdminArea = useCallback(() => {
+    setIsOpen(false)
+    router.push("/admin")
+  }, [router])
+
   if (isLoading) {
     return (
       <div className="relative">
@@ -82,7 +89,7 @@ const UserMenu = () => {
   return (
     <div className="relative flex items-center gap-3">
       <div className="hidden md:block text-sm font-semibold py-3 px-4 rounded-full hover:bg-neutral-100 transition cursor-default">
-        {user ? `Bienvenue, ${user.name}` : ""}
+        {user ? `Bienvenue, ${user.name}` : "Mon compte"}
       </div>
 
       <div
@@ -109,8 +116,9 @@ const UserMenu = () => {
                   label="Mes réservations"
                 />
                 <MenuItem onClick={handleFavoritesClick} label="Mes favoris" />
-                <MenuItem onClick={handleLocationsClick} label="Mes locations" />
-                {user.isOwner && (
+                {user.isOwner || user.roles?.includes('ROLE_PROPRIETAIRE') && (
+                <MenuItem onClick={handleLocationsClick} label="Mes locations" /> )}
+                {user.isOwner || user.roles?.includes('ROLE_PROPRIETAIRE') && (
                   <MenuItem
                     onClick={() => {
                       setOpenModal(true)
@@ -119,12 +127,14 @@ const UserMenu = () => {
                     label="Créer une annonce"
                   />
                 )}
+                { user.roles?.includes('ROLE_ADMIN') && (
+                  <MenuItem onClick={handleAdminArea} label="Espace admin"  /> )}
                 <hr className="my-1 border-neutral-100" />
                 <MenuItem onClick={handleLogoutClick} label="Déconnexion" />
               </>
             ) : (
               <>
-                <MenuItem onClick={handleLoginClick} label="Connexion" />
+                <MenuItem onClick={handleLoginClick} label="Se connecter" />
                 <MenuItem onClick={handleRegisterClick} label="S'inscrire" />
               </>
             )}
@@ -132,7 +142,7 @@ const UserMenu = () => {
         </div>
       )}
 
-      <ModalAjoutAnnonce open={openModal} onOpenChange={setOpenModal} />
+      <AddListingModal open={openModal} onOpenChange={setOpenModal} />
     </div>
   )
 }

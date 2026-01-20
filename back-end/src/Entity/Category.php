@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
@@ -22,6 +23,11 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new GetCollection(normalizationContext: ['groups' => ['category:read']]),
         new Get(normalizationContext: ['groups' => ['category:read']]),
+
+        new Post(security: "is_granted('ROLE_ADMIN')"),
+        new Put(security: "is_granted('ROLE_ADMIN')"),
+        new Delete(security: "is_granted('ROLE_ADMIN')"),
+        new Patch(security: "is_granted('ROLE_ADMIN')")
     ]
 )]
 class Category
@@ -34,13 +40,13 @@ class Category
 
     #[ORM\Column(length: 255)]
     // Ajout du groupe 'listing:item:read'
-    #[Groups(['category:read', 'listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
+    #[Groups(['category:read', 'category:write', 'category:update', 'listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
     #[Assert\NotBlank]
     private ?string $name = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     //  Ajout du groupe 'listing:item:read'
-    #[Groups(['category:read', 'listing:read', 'listing:card:read', 'listing:item:read'])]
+    #[Groups(['category:read', 'category:write', 'listing:read', 'listing:card:read', 'listing:item:read'])]
     private ?string $description = null;
 
     // Relation avec Listing (Une catégorie a plusieurs annonces)
