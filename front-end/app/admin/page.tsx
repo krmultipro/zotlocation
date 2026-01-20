@@ -23,6 +23,16 @@ export default function AdminPage() {
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('jwtToken') : null;
 
+    useEffect(() => {
+        if (!token) {
+            router.replace("/");
+            return;
+        }
+
+    
+    }, [token, router]);
+
+
     // --- GESTION CATÉGORIES ---
     const deleteCategory = async (id: number) => {
         try {

@@ -116,7 +116,8 @@ const UserMenu = () => {
                   label="Mes réservations"
                 />
                 <MenuItem onClick={handleFavoritesClick} label="Mes favoris" />
-                <MenuItem onClick={handleLocationsClick} label="Mes locations" />
+                {user.isOwner || user.roles?.includes('ROLE_PROPRIETAIRE') && (
+                <MenuItem onClick={handleLocationsClick} label="Mes locations" /> )}
                 {user.isOwner || user.roles?.includes('ROLE_PROPRIETAIRE') && (
                   <MenuItem
                     onClick={() => {

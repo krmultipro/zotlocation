@@ -60,6 +60,8 @@ security:
         # Autoriser OPTIONS sinon Swagger casse
         - { path: ^/api, roles: PUBLIC_ACCESS, methods: [OPTIONS] }
 
+        - { path: ^/api/admin, roles: ROLE_ADMIN, methods: [GET]}
+
         # Login
         - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
 
