@@ -49,11 +49,11 @@ class Review
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['review:read', 'listing:item:read', 'user:read'])]
+    #[Groups(['review:read', 'listing:item:read', 'user:read', 'listing:card:read'])]
     private ?int $id = null;
 
     #[ORM\Column]
-    #[Groups(['review:read', 'review:create', 'review:update', 'listing:item:read'])]
+    #[Groups(['review:read', 'review:create', 'review:update', 'listing:item:read', 'listing:card:read'])]
     #[Assert\NotBlank]
     #[Assert\Range(
         min: 1,

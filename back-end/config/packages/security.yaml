@@ -68,6 +68,7 @@ security:
         - { path: ^/api/categories, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/options, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/reviews, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/localisations, roles: PUBLIC_ACCESS, methods: [GET] }
 
         # Le GET /api/bookings est géré par le firewall 'public_api', donc on retire la règle ici.
 

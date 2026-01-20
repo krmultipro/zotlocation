@@ -1,15 +1,15 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Edit, Trash2 } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
-import { useEffect, useState } from "react"
-import HeartButton from "./HeartButton"
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Edit, MapPin, Star, Trash2 } from "lucide-react"; // Ajout de MapPin
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import HeartButton from "./HeartButton";
 
 /**
- * Interface ListingCardProps
+ * Interface ListingCardProps mise à jour
  */
 interface ListingCardProps {
   id: number | null | undefined
@@ -17,11 +17,14 @@ interface ListingCardProps {
   pricePerNight: number
   capacity: number
   category: string
+  location?: string // 💡 Ajout de la localisation ici
   imageUrl: string
   actionButton?: React.ReactNode
   extraInfo?: React.ReactNode
   onDelete?: (id: number) => void
   onEdit?: (id: number) => void
+  rating?: string | null
+  reviewsCount?: number
 }
 
 export default function ListingCard({
@@ -30,11 +33,14 @@ export default function ListingCard({
   pricePerNight,
   capacity,
   category,
+  location, // 💡 Récupération de la prop
   imageUrl,
   actionButton,
   extraInfo,
   onDelete,
   onEdit,
+  rating,
+  reviewsCount,
 }: ListingCardProps) {
   const [mounted, setMounted] = useState(false)
 
@@ -45,7 +51,6 @@ export default function ListingCard({
   const listingIdString = id?.toString() || ""
   const isIdValid = !!id
 
-  // Fonction pour gérer les actions de gestion (Edit/Delete) - Située en bas à droite
   const renderManagementButtons = () => {
     if (!isIdValid) return null
 
@@ -93,7 +98,6 @@ export default function ListingCard({
           priority={false}
         />
 
-        {/* On garde le HeartButton en haut à droite seulement si on n'est pas en mode gestion */}
         {!onDelete && !onEdit && !actionButton && isIdValid && (
           <div className="absolute top-3 right-3 z-10">
             <HeartButton listingId={listingIdString} />
@@ -104,8 +108,22 @@ export default function ListingCard({
       <CardContent className="p-3">
         <div className="flex flex-col gap-1">
           <h3 className="font-bold text-sm truncate">{title}</h3>
-          <p className="text-gray-500 text-sm truncate">{category}</p>
-          <div className="text-gray-400 text-xs flex items-center gap-1 mt-1">
+
+          {/* 💡 BLOC LOCALISATION ET CATÉGORIE SÉPARÉS */}
+          <div className="flex flex-col">
+             {/* Ville en premier, plus sombre pour la visibilité */}
+            <div className="flex items-center gap-1 text-neutral-800 text-xs font-medium">
+              <MapPin size={12} className="text-green-600" />
+              <span className="truncate">{location || "La Réunion"}</span>
+            </div>
+
+            {/* Catégorie en gris, juste en dessous */}
+            <p className="text-gray-500 text-xs truncate lowercase first-letter:uppercase">
+              {category}
+            </p>
+          </div>
+
+          <div className="text-gray-400 text-[10px] flex items-center gap-1 mt-0.5">
             <span>👥</span>
             <span>
               {capacity} {capacity > 1 ? "personnes" : "personne"}
@@ -118,14 +136,27 @@ export default function ListingCard({
         <div className="flex justify-between items-center w-full">
           <div className="font-semibold text-sm text-neutral-800">
             {pricePerNight}€{" "}
-            <span className="font-normal text-gray-500">/ nuit</span>
+            <span className="font-normal text-gray-500 text-xs">/ nuit</span>
           </div>
 
-          {/* Zone d'action en bas à droite */}
-          <div className="z-20 relative">
-            {onDelete || onEdit
-              ? renderManagementButtons()
-              : actionButton && <div>{actionButton}</div>}
+          <div className="flex items-center">
+            {rating && (
+              <div className="flex items-center gap-1 text-sm font-bold text-neutral-700">
+                <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />
+                <span>{rating}</span>
+                {reviewsCount && reviewsCount > 0 && (
+                  <span className="text-gray-400 font-normal text-[10px] ml-0.5">
+                    ({reviewsCount})
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="z-20 relative ml-2">
+              {onDelete || onEdit
+                ? renderManagementButtons()
+                : actionButton && <div>{actionButton}</div>}
+            </div>
           </div>
         </div>
 
@@ -144,8 +175,6 @@ export default function ListingCard({
     )
   }
 
-  // Si on a des boutons (gestion ou actionButton), on enveloppe quand même dans un lien
-  // mais le e.stopPropagation() dans les boutons empêchera le conflit.
   return (
     <Link href={isIdValid ? `/listings/${id}` : "#"} className="block h-full">
       {cardContent}

@@ -63,7 +63,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiFilter(SearchFilter::class, properties: [
     'category' => 'exact',
     'capacity' => 'gte',
-    'localisation' => 'exact'
+    'localisation' => 'exact' // 💡 Permet de filtrer par ville via l'API
 ])]
 #[ApiFilter(ListingAvailabilityFilter::class)]
 class Listing
@@ -105,8 +105,8 @@ class Listing
     #[Assert\NotNull]
     private ?Category $category = null;
 
-    // 💡 RELATION UNIDIRECTIONNELLE (Solution du bug 500)
-    #[ORM\ManyToOne(targetEntity: Localisation::class)]
+    // 💡 RELATION AVEC LA TABLE LOCALISATION (Remplace LocalId)
+    #[ORM\ManyToOne(targetEntity: Localisation::class, inversedBy: 'listings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['listing:read', 'listing:item:read', 'listing:card:read', 'listing:create', 'listing:update'])]
     #[Assert\NotNull(message: "La localisation est obligatoire.")]
@@ -142,6 +142,7 @@ class Listing
         $this->favoriteListings = new ArrayCollection();
     }
 
+    // --- GETTERS & SETTERS ---
     public function getId(): ?int { return $this->id; }
     public function getTitle(): ?string { return $this->title; }
     public function setTitle(string $title): static { $this->title = $title; return $this; }
@@ -156,16 +157,23 @@ class Listing
     public function getCategory(): ?Category { return $this->category; }
     public function setCategory(?Category $category): static { $this->category = $category; return $this; }
 
+    // 💡 GETTER & SETTER POUR LOCALISATION
     public function getLocalisation(): ?Localisation { return $this->localisation; }
     public function setLocalisation(?Localisation $localisation): static { $this->localisation = $localisation; return $this; }
 
     public function getBookings(): Collection { return $this->bookings; }
+    public function addBooking(Booking $booking): static { if (!$this->bookings->contains($booking)) { $this->bookings->add($booking); $booking->setListing($this); } return $this; }
+    public function removeBooking(Booking $booking): static { if ($this->bookings->removeElement($booking) && $booking->getListing() === $this) { $booking->setListing(null); } return $this; }
     public function getImages(): Collection { return $this->images; }
-    public function getReviews(): Collection { return $this->reviews; }
-    public function getOptions(): Collection { return $this->options; }
-    public function getFavoriteListings(): Collection { return $this->favoriteListings; }
-
-    // Méthodes add/remove simplifiées pour l'espace
     public function addImage(Image $image): static { if (!$this->images->contains($image)) { $this->images->add($image); $image->setListing($this); } return $this; }
+    public function removeImage(Image $image): static { if ($this->images->removeElement($image) && $image->getListing() === $this) { $image->setListing(null); } return $this; }
+    public function getReviews(): Collection { return $this->reviews; }
+    public function addReview(Review $review): static { if (!$this->reviews->contains($review)) { $this->reviews->add($review); $review->setListing($this); } return $this; }
+    public function removeReview(Review $review): static { if ($this->reviews->removeElement($review) && $review->getListing() === $this) { $review->setListing(null); } return $this; }
+    public function getOptions(): Collection { return $this->options; }
     public function addOption(Option $option): static { if (!$this->options->contains($option)) { $this->options->add($option); } return $this; }
+    public function removeOption(Option $option): static { $this->options->removeElement($option); return $this; }
+    public function getFavoriteListings(): Collection { return $this->favoriteListings; }
+    public function addFavoriteListing(Favorite $favoriteListing): static { if (!$this->favoriteListings->contains($favoriteListing)) { $this->favoriteListings->add($favoriteListing); $favoriteListing->setListing($this); } return $this; }
+    public function removeFavoriteListing(Favorite $favoriteListing): static { if ($this->favoriteListings->removeElement($favoriteListing) && $favoriteListing->getListing() === $this) { $favoriteListing->setListing(null); } return $this; }
 }
