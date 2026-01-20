@@ -120,8 +120,11 @@ export default function AdminPage() {
 
     // Séparation utilisateurs / propriétaires
     const regularUsers = users.filter((u: any) =>
-        u.roles?.includes('ROLE_USER')
+        Array.isArray(u.roles) &&
+        u.roles.length === 1 &&
+        u.roles[0] === 'ROLE_USER'
     );
+
 
     console.log("Utilisateurs:" , regularUsers)
 
