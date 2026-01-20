@@ -1,16 +1,16 @@
 "use client"
 
-import { useUser } from "@/app/context/UserProvider"
-import useLoginModal from "@/app/hooks/useLoginModal"
-import useRegisterModal from "@/app/hooks/useRegisterModal"
-import { useRouter } from "next/navigation"
-import { useCallback, useState } from "react"
-import { AiOutlineMenu } from "react-icons/ai"
+import { useFavorites } from "@/app/context/FavoritesContext";
+import { useUser } from "@/app/context/UserProvider";
+import useLoginModal from "@/app/hooks/useLoginModal";
+import useRegisterModal from "@/app/hooks/useRegisterModal";
+import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
+import { AiOutlineMenu } from "react-icons/ai";
 
-import { useFavorites } from "@/app/context/FavoritesContext"
-import AddListingModal from "@/components/modals/AddListingModal"
-import Avatar from "../Avatar"
-import MenuItem from "./MenuItem"
+import AddListingModal from "@/components/modals/AddListingModal";
+import Avatar from "../Avatar";
+import MenuItem from "./MenuItem";
 
 const UserMenu = () => {
   const router = useRouter()
@@ -21,7 +21,8 @@ const UserMenu = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [openModal, setOpenModal] = useState(false)
 
-  console.log("User :",user)
+  // Debug pour vérifier les rôles en temps réel dans la console
+  console.log("User Data:", user)
 
   const toggleOpen = useCallback(() => setIsOpen((prev) => !prev), [])
 
@@ -43,6 +44,7 @@ const UserMenu = () => {
     router.push("/")
   }, [refreshUser, refreshFavorites, router])
 
+  // --- Handlers de Navigation ---
   const handleDashboardClick = useCallback(() => {
     setIsOpen(false)
     router.push("/dashboard")
@@ -116,9 +118,14 @@ const UserMenu = () => {
                   label="Mes réservations"
                 />
                 <MenuItem onClick={handleFavoritesClick} label="Mes favoris" />
-                {user.isOwner || user.roles?.includes('ROLE_PROPRIETAIRE') && (
-                <MenuItem onClick={handleLocationsClick} label="Mes locations" /> )}
-                {user.isOwner || user.roles?.includes('ROLE_PROPRIETAIRE') && (
+
+                {/* 🏠 Section Propriétaire : "Mes locations" */}
+                {(user.isOwner || user.roles?.includes('ROLE_PROPRIETAIRE')) && (
+                  <MenuItem onClick={handleLocationsClick} label="Mes locations" />
+                )}
+
+                {/* ✨ Section Propriétaire : "Créer une annonce" */}
+                {(user.isOwner || user.roles?.includes('ROLE_PROPRIETAIRE')) && (
                   <MenuItem
                     onClick={() => {
                       setOpenModal(true)
@@ -127,8 +134,15 @@ const UserMenu = () => {
                     label="Créer une annonce"
                   />
                 )}
-                { user.roles?.includes('ROLE_ADMIN') && (
-                  <MenuItem onClick={handleAdminArea} label="Espace admin"  /> )}
+
+                {/* 🛡️ Section Admin */}
+                {user.roles?.includes('ROLE_ADMIN') && (
+                  <>
+                    <hr className="my-1 border-neutral-100" />
+                    <MenuItem onClick={handleAdminArea} label="Espace admin" />
+                  </>
+                )}
+
                 <hr className="my-1 border-neutral-100" />
                 <MenuItem onClick={handleLogoutClick} label="Déconnexion" />
               </>
