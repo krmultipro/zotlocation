@@ -3,13 +3,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import Container from "@/components/Container"
 import Heading from "@/components/Heading"
 import ListingCard from "@/components/ListingCard"
 import AddListingModal from "@/components/modals/AddListingModal"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
+import Container from "@/components/Container";
 
 export default function LocationsContent() {
   const router = useRouter()

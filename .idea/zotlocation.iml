@@ -156,6 +156,7 @@
       <excludeFolder url="file://$MODULE_DIR$/back-end/vendor/vich/uploader-bundle" />
       <excludeFolder url="file://$MODULE_DIR$/back-end/vendor/webmozart/assert" />
       <excludeFolder url="file://$MODULE_DIR$/back-end/vendor/willdurand/negotiation" />
+      <excludeFolder url="file://$MODULE_DIR$/back-end/vendor/stripe/stripe-php" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

@@ -164,6 +164,7 @@
       <path value="$PROJECT_DIR$/back-end/vendor/doctrine/migrations" />
       <path value="$PROJECT_DIR$/back-end/vendor/doctrine/orm" />
       <path value="$PROJECT_DIR$/back-end/vendor/doctrine/persistence" />
+      <path value="$PROJECT_DIR$/back-end/vendor/stripe/stripe-php" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.2" />
