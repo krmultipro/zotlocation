@@ -105,7 +105,7 @@ class Listing
     #[Assert\NotNull]
     private ?Category $category = null;
 
-    // 💡 RELATION UNIDIRECTIONNELLE (Solution du bug 500)
+
     #[ORM\ManyToOne(targetEntity: Localisation::class)]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['listing:read', 'listing:item:read', 'listing:card:read', 'listing:create', 'listing:update'])]
@@ -165,7 +165,40 @@ class Listing
     public function getOptions(): Collection { return $this->options; }
     public function getFavoriteListings(): Collection { return $this->favoriteListings; }
 
-    // Méthodes add/remove simplifiées pour l'espace
-    public function addImage(Image $image): static { if (!$this->images->contains($image)) { $this->images->add($image); $image->setListing($this); } return $this; }
-    public function addOption(Option $option): static { if (!$this->options->contains($option)) { $this->options->add($option); } return $this; }
+
+    // --- MÉTHODES DE MANIPULATION DES COLLECTIONS ---
+
+    public function addImage(Image $image): static
+    {
+        if (!$this->images->contains($image)) {
+            $this->images->add($image);
+            $image->setListing($this);
+        }
+        return $this;
+    }
+
+    public function removeImage(Image $image): static
+    {
+        if ($this->images->removeElement($image)) {
+            // On s'assure que le lien inverse est supprimé
+            if ($image->getListing() === $this) {
+                $image->setListing(null);
+            }
+        }
+        return $this;
+    }
+
+    public function addOption(Option $option): static
+    {
+        if (!$this->options->contains($option)) {
+            $this->options->add($option);
+        }
+        return $this;
+    }
+
+    public function removeOption(Option $option): static
+    {
+        $this->options->removeElement($option);
+        return $this;
+    }
 }
