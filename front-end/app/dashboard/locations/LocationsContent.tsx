@@ -91,7 +91,7 @@ export default function LocationsContent() {
           setIsModalOpen(open)
           if (!open) setSelectedListing(null) // Reset au moment de la fermeture
         }}
-        listingToEdit={selectedListing} // 💡 Doit correspondre à la prop de la modale
+        listingToEdit={selectedListing} // Doit correspondre à la prop de la modale
       />
 
       <Heading
@@ -109,7 +109,7 @@ export default function LocationsContent() {
               pricePerNight={location.pricePerNight}
               capacity={location.capacity}
               category={location.category?.name || "Sans catégorie"}
-              location={location.localisation?.name} // 💡 Affiche la ville
+              location={location.localisation?.name} //  Affiche la ville
               imageUrl={location.images?.[0]?.url || "/images/placeholder.png"}
               onDelete={onDelete}
               onEdit={() => onEdit(location)} // Passe l'objet à onEdit
