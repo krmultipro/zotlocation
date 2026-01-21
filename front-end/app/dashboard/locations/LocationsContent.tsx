@@ -36,7 +36,8 @@ export default function LocationsContent() {
 
     try {
       console.log("Appel API vers my-listings...")
-      const res = await fetch("https://localhost:8000/api/my-listings", {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+      const res = await fetch(`${API_URL}/api/my-listings`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/ld+json",
@@ -70,7 +71,8 @@ export default function LocationsContent() {
       if (!token || !confirm("Supprimer cette annonce ?")) return
 
       try {
-        const res = await fetch(`https://localhost:8000/api/listings/${id}`, {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+        const res = await fetch(`${API_URL}/api/listings/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         })
@@ -109,7 +111,7 @@ export default function LocationsContent() {
     <Container>
       <AddListingModal
         open={isModalOpen}
-        onOpenChange={(open) => {
+        onOpenChange={(open: boolean) => {
           setIsModalOpen(open)
           if (!open) setSelectedListing(null)
         }}

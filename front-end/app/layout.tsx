@@ -9,6 +9,8 @@ import type { Metadata } from "next"
 import { Nunito } from "next/font/google"
 import { Toaster } from "react-hot-toast"
 import "./globals.css"
+import { Suspense } from "react"
+
 
 const font = Nunito({
   subsets: ["latin"],
@@ -31,7 +33,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Toaster position="top-center" reverseOrder={false} />
               <RegisterModal />
               <LoginModal />
-              <Navbar />
+              <Suspense fallback={<div />}>
+  <Navbar />
+</Suspense>
 
               {/* Contenu de la page */}
               <div className="pt-62 min-h-screen">{children}</div>

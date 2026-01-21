@@ -53,8 +53,7 @@ export default function ReservationsContent() {
     try {
       const token = localStorage.getItem("jwtToken")
       // On utilise l'URL d'API définie ou l'IP locale par défaut pour Symfony
-      const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || "https://127.0.0.1:8000"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 
       const res = await axios.post(
         `${API_URL}/api/bookings/${bookingId}/create-checkout-session`,
@@ -88,8 +87,8 @@ export default function ReservationsContent() {
       setDeletingId(bookingId)
 
       try {
-        const API_URL =
-          process.env.NEXT_PUBLIC_API_URL || "https://127.0.0.1:8000"
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+
 
         const res = await fetch(`${API_URL}/api/bookings/${bookingId}`, {
           method: "DELETE",

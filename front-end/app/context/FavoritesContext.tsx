@@ -42,7 +42,8 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       try {
-        const res = await fetch("https://localhost:8000/api/favorites", {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+    const res = await fetch(`${API_URL}/api/favorites`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/ld+json",

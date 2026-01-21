@@ -47,7 +47,7 @@ export default function AddListingModal({ open, onOpenChange, listingToEdit }: a
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
   const [manualImageUrl, setManualImageUrl] = useState("")
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
   const isEditMode = !!listingToEdit
 
   useEffect(() => { setMounted(true) }, [])

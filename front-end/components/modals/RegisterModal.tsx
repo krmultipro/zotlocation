@@ -14,8 +14,9 @@ import useLoginModal from "../../app/hooks/useLoginModal"
 import useRegisterModal from "../../app/hooks/useRegisterModal"
 import CustomButton from "../CustomButton"
 
-const SYMFONY_REGISTER_URL = "https://127.0.0.1:8000/api/users"
-const SYMFONY_LOGIN_CHECK_URL = "https://127.0.0.1:8000/api/login_check"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+const SYMFONY_REGISTER_URL = `${API_URL}/api/users`
+const SYMFONY_LOGIN_CHECK_URL = `${API_URL}/api/login_check`
 
 interface RegisterFormValues extends FieldValues {
   name: string
