@@ -2,7 +2,7 @@
   auto_https off
 }
 
-http://localhost:8080 {
+:8080 {
   encode gzip
 
   @api path /api*
