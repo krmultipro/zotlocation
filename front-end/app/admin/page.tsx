@@ -1,35 +1,34 @@
-
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useUser } from "@/app/context/UserProvider";
-import { useEffect, useState } from "react";
+import Container from "@/components/Container";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import Container from "@/components/Container";
-
+import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AdminPage() {
     const { user } = useUser();
     const router = useRouter();
-    const [categories, setCategories] = useState([]);
+    const [categories, setCategories] = useState<any[]>([]); // ajout du type any[]
+    const [listings, setListings] = useState<any[]>([]);// ajout du type any[]
+    const [users, setUsers] = useState<any[]>([]);// ajout du type any[]
     const [newCategoryName, setNewCategoryName] = useState("");
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editingName, setEditingName] = useState("");
 
-    const [listings, setListings] = useState([]);
-    const [users, setUsers] = useState([]);
+
+
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('jwtToken') : null;
 
     useEffect(() => {
         if (!token) {
             router.replace("/");
-            return;
         }
-
-    
     }, [token, router]);
 
 
@@ -40,13 +39,14 @@ export default function AdminPage() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setCategories(prev => prev.filter((cat: any) => cat.id !== id));
+            toast.success("Catégorie supprimée");
         } catch (error: any) {
-            console.error(error);
-            alert("Erreur suppression : des annonces sont rattachées à cette catégorie.");
+            toast.error("Impossible de supprimer : des annonces utilisent cette catégorie.");
         }
     };
 
     const updateCategory = async (id: number) => {
+        if (!editingName.trim()) return;
         try {
             const response = await axios.patch(`${API_URL}/api/categories/${id}`,
                 { name: editingName },
@@ -59,10 +59,9 @@ export default function AdminPage() {
             );
             setCategories((prev: any) => prev.map((cat: any) => cat.id === id ? response.data : cat));
             setEditingId(null);
-            alert("Catégorie mise à jour !");
+            toast.success("Catégorie mise à jour !");
         } catch (error: any) {
-            console.error(error);
-            alert("Erreur lors de la modification");
+            toast.error("Erreur lors de la modification");
         }
     };
 
@@ -82,24 +81,25 @@ export default function AdminPage() {
             );
             setCategories((prev: any) => [...prev, response.data]);
             setNewCategoryName("");
-            alert("Catégorie ajoutée !");
+            toast.success("Nouvelle catégorie ajoutée !");
         } catch (error: any) {
-            console.error(error);
+            toast.error("Erreur lors de l'ajout");
         }
     };
 
-    // --- GESTION ANNONCES (Lecture seule + Suppression) ---
+    // --- GESTION ANNONCES ---
     const deleteListing = async (id: number) => {
-        if (!confirm("Supprimer cette annonce ?")) return;
+        // Le confirm natif est acceptable, mais on utilise un toast pour le résultat
+        if (!confirm("Voulez-vous vraiment supprimer cette annonce ?")) return;
+
         try {
             await axios.delete(`${API_URL}/api/listings/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setListings(prev => prev.filter((l: any) => l.id !== id));
-            alert("Annonce supprimée");
+            toast.success("Annonce supprimée du catalogue");
         } catch (error) {
-            console.error(error);
-            alert("Erreur suppression");
+            toast.error("Erreur lors de la suppression de l'annonce");
         }
     };
 
@@ -109,35 +109,25 @@ export default function AdminPage() {
 
         // Catégories
         axios.get(`${API_URL}/api/categories`)
-            .then(res => setCategories(res.data.member || []));
+            .then(res => setCategories(res.data.member || res.data["hydra:member"] || []));
 
-        // Annonces (sans pagination)
+        // Annonces
         axios.get(`${API_URL}/api/listings?page=1&itemsPerPage=50`)
-            .then(res => setListings(res.data.member || []));
+            .then(res => setListings(res.data.member || res.data["hydra:member"] || []));
 
         // Utilisateurs
         axios.get(`${API_URL}/api/users?pagination=false`, {
             headers: { Authorization: `Bearer ${token}` }
         })
-            .then(res => setUsers(res.data.member || []))
-            .catch(err => console.error("Erreur users:", err));
+            .then(res => setUsers(res.data.member || res.data["hydra:member"] || []))
+            .catch(() => toast.error("Erreur de chargement des utilisateurs"));
 
     }, [token]);
 
-
-    console.log("Tous les users :",users)
-
-
-    // Séparation utilisateurs / propriétaires
+    // Filtres
     const regularUsers = users.filter((u: any) =>
-        Array.isArray(u.roles) &&
-        u.roles.length === 1 &&
-        u.roles[0] === 'ROLE_USER'
+        Array.isArray(u.roles) && u.roles.includes('ROLE_USER') && u.roles.length === 1
     );
-
-
-    console.log("Utilisateurs:" , regularUsers)
-
 
     const owners = users.filter((u: any) =>
         u.roles?.includes('ROLE_PROPRIETAIRE')
@@ -167,20 +157,21 @@ export default function AdminPage() {
                                         <input
                                             value={editingName}
                                             onChange={(e) => setEditingName(e.target.value)}
-                                            className="border p-1 rounded w-full"
+                                            className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-500 outline-none"
+                                            autoFocus
                                         />
                                     ) : (cat.name)}
                                 </td>
                                 <td className="p-3 flex gap-2 justify-center">
                                     {editingId === cat.id ? (
                                         <>
-                                            <button onClick={() => updateCategory(cat.id)} className="text-green-600 font-bold text-sm">Enregistrer</button>
-                                            <button onClick={() => setEditingId(null)} className="text-gray-500 text-sm">Annuler</button>
+                                            <button onClick={() => updateCategory(cat.id)} className="bg-green-100 text-green-700 px-3 py-1 rounded-md font-bold text-xs hover:bg-green-200">Enregistrer</button>
+                                            <button onClick={() => setEditingId(null)} className="bg-gray-100 text-gray-600 px-3 py-1 rounded-md text-xs hover:bg-gray-200">Annuler</button>
                                         </>
                                     ) : (
                                         <>
-                                            <button onClick={() => { setEditingId(cat.id); setEditingName(cat.name); }} className="text-blue-600 text-sm">Modifier</button>
-                                            <button onClick={() => deleteCategory(cat.id)} className="text-red-600 text-sm">Supprimer</button>
+                                            <button onClick={() => { setEditingId(cat.id); setEditingName(cat.name); }} className="text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-md text-sm transition">Modifier</button>
+                                            <button onClick={() => deleteCategory(cat.id)} className="text-red-600 hover:bg-red-50 px-3 py-1 rounded-md text-sm transition">Supprimer</button>
                                         </>
                                     )}
                                 </td>
@@ -193,19 +184,19 @@ export default function AdminPage() {
                             type="text"
                             value={newCategoryName}
                             onChange={(e) => setNewCategoryName(e.target.value)}
-                            placeholder="Nouvelle catégorie..."
-                            className="border p-2 rounded flex-1"
+                            placeholder="Nom de la nouvelle catégorie..."
+                            className="border p-3 rounded flex-1 focus:ring-2 focus:ring-green-500 outline-none"
                         />
-                        <button type="submit" className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700">Ajouter</button>
+                        <button type="submit" className="bg-green-600 text-white px-8 py-2 rounded-lg font-medium hover:bg-green-700 transition">Ajouter</button>
                     </form>
                 </div>
 
-                {/* SECTION ANNONCES (Lecture seule) */}
+                {/* SECTION ANNONCES */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border mb-12">
                     <div className="flex justify-between items-center mb-6">
                         <div>
                             <h2 className="text-xl font-bold">Liste des Annonces</h2>
-                            <p className="text-sm text-gray-500">{listings.length} annonces au total</p>
+                            <p className="text-sm text-gray-500">{listings.length} annonces publiées</p>
                         </div>
                     </div>
 
@@ -221,23 +212,13 @@ export default function AdminPage() {
                             </thead>
                             <tbody>
                             {listings.map((list: any) => (
-                                <tr key={list.id} className="hover:bg-gray-50 border-b">
+                                <tr key={list.id} className="hover:bg-gray-50 border-b transition">
                                     <td className="p-3 font-medium">{list.title}</td>
-                                    <td className="p-3">{list.pricePerNight}€ / nuit</td>
-                                    <td className="p-3 text-gray-500">{list.category?.name || "N/A"}</td>
+                                    <td className="p-3">{list.pricePerNight}€</td>
+                                    <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">{list.category?.name || "N/A"}</span></td>
                                     <td className="p-3 flex gap-4 justify-center">
-                                        <button
-                                            onClick={() => router.push(`/listings/${list.id}`)}
-                                            className="text-blue-600 hover:underline font-medium"
-                                        >
-                                            Voir
-                                        </button>
-                                        <button
-                                            onClick={() => deleteListing(list.id)}
-                                            className="text-red-600 hover:underline font-medium"
-                                        >
-                                            Supprimer
-                                        </button>
+                                        <button onClick={() => router.push(`/listings/${list.id}`)} className="text-blue-600 hover:underline">Voir</button>
+                                        <button onClick={() => deleteListing(list.id)} className="text-red-600 hover:underline">Supprimer</button>
                                     </td>
                                 </tr>
                             ))}
@@ -246,54 +227,36 @@ export default function AdminPage() {
                     </div>
                 </div>
 
-                {/* SECTION UTILISATEURS */}
+                {/* SECTION UTILISATEURS / PROPRIO */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* UTILISATEURS SIMPLES */}
                     <div className="bg-white p-6 rounded-xl shadow-sm border">
-                        <h2 className="text-xl font-bold mb-2">Utilisateurs</h2>
-                        <p className="text-sm text-gray-500 mb-4">{regularUsers.length} inscrits</p>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse text-sm">
-                                <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="p-2 border">Nom</th>
-                                    <th className="p-2 border">Email</th>
-                                </tr>
-                                </thead>
-                                <tbody>
+                        <h2 className="text-xl font-bold mb-1">Utilisateurs</h2>
+                        <p className="text-xs text-gray-400 mb-4 uppercase tracking-wider">{regularUsers.length} Clients</p>
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50">
+                                <tr><th className="p-2 border">Nom</th><th className="p-2 border">Email</th></tr>
+                            </thead>
+                            <tbody>
                                 {regularUsers.map((u: any) => (
-                                    <tr key={u.id} className="border-b hover:bg-gray-50">
-                                        <td className="p-2">{u.name || "—"}</td>
-                                        <td className="p-2 text-gray-600">{u.email}</td>
-                                    </tr>
+                                    <tr key={u.id} className="border-b hover:bg-gray-50 transition"><td className="p-2">{u.name || "—"}</td><td className="p-2 text-gray-500">{u.email}</td></tr>
                                 ))}
-                                </tbody>
-                            </table>
-                        </div>
+                            </tbody>
+                        </table>
                     </div>
 
-                    {/* PROPRIÉTAIRES */}
                     <div className="bg-white p-6 rounded-xl shadow-sm border">
-                        <h2 className="text-xl font-bold mb-2">Propriétaires</h2>
-                        <p className="text-sm text-gray-500 mb-4">{owners.length} propriétaires</p>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse text-sm">
-                                <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="p-2 border">Nom</th>
-                                    <th className="p-2 border">Email</th>
-                                </tr>
-                                </thead>
-                                <tbody>
+                        <h2 className="text-xl font-bold mb-1">Propriétaires</h2>
+                        <p className="text-xs text-gray-400 mb-4 uppercase tracking-wider">{owners.length} Partenaires</p>
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50">
+                                <tr><th className="p-2 border">Nom</th><th className="p-2 border">Email</th></tr>
+                            </thead>
+                            <tbody>
                                 {owners.map((u: any) => (
-                                    <tr key={u.id} className="border-b hover:bg-gray-50">
-                                        <td className="p-2 font-medium">{u.name || "—"}</td>
-                                        <td className="p-2 text-gray-600">{u.email}</td>
-                                    </tr>
+                                    <tr key={u.id} className="border-b hover:bg-gray-50 transition"><td className="p-2 font-medium">{u.name || "—"}</td><td className="p-2 text-gray-500">{u.email}</td></tr>
                                 ))}
-                                </tbody>
-                            </table>
-                        </div>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
