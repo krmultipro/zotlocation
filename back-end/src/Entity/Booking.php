@@ -38,15 +38,17 @@ use Symfony\Component\Validator\Constraints as Assert;
             denormalizationContext: ['groups' => ['booking:create']]
         ),
         new Patch(
-            security: "is_granted('ROLE_ADMIN') or object.getBooker() == user",
-            // Utilise AUSSI le Validator pour revérifier la dispo et recalculer le prix
+            // On utilise les IDs ici aussi pour plus de fiabilité
+            security: "is_granted('ROLE_ADMIN') or (user !== null and object.getBooker().getId() === user.getId())",
             processor: BookingValidatorProcessor::class,
             denormalizationContext: ['groups' => ['booking:update']]
         ),
-        new Delete(security: "is_granted('ROLE_ADMIN') or object.getBooker() == user"),
+        new Delete(
+            security: "is_granted('ROLE_ADMIN') or (user !== null and object.getBooker().getId() === user.getId())"
+        ), // <--- La virgule était absente ici
     ],
-    normalizationContext: ['groups' => ['booking:read']],
-    denormalizationContext: ['groups' => ['booking:create', 'booking:update']],
+            normalizationContext: ['groups' => ['booking:read']],
+            denormalizationContext: ['groups' => ['booking:create', 'booking:update']],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'listing' => 'exact',
@@ -93,7 +95,7 @@ class Booking
 
     // Nouveau champ pour Stripe
     #[ORM\Column(length: 20)]
-    #[Groups(['booking:read'])] // Permet au front de savoir si c'est payé
+    #[Groups(['booking:read', 'booking:update'])] // Permet au front de savoir si c'est payé
     private string $status = 'pending'; // Valeurs possibles : 'pending', 'paid', 'cancelled'
 
     public function getId(): ?int
