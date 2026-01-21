@@ -21,6 +21,8 @@ services:
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
       JWT_PASSPHRASE: ${JWT_PASSPHRASE}
+      JWT_TOKEN_TTL: ${JWT_TOKEN_TTL}
+
 
 
     depends_on:
