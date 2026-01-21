@@ -28,3 +28,6 @@ RUN mkdir -p /var/www/html/var \
     && chmod -R 775 /var/www/html/var
 
 RUN APP_ENV=prod APP_DEBUG=0 composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+RUN chmod +x /var/www/html/docker/entrypoint.sh
+ENTRYPOINT ["/var/www/html/docker/entrypoint.sh"]
