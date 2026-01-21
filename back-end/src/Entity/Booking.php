@@ -45,7 +45,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new Delete(
             security: "is_granted('ROLE_ADMIN') or (user !== null and object.getBooker().getId() === user.getId())"
-        ), // <--- La virgule était absente ici
+        ),
     ],
             normalizationContext: ['groups' => ['booking:read']],
             denormalizationContext: ['groups' => ['booking:create', 'booking:update']],
