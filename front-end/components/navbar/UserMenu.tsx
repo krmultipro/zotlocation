@@ -148,7 +148,7 @@ const UserMenu = () => {
               </>
             ) : (
               <>
-                <MenuItem onClick={handleLoginClick} label="Se connecter" />
+                <MenuItem onClick={handleLoginClick} label="Connexion" />
                 <MenuItem onClick={handleRegisterClick} label="S'inscrire" />
               </>
             )}
