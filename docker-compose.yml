@@ -17,8 +17,7 @@ services:
       APP_ENV: prod
       APP_DEBUG: "0"
       DATABASE_URL: ${DATABASE_URL}
-      CORS_ALLOW_ORIGIN: "https?://localhost:8080$$"
-
+      CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN}
 
     depends_on:
       - db
@@ -28,7 +27,8 @@ services:
       context: ./front-end
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+
     depends_on:
       - backend
 
