@@ -18,6 +18,10 @@ services:
       APP_DEBUG: "0"
       DATABASE_URL: ${DATABASE_URL}
       CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_PASSPHRASE: ${JWT_PASSPHRASE}
+
 
     depends_on:
       - db
