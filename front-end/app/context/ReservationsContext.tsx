@@ -1,4 +1,4 @@
-  /* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
@@ -8,7 +8,7 @@ import React, {
   useContext,
   useEffect,
   useState,
-} from "react"
+} from "react";
 
 interface Listing {
   id: number
@@ -26,7 +26,7 @@ export interface Booking {
   totalPrice: number
   listing: Listing
   duration?: number
-  status: string //  Pour gérer les états 'pending', 'paid', 'cancelled'
+  status: string // 'pending', 'paid', 'cancelled'
 }
 
 interface ReservationsContextType {
@@ -45,10 +45,7 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [trigger, setTrigger] = useState(0)
 
   const fetchBookings = useCallback(async () => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
-    const storedUser =
-      typeof window !== "undefined" ? localStorage.getItem("user") : null
+    const token = typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
 
     if (!token) {
       setBookings([])
@@ -61,11 +58,13 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
       let userId: number | null = null
 
+      const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null
       if (storedUser) {
         try {
-          userId = JSON.parse(storedUser).id
+          const parsed = JSON.parse(storedUser)
+          userId = parsed.id || parsed.userId
         } catch (e) {
-          console.error("Erreur parsing user local")
+          console.error("Erreur lors du parsing de l'utilisateur")
         }
       }
 
@@ -91,45 +90,38 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
         },
       })
 
-      if (!res.ok) throw new Error("Erreur serveur")
+      if (!res.ok) throw new Error(`Erreur serveur: ${res.status}`)
 
       const data = await res.json()
-      const bookingsArray =
-        data["member"] ||
-        data["hydra:member"] ||
-        (Array.isArray(data) ? data : [])
+      const bookingsArray = data["member"] || data["hydra:member"] || (Array.isArray(data) ? data : [])
 
       setBookings(bookingsArray)
     } catch (err) {
       console.error("Erreur ReservationsContext:", err)
-      setBookings([])
     } finally {
       setIsLoading(false)
     }
   }, [trigger])
 
   const refreshBookings = useCallback(() => {
-    setTrigger((prev) => prev + 1)
-  }, [])
+    // Utiliser Date.now() force React à voir un changement immédiat
+    setTrigger(Date.now());
+}, []);
 
   useEffect(() => {
     fetchBookings()
-
-    const handleAuthChange = () => fetchBookings()
-
-    window.addEventListener("reservations:updated", handleAuthChange)
-    window.addEventListener("storage", handleAuthChange)
+    const handleRefresh = () => refreshBookings()
+    window.addEventListener("reservations:updated", handleRefresh)
+    window.addEventListener("storage", handleRefresh)
 
     return () => {
-      window.removeEventListener("reservations:updated", handleAuthChange)
-      window.removeEventListener("storage", handleAuthChange)
+      window.removeEventListener("reservations:updated", handleRefresh)
+      window.removeEventListener("storage", handleRefresh)
     }
-  }, [fetchBookings])
+  }, [fetchBookings, refreshBookings])
 
   return (
-    <ReservationsContext.Provider
-      value={{ bookings, isLoading, refreshBookings }}
-    >
+    <ReservationsContext.Provider value={{ bookings, isLoading, refreshBookings }}>
       {children}
     </ReservationsContext.Provider>
   )
@@ -137,9 +129,6 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
 export const useReservations = () => {
   const context = useContext(ReservationsContext)
-  if (!context)
-    throw new Error(
-      "useReservations doit être utilisé dans un ReservationsProvider"
-    )
+  if (!context) throw new Error("useReservations doit être utilisé dans un ReservationsProvider")
   return context
 }

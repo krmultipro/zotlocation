@@ -1,44 +1,55 @@
 <?php
 
-
 namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\Metadata\Patch; // 💡 Import de Patch
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Booking;
 use App\Service\BookingAvailabilityChecker;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use App\State\BookingPriceProcessor;
+use Symfony\Bundle\SecurityBundle\Security;
 
 final class BookingValidatorProcessor implements ProcessorInterface
 {
-    /**
-     * @param BookingPriceProcessor $priceProcessor Le processeur qui doit être exécuté après la validation.
-     * @param BookingAvailabilityChecker $checker Votre service de validation de disponibilité.
-     */
     public function __construct(
-        // Injecter directement le BookingPriceProcessor
         private BookingPriceProcessor $priceProcessor,
-        private BookingAvailabilityChecker $checker
+        private BookingAvailabilityChecker $checker,
+        private Security $security
     ) {}
 
-    /**
-     * Traite l'entité avant l'enregistrement.
-     * @param Booking $data
-     */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = [])
     {
         if (!$data instanceof Booking) {
-            // Si ce n'est pas une Booking, on délègue au processeur suivant (ici priceProcessor)
             return $this->priceProcessor->process($data, $operation, $uriVariables, $context);
         }
 
-        // 1. Vérification de la disponibilité via le service
-        if (!$this->checker->isAvailable($data)) {
-            throw new ConflictHttpException('Cette période de réservation chevauche une réservation existante. Veuillez choisir d\'autres dates.');
+        // 1. Gestion du Booker
+        $user = $this->security->getUser();
+        if ($user && !$data->getBooker()) {
+            $data->setBooker($user);
         }
 
-        // 2. Si la validation réussit, on délègue au BookingPriceProcessor pour calculer le prix et persister.
+        // 💡 2. Si c'est un PATCH, on vérifie si on change les dates
+        // Si on change juste le statut, on saute la vérification de disponibilité
+        if ($operation instanceof Patch) {
+            $previousData = $context['previous_data'] ?? null;
+
+            // Si les dates n'ont pas changé, on saute le checker et on va direct au prix/save
+            if ($previousData instanceof Booking &&
+                $previousData->getStartDate() == $data->getStartDate() &&
+                $previousData->getEndDate() == $data->getEndDate()) {
+
+                return $this->priceProcessor->process($data, $operation, $uriVariables, $context);
+            }
+        }
+
+        // 3. Vérification de la disponibilité (uniquement pour les créations ou changements de dates)
+        if (!$this->checker->isAvailable($data)) {
+            throw new ConflictHttpException('Cette période de réservation chevauche une réservation existante.');
+        }
+
         return $this->priceProcessor->process($data, $operation, $uriVariables, $context);
     }
 }
