@@ -23,6 +23,8 @@ WORKDIR /var/www/html
 COPY composer.json composer.lock symfony.lock ./
 COPY .env .env
 COPY . .
-RUN chown -R www-data:www-data /var/www/html/var \
+RUN mkdir -p /var/www/html/var \
+    && chown -R www-data:www-data /var/www/html/var \
     && chmod -R 775 /var/www/html/var
+
 RUN APP_ENV=prod APP_DEBUG=0 composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
