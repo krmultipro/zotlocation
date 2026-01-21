@@ -46,7 +46,7 @@ export default function ReservationsContent() {
         setPayingId(bookingId)
         try {
             const token = localStorage.getItem("jwtToken")
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://127.0.0.1:8000"
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://127.0.0.1:8080"
             const res = await axios.post(
                 `${API_URL}/api/bookings/${bookingId}/create-checkout-session`,
                 {},
@@ -65,7 +65,7 @@ export default function ReservationsContent() {
   setDeletingId(booking.id);
 
   try {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://127.0.0.1:8000";
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://127.0.0.1:8080";
 
     // On normalise : si c'est 'pending' on annule, sinon (si c'est 'cancelled') on supprime
     const status = booking.status?.toLowerCase().trim();
