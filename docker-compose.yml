@@ -16,7 +16,7 @@ services:
     environment:
       APP_ENV: prod
       APP_DEBUG: "0"
-      DATABASE_URL: postgresql://baissechloe_kery_pg_admin:Laphrasebateau**@postgresql-baissechloe.alwaysdata.net:5432/baissechloe_zotlocation_?serverVersion=16&charset=utf8
+      DATABASE_URL: ${DATABASE_URL}
       CORS_ALLOW_ORIGIN: "https?://localhost:8080$"
 
     depends_on:
