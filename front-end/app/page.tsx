@@ -1,11 +1,12 @@
 "use client"
 
+import { Suspense } from "react"
 import CategoryListings from "@/components/CategoryListings"
 
 export default function HomePage() {
   return (
-    <div className="">
+    <Suspense fallback={<div />}>
       <CategoryListings />
-    </div>
+    </Suspense>
   )
 }

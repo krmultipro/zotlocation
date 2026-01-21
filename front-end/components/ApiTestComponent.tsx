@@ -12,12 +12,12 @@ import axios from "axios"
 import { useEffect, useState } from "react"
 
 // URL de base de votre API Symfony/API Platform. route publique
-const API_BASE_URL = "https://localhost:8000/api/listings"
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/listings`
 
 const ApiTestComponent = () => {
   const [status, setStatus] = useState("Initialisation...")
   const [dataPreview, setDataPreview] = useState("Aucune donnée reçue.")
-  const [color, setColor] = useState("default")
+  const [color, setColor] = useState<"green" | "red" | "yellow" | "gray">("gray")
 
   useEffect(() => {
     // Fonction pour effectuer la requête
@@ -64,7 +64,7 @@ const ApiTestComponent = () => {
             )
           }
         } else {
-          setDataPreview(`Erreur inattendue: ${error.message}`)
+          setDataPreview(`Erreur inattendue: ${(error as Error).message}`)
         }
       }
     }
@@ -73,7 +73,7 @@ const ApiTestComponent = () => {
   }, [])
 
   // Détermine la classe Tailwind pour la couleur du badge
-  const getBadgeVariant = (statusColor) => {
+const getBadgeVariant = (statusColor: "green" | "red" | "yellow" | "gray") => {
     if (statusColor === "green")
       return "bg-green-500 text-white hover:bg-green-600"
     if (statusColor === "red") return "bg-red-500 text-white hover:bg-red-600"

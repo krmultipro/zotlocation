@@ -26,7 +26,7 @@ function ChangeView({ center }: { center: number[] }) {
   const map = useMap()
   useEffect(() => {
     if (center) {
-      map.setView(center, 12, { animate: true })
+      map.setView(center as L.LatLngExpression, 12, { animate: true })
     }
   }, [center, map])
   return null

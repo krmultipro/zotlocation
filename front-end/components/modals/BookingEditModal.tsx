@@ -37,7 +37,7 @@ interface BookingEditModalProps {
 }
 // --- FIN DES INTERFACES MANQUANTES ---
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 
 const BookingEditModal: React.FC<BookingEditModalProps> = ({
   isOpen,
@@ -114,7 +114,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
     if (!listingData) return []
 
     // Désactiver les dates passées
-    const dates: Date[] = [{ before: addDays(new Date(), -1) }]
+    const dates: { before: Date }[] = [{ before: addDays(new Date(), -1) }]
 
     listingData.bookings.forEach((b) => {
       // Ignorer la réservation en cours d'édition
@@ -125,7 +125,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
 
       let loopDate = start
       while (loopDate < end) {
-        dates.push(new Date(loopDate))
+        dates.push({ before: new Date(loopDate) })
         loopDate = addDays(loopDate, 1)
       }
     })

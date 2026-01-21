@@ -10,7 +10,7 @@ interface HeartButtonProps {
   listingId: string
 }
 
-const API_BASE_URL = "https://localhost:8000/api/favorites"
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/favorites`
 
 const HeartButton: React.FC<HeartButtonProps> = ({ listingId }) => {
   // 1. Récupération des données depuis le Contexte Global (Mémoire)

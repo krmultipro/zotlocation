@@ -19,7 +19,8 @@ interface FavoriteListing {
   }
 }
 
-const SYMFONY_API_URL = "https://localhost:8000/api/favorites"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+const SYMFONY_API_URL = `${API_URL}/api/favorites`
 
 export default function FavorisContent() {
   const [favorites, setFavorites] = useState<FavoriteListing[]>([])

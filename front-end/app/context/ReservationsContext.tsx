@@ -55,7 +55,7 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setIsLoading(true)
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
       let userId: number | null = null
 
       const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null

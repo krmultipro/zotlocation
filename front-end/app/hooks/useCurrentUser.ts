@@ -21,7 +21,8 @@ interface CurrentUserHook {
   token: string | null // <-- 🎯 Ajout de la propriété token
 }
 
-const SYMFONY_ME_URL = "https://127.0.0.1:8000/api/me"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+const SYMFONY_ME_URL = `${API_URL}/api/me`
 
 // 💡 APPLICATION DE L'INTERFACE
 const useCurrentUser = (): CurrentUserHook => {
