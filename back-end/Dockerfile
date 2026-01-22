@@ -1,33 +1,33 @@
-FROM php:8.3-apache
+FROM php:8.3-fpm
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-    git \
-    libicu-dev \
-    libpq-dev \
-    unzip \
+        git \
+        libicu-dev \
+        libpq-dev \
+        unzip \
     && docker-php-ext-install intl pdo_pgsql opcache \
-    && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
 
-ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
-RUN sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
-    && sed -ri 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
-
-COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
-RUN a2enmod rewrite
-
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 
-COPY composer.json composer.lock symfony.lock ./
-COPY .env .env
+# Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Code source
 COPY . .
-RUN mkdir -p /var/www/html/var \
-    && chown -R www-data:www-data /var/www/html/var \
-    && chmod -R 775 /var/www/html/var
 
-RUN APP_ENV=prod APP_DEBUG=0 composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+ENV APP_ENV=prod
+ENV APP_DEBUG=0
 
-RUN chmod +x /var/www/html/docker/entrypoint.sh
-ENTRYPOINT ["/var/www/html/docker/entrypoint.sh"]
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --prefer-dist \
+    --optimize-autoloader
+
+# Permissions Symfony
+RUN mkdir -p var \
+    && chown -R www-data:www-data var
+
+CMD ["php-fpm"]

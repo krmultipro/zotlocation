@@ -13,6 +13,8 @@ services:
     build:
       context: ./back-end
     restart: unless-stopped
+    volumes:
+      - ./back-end:/var/www/html
     environment:
       APP_ENV: prod
       APP_DEBUG: "0"
@@ -22,9 +24,6 @@ services:
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
       JWT_PASSPHRASE: ${JWT_PASSPHRASE}
       JWT_TOKEN_TTL: ${JWT_TOKEN_TTL}
-
-
-
     depends_on:
       - db
 
@@ -35,19 +34,16 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
 
-    depends_on:
-      - backend
-
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
       - "8080:80"
-
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+      - ./back-end:/var/www/html
     depends_on:
       - backend
       - frontend

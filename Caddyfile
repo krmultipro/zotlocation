@@ -3,10 +3,16 @@
 }
 
 :80 {
-  encode gzip
+    encode gzip
+    root * /var/www/html/public
 
-  @api path /api*
-  reverse_proxy @api backend:80
+  handle /api* {
 
-  reverse_proxy frontend:3000
+                        php_fastcgi backend:9000
+                        file_server
+                     }
+
+  handle {
+           reverse_proxy frontend:3000
+         }
 }
