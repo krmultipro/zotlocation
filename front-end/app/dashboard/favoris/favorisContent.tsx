@@ -1,111 +1,82 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import Container from "@/components/Container"
-import DeleteFavoriteButton from "@/components/DeleteFavoriteButton"
-import Heading from "@/components/Heading"
-import ListingCard from "@/components/ListingCard"
-import { useCallback, useEffect, useState } from "react"
-import { toast } from "react-hot-toast"
-
-interface FavoriteListing {
-  id: number
-  listing: {
-    id: number
-    title: string
-    pricePerNight: number
-    capacity: number
-    category: { name: string }
-    images: { url: string }[]
-  }
-}
+import { useFavorites } from "@/app/context/FavoritesContext";
+import Container from "@/components/Container";
+import DeleteFavoriteButton from "@/components/DeleteFavoriteButton";
+import Heading from "@/components/Heading";
+import ListingCard from "@/components/ListingCard";
+import { useCallback } from "react";
+import { toast } from "react-hot-toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 const SYMFONY_API_URL = `${API_URL}/api/favorites`
 
 export default function FavorisContent() {
-  const [favorites, setFavorites] = useState<FavoriteListing[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { favorites, isLoading, refreshFavorites } = useFavorites()
+  const token = typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
-
-  const fetchFavorites = useCallback(async () => {
-    if (!token) {
-      setError("Veuillez vous connecter pour voir vos favoris.")
-      setIsLoading(false)
-      return
-    }
-
+  // La fonction d'exécution réelle de la suppression
+  const executeDelete = async (favoriteId: number) => {
     try {
-      const res = await fetch(SYMFONY_API_URL, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/ld+json",
-        },
+      const res = await fetch(`${SYMFONY_API_URL}/${favoriteId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
       })
 
-      if (!res.ok) {
-        if (res.status === 401) {
-          setError("Session expirée. Veuillez vous reconnecter.")
-        } else {
-          throw new Error(`Erreur chargement: ${res.status}`)
-        }
-      }
+      if (!res.ok) throw new Error("Erreur lors de la suppression")
 
-      const data = await res.json()
-      setFavorites(data.member || data["hydra:member"] || [])
+      refreshFavorites()
+      toast.success("🗑️ Favori supprimé")
     } catch (err: any) {
-      toast.error(err.message)
-      setError("Impossible de charger les favoris.")
-    } finally {
-      setIsLoading(false)
+      toast.error(err.message || "Impossible de supprimer le favori")
     }
-  }, [token])
+  }
 
-  const handleFavoriteDelete = useCallback(
-    async (favoriteId: number) => {
+  // La fonction qui déclenche le toast de confirmation
+  const confirmDelete = useCallback(
+    (favoriteId: number) => {
       if (!token) return toast.error("Veuillez vous reconnecter.")
 
-      if (!window.confirm("Supprimer cette annonce des favoris ?")) return
-
-      try {
-        await fetch(`${SYMFONY_API_URL}/${favoriteId}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        })
-
-        setFavorites((prev) =>
-          prev.filter((item) => item.id !== favoriteId)
-        )
-
-        window.dispatchEvent(new Event("favorites:updated"))
-        toast.success("🗑️ Favori supprimé")
-      } catch (err: any) {
-        toast.error(err.message)
-      }
+      toast((t) => (
+        <div className="flex flex-col gap-3">
+          <p className="font-medium text-gray-800">
+            Retirer cette annonce de vos favoris ?
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                executeDelete(favoriteId);
+              }}
+              className="px-3 py-1 text-xs bg-red-600 text-white hover:bg-red-700 rounded-md transition"
+            >
+              Supprimer
+            </button>
+          </div>
+        </div>
+      ), {
+        duration: 5000,
+        position: "top-center",
+        style: {
+          minWidth: '300px',
+        }
+      });
     },
-    [token]
+    [token, refreshFavorites]
   )
-
-  useEffect(() => {
-    fetchFavorites()
-  }, [fetchFavorites])
-
-  // ⬇️ RENDU ⬇️
 
   if (isLoading) {
     return (
       <Container>
         <Heading title="Chargement..." subtitle="Récupération des favoris" center />
-      </Container>
-    )
-  }
-
-  if (error) {
-    return (
-      <Container>
-        <Heading title="Erreur" subtitle={error} center />
       </Container>
     )
   }
@@ -126,11 +97,11 @@ export default function FavorisContent() {
     <Container>
       <Heading
         title="Mes Favoris"
-        subtitle={`Vous avez ${favorites.length} annonces`}
+        subtitle={`Vous avez ${favorites.length} annonce${favorites.length > 1 ? 's' : ''}`}
       />
 
-      <div className=" grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-        {favorites.map((favorite) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mt-8">
+        {favorites.map((favorite: any) => (
           <ListingCard
             key={favorite.id}
             id={favorite.listing.id}
@@ -141,7 +112,7 @@ export default function FavorisContent() {
             imageUrl={favorite.listing.images?.[0]?.url || "/images/placeholder.png"}
             actionButton={
               <DeleteFavoriteButton
-                onDelete={() => handleFavoriteDelete(favorite.id)}
+                onDelete={() => confirmDelete(favorite.id)}
               />
             }
           />
