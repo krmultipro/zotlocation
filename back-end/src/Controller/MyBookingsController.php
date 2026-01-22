@@ -10,6 +10,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Serializer\SerializerInterface;
 use App\Entity\User; // N'oubliez pas d'importer l'entité User
 
+
 class MyBookingsController extends AbstractController
 {
     // Définissons la route que vous souhaitez utiliser, par exemple l'originale pour le front.
@@ -31,7 +32,8 @@ class MyBookingsController extends AbstractController
 
         // 2. Récupération des réservations
         // On utilise la même logique que dans votre Provider
-       $bookings = $bookingRepository->findBookingsWithListingByUser($user);
+        $bookings = $bookingRepository->findBookingsWithListingByUser($user);
+
 
         // 3. Sérialisation des données
         // On utilise le Serializer de Symfony en spécifiant les mêmes groupes de sérialisation
@@ -44,4 +46,5 @@ class MyBookingsController extends AbstractController
             'Content-Type' => 'application/json'
         ]);
     }
+
 }

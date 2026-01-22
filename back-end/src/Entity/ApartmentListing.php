@@ -3,32 +3,48 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Delete;
 use App\Repository\ApartmentListingRepository;
+use App\State\ListingOwnerProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ApartmentListingRepository::class)]
 #[ApiResource(
-    // Les opérations sont héritées de Listing.
-    // On définit des groupes spécifiques pour la dénormalisation et la lecture.
-    normalizationContext: ['groups' => ['apartment:read', 'listing:read']],
-    denormalizationContext: ['groups' => ['apartment:create', 'apartment:update', 'listing:create', 'listing:update']],
+    processor: ListingOwnerProcessor::class,
+    operations: [
+        new Get(),
+        new GetCollection(),
+        new Post(),
+        new Patch(),
+        new Delete(),
+    ],
+    // 💡 On s'aligne sur les groupes de Listing pour que la vue "Collection" fonctionne
+    normalizationContext: [
+        'groups' => ['apartment:read', 'listing:read', 'listing:card:read']
+    ],
+    denormalizationContext: [
+        'groups' => ['apartment:create', 'apartment:update', 'listing:create', 'listing:update']
+    ],
 )]
-class ApartmentListing extends Listing // Hérite de $id, Owner, etc.
+class ApartmentListing extends Listing
 {
-    // Propriétés spécifiques : application du CamelCase
     #[ORM\Column]
-    #[Groups(['apartment:read', 'apartment:create', 'apartment:update'])]
+    // 💡 Inclus dans listing:card:read pour être visible sur la page d'accueil (vue principale)
+    #[Groups(['apartment:read', 'apartment:create', 'apartment:update', 'listing:read', 'listing:card:read'])]
     private ?bool $balcony = null;
 
     #[ORM\Column]
-    #[Groups(['apartment:read', 'apartment:create', 'apartment:update'])]
+    #[Groups(['apartment:read', 'apartment:create', 'apartment:update', 'listing:read', 'listing:card:read'])]
     #[Assert\Positive(message: "Le nombre de pièces doit être positif.")]
     private ?int $numberOfRooms = null;
 
-
-    // --- GETTERS & SETTERS PROPRIÉTÉS SPÉCIFIQUES ---
+    // --- GETTERS & SETTERS ---
 
     public function isBalcony(): ?bool
     {

@@ -3,32 +3,47 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Delete;
 use App\Repository\HouseListingRepository;
+use App\State\ListingOwnerProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: HouseListingRepository::class)]
 #[ApiResource(
-    // Les opérations sont héritées de Listing.
-    // On définit des groupes spécifiques pour la dénormalisation et la lecture.
-    normalizationContext: ['groups' => ['house:read', 'listing:read']],
-    denormalizationContext: ['groups' => ['house:create', 'house:update', 'listing:create', 'listing:update']],
+    processor: ListingOwnerProcessor::class,
+    operations: [
+        new Get(),
+        new GetCollection(),
+        new Post(),
+        new Patch(),
+        new Delete(),
+    ],
+    // 💡 Mise à jour ici : on ajoute 'listing:card:read' pour la vue principale
+    normalizationContext: [
+        'groups' => ['house:read', 'listing:read', 'listing:card:read']
+    ],
+    denormalizationContext: [
+        'groups' => ['house:create', 'house:update', 'listing:create', 'listing:update']
+    ],
 )]
-class HouseListing extends Listing // Hérite de $id, Owner, etc.
+class HouseListing extends Listing
 {
-    // Propriétés spécifiques
     #[ORM\Column]
-    #[Groups(['house:read', 'house:create', 'house:update'])]
+    #[Groups(['house:read', 'house:create', 'house:update', 'listing:read', 'listing:card:read'])]
     #[Assert\PositiveOrZero(message: "La taille du jardin doit être positive ou nulle.")]
-
     private ?float $gardenSize = null;
 
     #[ORM\Column]
-    #[Groups(['house:read', 'house:create', 'house:update'])]
+    #[Groups(['house:read', 'house:create', 'house:update', 'listing:read', 'listing:card:read'])]
     private ?bool $hasGarage = null;
 
-
+    // --- GETTERS & SETTERS ---
 
     public function getGardenSize(): ?float
     {
