@@ -10,45 +10,23 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: HouseListingRepository::class)]
 #[ApiResource(
-    // Les opérations sont héritées de Listing.
-    // On définit des groupes spécifiques pour la dénormalisation et la lecture.
     normalizationContext: ['groups' => ['house:read', 'listing:read']],
     denormalizationContext: ['groups' => ['house:create', 'house:update', 'listing:create', 'listing:update']],
 )]
-class HouseListing extends Listing // Hérite de $id, Owner, etc.
+class HouseListing extends Listing
 {
-    // Propriétés spécifiques
     #[ORM\Column]
-    #[Groups(['house:read', 'house:create', 'house:update'])]
+    // 💡 Ajout de 'listing:read' pour la visibilité lors de la lecture d'un Listing générique
+    #[Groups(['house:read', 'house:create', 'house:update', 'listing:read'])]
     #[Assert\PositiveOrZero(message: "La taille du jardin doit être positive ou nulle.")]
-
     private ?float $gardenSize = null;
 
     #[ORM\Column]
-    #[Groups(['house:read', 'house:create', 'house:update'])]
+    #[Groups(['house:read', 'house:create', 'house:update', 'listing:read'])]
     private ?bool $hasGarage = null;
 
-
-
-    public function getGardenSize(): ?float
-    {
-        return $this->gardenSize;
-    }
-
-    public function setGardenSize(float $gardenSize): static
-    {
-        $this->gardenSize = $gardenSize;
-        return $this;
-    }
-
-    public function isHasGarage(): ?bool
-    {
-        return $this->hasGarage;
-    }
-
-    public function setHasGarage(bool $hasGarage): static
-    {
-        $this->hasGarage = $hasGarage;
-        return $this;
-    }
+    public function getGardenSize(): ?float { return $this->gardenSize; }
+    public function setGardenSize(float $gardenSize): static { $this->gardenSize = $gardenSize; return $this; }
+    public function isHasGarage(): ?bool { return $this->hasGarage; }
+    public function setHasGarage(bool $hasGarage): static { $this->hasGarage = $hasGarage; return $this; }
 }

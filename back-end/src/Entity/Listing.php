@@ -22,7 +22,6 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ListingRepository::class)]
 #[ORM\Table(name: 'listing')]
-// 🚀 OPTIMISATION SQL : Index pour accélérer le filtrage par catégorie et ville
 #[ORM\Index(columns: ['category_id'], name: 'idx_listing_category')]
 #[ORM\Index(columns: ['localisation_id'], name: 'idx_listing_localisation')]
 #[ORM\InheritanceType('JOINED')]
@@ -33,37 +32,31 @@ use Symfony\Component\Validator\Constraints as Assert;
     'apartment' => ApartmentListing::class
 ])]
 #[ApiResource(
-    paginationItemsPerPage: 14,
-    paginationClientItemsPerPage: true,
-    paginationMaximumItemsPerPage: 50,
-    // ⚡ VITESSE : Désactive le COUNT(*) total qui ralentit PostgreSQL sur Alwaysdata
-    paginationPartial: true,
-    cacheHeaders: [
-        'max_age' => 60,
-        'shared_max_age' => 3600,
-        'vary' => ['Authorization', 'Accept']
+    // 💡 CONFIGURATION GLOBALE : On définit les groupes ici pour qu'ils s'appliquent
+    // à toutes les opérations et forcent la jointure polymorphique.
+    normalizationContext: [
+        'groups' => ['listing:read', 'listing:item:read', 'house:read', 'apartment:read', 'listing:card:read'],
+        'skip_null_values' => false,
     ],
+    denormalizationContext: [
+        'groups' => ['listing:create', 'listing:update', 'house:create', 'apartment:create', 'house:update', 'apartment:update']
+    ],
+    paginationItemsPerPage: 20,
+    paginationPartial: true,
     operations: [
         new GetCollection(
             uriTemplate: '/my-listings',
-            security: "is_granted('ROLE_USER')",
-            normalizationContext: ['groups' => ['listing:card:read']]
+            security: "is_granted('ROLE_USER')"
         ),
-        new GetCollection(
-            normalizationContext: ['groups' => ['listing:card:read']]
-        ),
-        new Get(
-            normalizationContext: ['groups' => ['listing:read', 'listing:item:read']]
-        ),
+        new GetCollection(),
+        new Get(),
         new Post(
             processor: ListingOwnerProcessor::class,
-            security: "is_granted('ROLE_PROPRIETAIRE') or is_granted('ROLE_ADMIN')",
-            denormalizationContext: ['groups' => ['listing:create']]
+            security: "is_granted('ROLE_PROPRIETAIRE') or is_granted('ROLE_ADMIN')"
         ),
         new Patch(
             processor: ListingOwnerProcessor::class,
-            security: "is_granted('ROLE_ADMIN') or object.getOwner() == user",
-            denormalizationContext: ['groups' => ['listing:update']]
+            security: "is_granted('ROLE_ADMIN') or object.getOwner() == user"
         ),
         new Delete(
             security: "is_granted('ROLE_ADMIN') or object.getOwner() == user"
@@ -105,8 +98,7 @@ class Listing
     private ?int $capacity = null;
 
     #[ORM\ManyToOne(inversedBy: 'listings')]
-    // ❌ Nettoyage : On retire 'listing:card:read' pour éviter les requêtes Profile en boucle
-    #[Groups(['listing:read', 'listing:item:read'])]
+    #[Groups(['listing:read', 'listing:item:read', 'listing:card:read'])]
     #[Assert\Valid]
     private ?User $owner = null;
 
@@ -152,7 +144,6 @@ class Listing
         $this->favoriteListings = new ArrayCollection();
     }
 
-    // --- GETTERS & SETTERS ---
     public function getId(): ?int { return $this->id; }
     public function getTitle(): ?string { return $this->title; }
     public function setTitle(string $title): static { $this->title = $title; return $this; }
@@ -174,7 +165,6 @@ class Listing
     public function getOptions(): Collection { return $this->options; }
     public function getFavoriteListings(): Collection { return $this->favoriteListings; }
 
-    // --- MAPPING LOGIQUE (ADD / REMOVE) ---
     public function addImage(Image $image): static
     {
         if (!$this->images->contains($image)) {

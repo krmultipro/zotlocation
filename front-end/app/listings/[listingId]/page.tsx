@@ -1,59 +1,15 @@
-/* eslint-disable react/no-unescaped-entities */
-/* eslint-disable @typescript-eslint/no-unused-vars */
+ 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useUser } from "@/app/context/UserProvider";
 import Container from "@/components/Container";
 import BookingCalendar from "@/components/reservations/BookingCalendar";
 import axios from "axios";
-import { ArrowLeft, Box, Building2, Car, CheckCircle2, Flower2, LayoutPanelLeft, MapPin, Star, Users } from "lucide-react";
+import { ArrowLeft, Box, Building2, Car, Flower2, LayoutPanelLeft, MapPin, Users } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-
-interface Review {
-  id: number
-  rating: number
-  comment: string
-  author: {
-    name: string
-  }
-}
-
-interface Option {
-  id: number
-  name: string
-}
-
-interface ListingDetail {
-  id: number
-  title: string
-  description: string
-  pricePerNight: number
-  capacity: number
-  gardenSize?: number    // Spécifique Maison
-  hasGarage?: boolean    // Spécifique Maison
-  balcony?: boolean      // Spécifique Appartement
-  numberOfRooms?: number // Spécifique Appartement
-  category: {
-    id: number
-    name: string
-  }
-  localisation?: {
-    id: number
-    name: string
-  }
-  owner: {
-    id: string
-    name: string
-  }
-  images: Array<{
-    id: number
-    url: string
-  }>
-  reviews: Review[]
-  options: Option[]
-}
+import { useEffect, useState } from "react";
 
 export default function ListingDetailPage() {
   const params = useParams()
@@ -61,7 +17,7 @@ export default function ListingDetailPage() {
   const listingId = params.listingId
 
   const { isLoading: userLoading } = useUser()
-  const [listing, setListing] = useState<ListingDetail | null>(null)
+  const [listing, setListing] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -69,11 +25,12 @@ export default function ListingDetailPage() {
     const fetchListing = async () => {
       try {
         const baseApiUrl = process.env.NEXT_PUBLIC_API_URL
-        // On ajoute un timestamp pour éviter le cache navigateur lors des tests
+        // On force le rafraîchissement avec un timestamp
         const response = await axios.get(`${baseApiUrl}/api/listings/${listingId}?t=${Date.now()}`)
+        console.log("DEBUG API RESPONSE:", response.data);
         setListing(response.data)
       } catch (err) {
-        setError("Erreur lors du chargement de l'annonce")
+        setError("Erreur lors du chargement")
       } finally {
         setLoading(false)
       }
@@ -81,204 +38,95 @@ export default function ListingDetailPage() {
     if (listingId) fetchListing()
   }, [listingId])
 
-  const averageRating = useMemo(() => {
-    if (!listing?.reviews || listing.reviews.length === 0) return null
-    const sum = listing.reviews.reduce((acc, r) => acc + r.rating, 0)
-    return (sum / listing.reviews.length).toFixed(1)
-  }, [listing?.reviews])
+  if (loading || userLoading) return <Container><p className="py-32 text-center">Chargement...</p></Container>
+  if (error || !listing) return <Container><p className="py-32 text-center text-red-500">Logement introuvable</p></Container>
 
-  if (loading || userLoading) {
-    return (
-      <Container>
-        <div className="py-32 text-center flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-500 font-medium">Chargement du logement...</p>
-        </div>
-      </Container>
-    )
-  }
-
-  if (error || !listing) {
-    return (
-      <Container>
-        <div className="py-32 text-center text-red-500">{error || "Annonce introuvable"}</div>
-      </Container>
-    )
-  }
+  // 💡 MAPPING DE SÉCURITÉ : On vérifie TOUTES les variantes possibles (camelCase et snake_case)
+  const garden = listing.gardenSize ?? listing.garden_size;
+  const garage = listing.hasGarage ?? listing.has_garage;
+  const rooms = listing.numberOfRooms ?? listing.number_of_rooms;
+  const balcony = listing.balcony; // Souvent booléen simple
 
   return (
     <Container>
       <div className="max-w-7xl mx-auto pt-32 pb-16">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition group"
-        >
+        {/* --- DEBUG ZONE (A supprimer quand ça marche) --- */}
+        <div className="mb-4 p-2 bg-black text-white text-[10px] rounded overflow-x-auto">
+             JSON Reçu : {JSON.stringify({ garden, garage, rooms, balcony })}
+        </div>
+
+        <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-600 mb-6 group">
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition" />
-          <span className="font-medium">Retour</span>
+          <span className="font-medium font-sans">Retour</span>
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2">
             <div className="relative w-full h-[50vh] md:h-[60vh] rounded-2xl overflow-hidden shadow-lg border border-gray-100">
-              <Image
-                src={listing.images[0]?.url || "/images/placeholder.png"}
-                alt={listing.title}
-                fill
-                className="object-cover"
-                priority
-              />
+              <Image src={listing.images?.[0]?.url || "/images/placeholder.png"} alt={listing.title} fill className="object-cover" priority />
             </div>
           </div>
-
           <div className="lg:col-span-1">
-            <div className="sticky top-28">
-              <div className="border border-gray-200 rounded-2xl p-6 shadow-xl bg-white space-y-6">
-                <div className="flex items-baseline justify-between">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold">{listing.pricePerNight}€</span>
-                    <span className="text-gray-500">/ nuit</span>
-                  </div>
-                  {averageRating && (
-                    <div className="flex items-center gap-1 text-sm font-semibold">
-                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                      <span>{averageRating}</span>
-                      <span className="text-gray-400">({listing.reviews.length})</span>
-                    </div>
-                  )}
-                </div>
-                <BookingCalendar listingId={listing.id} pricePerNight={listing.pricePerNight} />
-              </div>
+            <div className="sticky top-28 border border-gray-200 rounded-2xl p-6 shadow-xl bg-white">
+               <BookingCalendar listingId={listing.id} pricePerNight={listing.pricePerNight} />
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-          <div className="md:col-span-2 space-y-10">
-            <div className="space-y-4">
-              <h1 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">{listing.title}</h1>
-              <div className="flex flex-wrap items-center gap-6 text-gray-600 font-medium">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-green-600" />
-                  <span className="text-gray-900 font-bold">{listing.localisation?.name || "La Réunion"}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-green-600" />
-                  <span>{listing.category.name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-green-600" />
-                  <span>{listing.capacity} {listing.capacity > 1 ? "voyageurs" : "voyageur"}</span>
-                </div>
-              </div>
+          <div className="md:col-span-2 space-y-8">
+            <h1 className="text-4xl font-bold text-gray-900 tracking-tight">{listing.title}</h1>
+
+            <div className="flex flex-wrap items-center gap-6 text-gray-600 font-medium">
+                <div className="flex items-center gap-2"><MapPin className="w-5 h-5 text-green-600" /> {listing.localisation?.name || "La Réunion"}</div>
+                <div className="flex items-center gap-2"><Building2 className="w-5 h-5 text-green-600" /> {listing.category?.name}</div>
+                <div className="flex items-center gap-2"><Users className="w-5 h-5 text-green-600" /> {listing.capacity} pers.</div>
             </div>
 
             <hr className="border-gray-100" />
 
-            {/* 💡 NOUVELLE SECTION : Caractéristiques spécifiques (Héritage) */}
-            {(listing.gardenSize !== undefined || listing.numberOfRooms !== undefined) && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {/* Si c'est une maison */}
-                {listing.gardenSize !== undefined && (
-                   <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100 text-center">
-                    <Flower2 className="w-6 h-6 text-green-600 mb-2" />
-                    <span className="text-sm font-bold text-gray-900">{listing.gardenSize} m²</span>
-                    <span className="text-xs text-gray-500">Jardin</span>
-                  </div>
-                )}
-                {listing.hasGarage && (
-                  <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100 text-center">
-                    <Car className="w-6 h-6 text-green-600 mb-2" />
-                    <span className="text-sm font-bold text-gray-900">Garage</span>
-                    <span className="text-xs text-gray-500">Inclus</span>
-                  </div>
-                )}
+            {/* 💡 SECTION CARACTÉRISTIQUES (RESTAURATION) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {/* Affichage Jardin si la valeur existe */}
+              {(garden !== undefined && garden !== null) && (
+                <div className="flex flex-col items-center p-4 bg-green-50 rounded-xl border border-green-100 text-center">
+                  <Flower2 className="w-6 h-6 text-green-600 mb-2" />
+                  <span className="text-sm font-bold text-gray-900">{garden} m²</span>
+                  <span className="text-xs text-gray-500 font-medium">Jardin</span>
+                </div>
+              )}
 
-                {/* Si c'est un appartement */}
-                {listing.numberOfRooms !== undefined && (
-                   <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100 text-center">
-                    <Box className="w-6 h-6 text-green-600 mb-2" />
-                    <span className="text-sm font-bold text-gray-900">{listing.numberOfRooms}</span>
-                    <span className="text-xs text-gray-500">Pièces</span>
-                  </div>
-                )}
-                {listing.balcony && (
-                  <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100 text-center">
-                    <LayoutPanelLeft className="w-6 h-6 text-green-600 mb-2" />
-                    <span className="text-sm font-bold text-gray-900">Balcon</span>
-                    <span className="text-xs text-gray-500">Privatif</span>
-                  </div>
-                )}
-              </div>
-            )}
+              {/* Affichage Garage si la valeur est true */}
+              {garage === true && (
+                <div className="flex flex-col items-center p-4 bg-green-50 rounded-xl border border-green-100 text-center">
+                  <Car className="w-6 h-6 text-green-600 mb-2" />
+                  <span className="text-sm font-bold text-gray-900">Garage</span>
+                  <span className="text-xs text-gray-500 font-medium">Inclus</span>
+                </div>
+              )}
+
+              {/* Affichage Pièces si la valeur existe */}
+              {(rooms !== undefined && rooms !== null) && (
+                <div className="flex flex-col items-center p-4 bg-green-50 rounded-xl border border-green-100 text-center">
+                  <Box className="w-6 h-6 text-green-600 mb-2" />
+                  <span className="text-sm font-bold text-gray-900">{rooms}</span>
+                  <span className="text-xs text-gray-500 font-medium">Pièces</span>
+                </div>
+              )}
+
+              {/* Affichage Balcon si la valeur est true */}
+              {balcony === true && (
+                <div className="flex flex-col items-center p-4 bg-green-50 rounded-xl border border-green-100 text-center">
+                  <LayoutPanelLeft className="w-6 h-6 text-green-600 mb-2" />
+                  <span className="text-sm font-bold text-gray-900">Balcon</span>
+                  <span className="text-xs text-gray-500 font-medium">Privatif</span>
+                </div>
+              )}
+            </div>
 
             <div>
               <h2 className="text-2xl font-bold mb-4 text-gray-800">À propos de ce logement</h2>
-              <p className="text-gray-600 text-lg leading-relaxed whitespace-pre-line">{listing.description}</p>
-            </div>
-
-            <hr className="border-gray-100" />
-
-            <div>
-              <h2 className="text-2xl font-bold mb-6 text-gray-800">Ce que propose ce logement</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
-                {listing.options?.map((option) => (
-                  <div key={option.id} className="flex items-center gap-3 text-gray-700">
-                    <CheckCircle2 className="w-6 h-6 text-green-600" />
-                    <span className="text-lg font-medium">{option.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <hr className="border-gray-100" />
-
-            <div className="flex items-center gap-4 p-6 bg-gray-50 rounded-2xl border border-gray-100">
-              <div className="w-16 h-16 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-2xl shadow-inner">
-                {listing.owner.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <p className="text-xl font-bold text-gray-900">Hébergé par {listing.owner.name}</p>
-                <p className="text-gray-500 font-medium">Hôte sur la plateforme</p>
-              </div>
-            </div>
-
-            <hr className="border-gray-100" />
-
-            <div className="space-y-8 pt-4 pb-20">
-              <div className="flex items-center gap-4">
-                <h2 className="text-2xl font-bold text-gray-800">Commentaires</h2>
-                {averageRating && (
-                  <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-1.5 rounded-full border border-green-100 font-bold">
-                    <Star className="w-4 h-4 fill-green-700" />
-                    <span>{averageRating} · {listing.reviews.length} avis</span>
-                  </div>
-                )}
-              </div>
-
-              {listing.reviews && listing.reviews.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {listing.reviews.map((review) => (
-                    <div key={review.id} className="p-6 border border-gray-100 rounded-2xl bg-white shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600">
-                            {review.author.name.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="font-bold text-gray-800">{review.author.name}</span>
-                        </div>
-                        <div className="flex text-yellow-500">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} size={14} className={i < review.rating ? "fill-current" : "text-gray-200"} />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-gray-600 leading-relaxed italic">"{review.comment}"</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 italic">Aucun avis pour le moment.</p>
-              )}
+              <p className="text-gray-600 text-lg leading-relaxed whitespace-pre-line font-sans">{listing.description}</p>
             </div>
           </div>
         </div>
