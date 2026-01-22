@@ -42,7 +42,7 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [trigger, setTrigger] = useState(0)
+  const [trigger, setTrigger] = useState(0) // On garde un entier simple pour l'hydratation
 
   const fetchBookings = useCallback(async () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
@@ -55,7 +55,7 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setIsLoading(true)
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
       let userId: number | null = null
 
       const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null
@@ -83,7 +83,10 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (!userId) throw new Error("Utilisateur non identifié")
 
-      const res = await fetch(`${API_URL}/api/bookings?booker=${userId}`, {
+      // 💡 ANTI-CACHE : On génère le timestamp ICI, pas dans le state
+      // Cela force le navigateur à ignorer le cache sans casser l'hydratation Next.js
+      const cacheBuster = Date.now();
+      const res = await fetch(`${API_URL}/api/bookings?booker=${userId}&t=${cacheBuster}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/ld+json",
@@ -104,9 +107,9 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [trigger])
 
   const refreshBookings = useCallback(() => {
-    // Utiliser Date.now() force React à voir un changement immédiat
-    setTrigger(Date.now());
-}, []);
+    // On incrémente simplement pour déclencher l'useEffect
+    setTrigger((prev) => prev + 1);
+  }, []);
 
   useEffect(() => {
     fetchBookings()

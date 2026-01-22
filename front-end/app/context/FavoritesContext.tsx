@@ -6,7 +6,7 @@ import React, {
   useContext,
   useEffect,
   useState,
-} from "react"
+} from "react";
 
 interface FavoriteItem {
   id: number
@@ -18,7 +18,7 @@ interface FavoritesContextType {
   isLoading: boolean
   getFavoriteIdByListingId: (listingId: string) => string | null
   refreshFavorites: () => void
-  clearFavorites: () => void // <-- 🔥 Ajout essentiel
+  clearFavorites: () => void
 }
 
 const FavoritesContext = createContext<FavoritesContextType | null>(null)
@@ -30,56 +30,53 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(true)
   const [trigger, setTrigger] = useState(0)
 
-  useEffect(() => {
-    const fetchFavorites = async () => {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
+  const fetchFavorites = useCallback(async () => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
 
-      if (!token) {
-        setFavorites([]) // <-- 🔥 On reset quand pas de token
-        setIsLoading(false)
-        return
-      }
-
-      try {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
-    const res = await fetch(`${API_URL}/api/favorites`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/ld+json",
-          },
-        })
-
-        if (res.ok) {
-          const data = await res.json()
-          setFavorites(data.member || data["hydra:member"] || [])
-        } else {
-          setFavorites([])
-        }
-      } catch (error) {
-        console.error("Erreur chargement favoris global:", error)
-        setFavorites([]) // sécurité
-      } finally {
-        setIsLoading(false)
-      }
+    if (!token) {
+      setFavorites([])
+      setIsLoading(false)
+      return
     }
 
-    fetchFavorites()
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+      // 💡 Ajout de l'anti-cache ?t=
+      const res = await fetch(`${API_URL}/api/favorites?t=${Date.now()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/ld+json",
+        },
+      })
 
-    const handleGlobalUpdate = () => setTrigger((prev) => prev + 1)
-    window.addEventListener("favorites:updated", handleGlobalUpdate)
-
-    return () => {
-      window.removeEventListener("favorites:updated", handleGlobalUpdate)
+      if (res.ok) {
+        const data = await res.json()
+        setFavorites(data["hydra:member"] || data.member || [])
+      }
+    } catch (error) {
+      console.error("Erreur chargement favoris global:", error)
+    } finally {
+      setIsLoading(false)
     }
   }, [trigger])
+
+  useEffect(() => {
+    fetchFavorites()
+  }, [fetchFavorites])
+
+  // Écoute des mises à jour manuelles via Event
+  useEffect(() => {
+    const handleGlobalUpdate = () => setTrigger((prev) => prev + 1)
+    window.addEventListener("favorites:updated", handleGlobalUpdate)
+    return () => window.removeEventListener("favorites:updated", handleGlobalUpdate)
+  }, [])
 
   const refreshFavorites = useCallback(() => {
     setTrigger((prev) => prev + 1)
   }, [])
 
   const clearFavorites = useCallback(() => {
-    setFavorites([]) // <-- 🔥 vide totalement les favoris
+    setFavorites([])
   }, [])
 
   const getFavoriteIdByListingId = useCallback(
@@ -99,7 +96,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
         isLoading,
         getFavoriteIdByListingId,
         refreshFavorites,
-        clearFavorites, // <-- 🔥 On expose au front
+        clearFavorites,
       }}
     >
       {children}
@@ -109,8 +106,6 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
 
 export const useFavorites = () => {
   const context = useContext(FavoritesContext)
-  if (!context) {
-    throw new Error("useFavorites doit être utilisé dans un FavoritesProvider")
-  }
+  if (!context) throw new Error("useFavorites doit être utilisé dans un FavoritesProvider")
   return context
 }
