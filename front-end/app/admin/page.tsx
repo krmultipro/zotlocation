@@ -19,6 +19,7 @@ export default function AdminPage() {
     const [newCategoryName, setNewCategoryName] = useState("");
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editingName, setEditingName] = useState("");
+    const [bookings, setBookings] = useState<any[]>([]);
 
 
 
@@ -122,6 +123,13 @@ export default function AdminPage() {
             .then(res => setUsers(res.data.member || res.data["hydra:member"] || []))
             .catch(() => toast.error("Erreur de chargement des utilisateurs"));
 
+        // Réservations
+        axios.get(`${API_URL}/api/bookings?pagination=false`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => setBookings(res.data.member || res.data["hydra:member"] || []))
+            .catch(() => toast.error("Erreur de chargement des réservations"));
+
     }, [token]);
 
     // Filtres
@@ -132,6 +140,29 @@ export default function AdminPage() {
     const owners = users.filter((u: any) =>
         u.roles?.includes('ROLE_PROPRIETAIRE')
     );
+
+    const formatDateFr = (iso: string) =>
+  new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(iso));
+
+  const statusLabel = (status?: string) => {
+  switch ((status || "").toLowerCase()) {
+    case "paid":
+      return "Payé";
+    case "pending":
+      return "En attente";
+    case "cancelled":
+      return "Annulé";
+    default:
+      return "—";
+  }
+};
+
+
+    console.log("Bookings:", bookings);
 
     return (
         <Container>
@@ -259,6 +290,23 @@ export default function AdminPage() {
                         </table>
                     </div>
                 </div>
+                {/* SECTION RÉSERVATIONS */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border">
+                    <h2 className="text-xl font-bold mb-1">Réservations</h2>
+                    <p className="text-xs text-gray-400 mb-4 uppercase tracking-wider">{bookings.length} Réservations</p>
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50">
+                            <tr><th className="p-2 border">Utilisateur</th><th className="p-2 border">Annonce</th><th className="p-2 border">Dates</th> <th className="p-2 border">Statut</th></tr>
+                        </thead>
+                        <tbody>
+                            {bookings.map((b: any) => (
+                                <tr key={b.id} className="border-b hover:bg-gray-50 transition"><td className="p-2">{b.booker?.name || "—"}</td><td className="p-2">{b.listing?.title || "—"}</td><td className="p-2">{formatDateFr(b.startDate)} à {formatDateFr(b.endDate)}</td> <td className="p-2">{statusLabel(b.status)}</td>
+ </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
             </div>
         </Container>
     );
