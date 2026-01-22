@@ -3,13 +3,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import Container from "@/components/Container"
-import Heading from "@/components/Heading"
-import ListingCard from "@/components/ListingCard"
-import AddListingModal from "@/components/modals/AddListingModal"
-import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useState } from "react"
-import { toast } from "react-hot-toast"
+import Container from "@/components/Container";
+import Heading from "@/components/Heading";
+import ListingCard from "@/components/ListingCard";
+import AddListingModal from "@/components/modals/AddListingModal";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 
 export default function LocationsContent() {
   const router = useRouter()
@@ -20,7 +20,6 @@ export default function LocationsContent() {
   const [selectedListing, setSelectedListing] = useState<any>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // 1. Récupération du token avec sécurité SSR
   const [token, setToken] = useState<string | null>(null)
 
   useEffect(() => {
@@ -35,7 +34,6 @@ export default function LocationsContent() {
     }
 
     try {
-      console.log("Appel API vers my-listings...")
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
       const res = await fetch(`${API_URL}/api/my-listings`, {
         headers: {
@@ -47,9 +45,6 @@ export default function LocationsContent() {
       if (!res.ok) throw new Error(`Erreur HTTP: ${res.status}`)
 
       const data = await res.json()
-      console.log("Données reçues :", data)
-
-      // API Platform : les données sont souvent dans hydra:member
       const fetchedData = data["hydra:member"] || data["member"] || data || []
       setLocations(Array.isArray(fetchedData) ? fetchedData : [])
     } catch (err: any) {
@@ -66,23 +61,55 @@ export default function LocationsContent() {
   }, [fetchLocations, token, isLoading])
 
   // --- ACTIONS ---
+
+  // Fonction de suppression réelle
+  const executeDelete = async (id: number) => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+      const res = await fetch(`${API_URL}/api/listings/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      if (!res.ok) throw new Error("Erreur suppression")
+
+      setLocations((prev) => prev.filter((item) => item.id !== id))
+      toast.success("Annonce supprimée avec succès")
+    } catch (err: any) {
+      toast.error("Impossible de supprimer l'annonce")
+    }
+  }
+
+  // Déclencheur du toast de confirmation
   const onDelete = useCallback(
-    async (id: number) => {
-      if (!token || !confirm("Supprimer cette annonce ?")) return
-
-      try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
-        const res = await fetch(`${API_URL}/api/listings/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (!res.ok) throw new Error("Erreur suppression")
-
-        setLocations((prev) => prev.filter((item) => item.id !== id))
-        toast.success("Supprimé !")
-      } catch (err: any) {
-        toast.error("Erreur lors de la suppression")
-      }
+    (id: number) => {
+      toast((t) => (
+        <div className="flex flex-col gap-3">
+          <p className="font-medium text-sm text-gray-800">
+            Voulez-vous vraiment supprimer cette annonce ?
+          </p>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={() => {
+                toast.dismiss(t.id)
+                executeDelete(id)
+              }}
+              className="px-3 py-1 text-xs bg-rose-500 text-white hover:bg-rose-600 rounded-md transition"
+            >
+              Supprimer
+            </button>
+          </div>
+        </div>
+      ), {
+        duration: 5000,
+        position: "top-center",
+      })
     },
     [token]
   )
@@ -96,7 +123,10 @@ export default function LocationsContent() {
   if (isLoading)
     return (
       <Container>
-        <p className="py-20 text-center">Chargement...</p>
+        <div className="py-20 flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500">Chargement de vos annonces...</p>
+        </div>
       </Container>
     )
 
@@ -120,7 +150,7 @@ export default function LocationsContent() {
 
       <Heading
         title="Mes Locations"
-        subtitle={`Vous avez ${locations.length} annonce(s)`}
+        subtitle={`Gestion de vos ${locations.length} annonce(s)`}
       />
 
       <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
@@ -134,20 +164,20 @@ export default function LocationsContent() {
               capacity={location.capacity}
               category={location.category?.name || "Sans catégorie"}
               imageUrl={location.images?.[0]?.url || "/images/placeholder.png"}
-              onDelete={onDelete}
+              onDelete={() => onDelete(location.id)}
               onEdit={() => onEdit(location)}
             />
           ))
         ) : (
-          <div className="col-span-full py-20 text-center border-2 border-dashed rounded-xl">
-            <p className="text-gray-500 mb-4">
+          <div className="col-span-full py-32 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl bg-gray-50">
+            <p className="text-gray-500 mb-6 text-lg">
               Vous n'avez pas encore créé d'annonces.
             </p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="text-rose-500 font-bold hover:underline"
+              className="px-8 py-3 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 transition shadow-md"
             >
-              Créer une annonce maintenant
+              Créer ma première annonce
             </button>
           </div>
         )}
