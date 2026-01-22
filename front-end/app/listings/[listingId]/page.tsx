@@ -6,7 +6,7 @@ import { useUser } from "@/app/context/UserProvider";
 import Container from "@/components/Container";
 import BookingCalendar from "@/components/reservations/BookingCalendar";
 import axios from "axios";
-import { ArrowLeft, Building2, CheckCircle2, MapPin, Star, Users } from "lucide-react";
+import { ArrowLeft, Box, Building2, Car, CheckCircle2, Flower2, LayoutPanelLeft, MapPin, Star, Users } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -31,6 +31,10 @@ interface ListingDetail {
   description: string
   pricePerNight: number
   capacity: number
+  gardenSize?: number    // Spécifique Maison
+  hasGarage?: boolean    // Spécifique Maison
+  balcony?: boolean      // Spécifique Appartement
+  numberOfRooms?: number // Spécifique Appartement
   category: {
     id: number
     name: string
@@ -65,7 +69,8 @@ export default function ListingDetailPage() {
     const fetchListing = async () => {
       try {
         const baseApiUrl = process.env.NEXT_PUBLIC_API_URL
-        const response = await axios.get(`${baseApiUrl}/api/listings/${listingId}`)
+        // On ajoute un timestamp pour éviter le cache navigateur lors des tests
+        const response = await axios.get(`${baseApiUrl}/api/listings/${listingId}?t=${Date.now()}`)
         setListing(response.data)
       } catch (err) {
         setError("Erreur lors du chargement de l'annonce")
@@ -112,7 +117,6 @@ export default function ListingDetailPage() {
           <span className="font-medium">Retour</span>
         </button>
 
-        {/* IMAGES ET CALENDRIER */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           <div className="lg:col-span-2 space-y-4">
             <div className="relative w-full h-[50vh] md:h-[60vh] rounded-2xl overflow-hidden shadow-lg border border-gray-100">
@@ -148,7 +152,6 @@ export default function ListingDetailPage() {
           </div>
         </div>
 
-        {/* INFOS PRINCIPALES */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           <div className="md:col-span-2 space-y-10">
             <div className="space-y-4">
@@ -171,6 +174,43 @@ export default function ListingDetailPage() {
 
             <hr className="border-gray-100" />
 
+            {/* 💡 NOUVELLE SECTION : Caractéristiques spécifiques (Héritage) */}
+            {(listing.gardenSize !== undefined || listing.numberOfRooms !== undefined) && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {/* Si c'est une maison */}
+                {listing.gardenSize !== undefined && (
+                   <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100 text-center">
+                    <Flower2 className="w-6 h-6 text-green-600 mb-2" />
+                    <span className="text-sm font-bold text-gray-900">{listing.gardenSize} m²</span>
+                    <span className="text-xs text-gray-500">Jardin</span>
+                  </div>
+                )}
+                {listing.hasGarage && (
+                  <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100 text-center">
+                    <Car className="w-6 h-6 text-green-600 mb-2" />
+                    <span className="text-sm font-bold text-gray-900">Garage</span>
+                    <span className="text-xs text-gray-500">Inclus</span>
+                  </div>
+                )}
+
+                {/* Si c'est un appartement */}
+                {listing.numberOfRooms !== undefined && (
+                   <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100 text-center">
+                    <Box className="w-6 h-6 text-green-600 mb-2" />
+                    <span className="text-sm font-bold text-gray-900">{listing.numberOfRooms}</span>
+                    <span className="text-xs text-gray-500">Pièces</span>
+                  </div>
+                )}
+                {listing.balcony && (
+                  <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100 text-center">
+                    <LayoutPanelLeft className="w-6 h-6 text-green-600 mb-2" />
+                    <span className="text-sm font-bold text-gray-900">Balcon</span>
+                    <span className="text-xs text-gray-500">Privatif</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
               <h2 className="text-2xl font-bold mb-4 text-gray-800">À propos de ce logement</h2>
               <p className="text-gray-600 text-lg leading-relaxed whitespace-pre-line">{listing.description}</p>
@@ -178,7 +218,6 @@ export default function ListingDetailPage() {
 
             <hr className="border-gray-100" />
 
-            {/* ÉQUIPEMENTS */}
             <div>
               <h2 className="text-2xl font-bold mb-6 text-gray-800">Ce que propose ce logement</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
@@ -193,7 +232,6 @@ export default function ListingDetailPage() {
 
             <hr className="border-gray-100" />
 
-            {/* SECTION HÔTE (RESTAURÉE) */}
             <div className="flex items-center gap-4 p-6 bg-gray-50 rounded-2xl border border-gray-100">
               <div className="w-16 h-16 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-2xl shadow-inner">
                 {listing.owner.name.charAt(0).toUpperCase()}
@@ -206,7 +244,6 @@ export default function ListingDetailPage() {
 
             <hr className="border-gray-100" />
 
-            {/* SECTION COMMENTAIRES (RESTAURÉE) */}
             <div className="space-y-8 pt-4 pb-20">
               <div className="flex items-center gap-4">
                 <h2 className="text-2xl font-bold text-gray-800">Commentaires</h2>

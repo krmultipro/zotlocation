@@ -14,6 +14,7 @@ interface Review {
   rating: number;
 }
 
+// 💡 Mise à jour de l'interface pour matcher tes entités PHP House/Apartment
 interface Listing {
   "@id": string
   "@type": string
@@ -22,6 +23,11 @@ interface Listing {
   description: string
   pricePerNight: number
   capacity: number
+  // Champs spécifiques héritage
+  gardenSize?: number;     // House
+  hasGarage?: boolean;     // House
+  balcony?: boolean;       // Apartment
+  numberOfRooms?: number;  // Apartment
   category: {
     id: number
     name: string
@@ -59,21 +65,15 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
   const [totalItems, setTotalItems] = useState(0)
   const itemsPerPage = 5
 
-  //  RÉCUPÉRATION DES PARAMÈTRES DEPUIS L'URL
   const startDate = searchParams.get("startDate")
   const endDate = searchParams.get("endDate")
   const capacity = searchParams.get("capacity[gte]")
   const cityFilter = searchParams.get("localisation")
-
-  // LA PAGE EST PILOTÉE PAR L'URL (Source de vérité)
   const currentPage = Number(searchParams.get("page")) || 1;
 
-  // FONCTION POUR CHANGER DE PAGE SANS PERDRE LES AUTRES FILTRES
   const setPage = useCallback((pageNumber: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", pageNumber.toString());
-
-    // On met à jour l'URL (cela déclenchera le useEffect via le changement de searchParams)
     router.push(`?${params.toString()}`, { scroll: false });
   }, [searchParams, router]);
 
@@ -87,7 +87,7 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
         const endpoint = `${baseApiUrl}/api/listings`
 
         const params: Record<string, any> = {
-          page: currentPage, // On envoie la page actuelle à l'API
+          page: currentPage,
         }
 
         if (categoryFilter) params["category"] = `/api/categories/${categoryFilter}`
@@ -163,6 +163,13 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
               ? (reviews.reduce((acc, r) => acc + (r.rating || 0), 0) / reviews.length).toFixed(1)
               : null;
 
+            // 💡 Optionnel : Créer un petit texte descriptif selon le type pour la carte
+            const specificInfo = listing.gardenSize
+                ? `${listing.gardenSize}m² de jardin`
+                : listing.numberOfRooms
+                ? `${listing.numberOfRooms} pièces`
+                : "";
+
             return (
               <ListingCard
                 key={listing.id}
@@ -175,12 +182,13 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
                 imageUrl={listing.images?.[0]?.url || "/images/placeholder.png"}
                 rating={averageRating}
                 reviewsCount={reviews.length > 0 ? reviews.length : undefined}
+                // Si ta ListingCard accepte une prop pour des infos en plus :
+                // subtitle={specificInfo}
               />
             );
           })}
         </div>
 
-        {/* Pagination contrôlée par l'URL */}
         {totalPages > 1 && (
           <div className="flex flex-col items-center justify-center mt-16 space-y-4">
             <div className="flex items-center gap-6">
@@ -209,7 +217,6 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
           </div>
         )}
 
-        {/* État vide si aucune annonce ne correspond */}
         {listings.length === 0 && !loading && (
           <div className="py-32 flex flex-col items-center justify-center text-center">
             <div className="p-6 bg-gray-50 rounded-full mb-6">
@@ -218,7 +225,6 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
             <h3 className="text-2xl font-bold text-gray-800">Aucun résultat trouvé</h3>
             <p className="text-gray-500 mt-2 max-w-sm">
               Il n'y a pas encore d'annonces disponibles pour ces critères.
-              Essayez de modifier votre recherche ou d'enlever les filtres.
             </p>
             <button
               onClick={() => router.push("/")}

@@ -37,6 +37,7 @@ export default function AddListingModal({ open, onOpenChange, listingToEdit }: a
   const [availableOptions, setAvailableOptions] = useState<any[]>([])
   const [localisations, setLocalisations] = useState<any[]>([])
 
+  // États du formulaire
   const [typeLogement, setTypeLogement] = useState<"maison" | "appartement">("maison")
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -47,14 +48,18 @@ export default function AddListingModal({ open, onOpenChange, listingToEdit }: a
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
   const [manualImageUrl, setManualImageUrl] = useState("")
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
   const isEditMode = !!listingToEdit
 
   useEffect(() => { setMounted(true) }, [])
 
+  // Remplissage auto lors de l'édition
   useEffect(() => {
     if (listingToEdit && open) {
-      setTypeLogement(listingToEdit.gardenSize !== undefined ? "maison" : "appartement")
+      // Détection du type basée sur les propriétés présentes dans l'objet reçu du back
+      const isHouse = Object.prototype.hasOwnProperty.call(listingToEdit, 'gardenSize');
+      setTypeLogement(isHouse ? "maison" : "appartement")
+
       setTitle(listingToEdit.title || "")
       setDescription(listingToEdit.description || "")
       setSelectedCity(listingToEdit.localisation?.id?.toString() || "")
@@ -70,6 +75,7 @@ export default function AddListingModal({ open, onOpenChange, listingToEdit }: a
     }
   }, [listingToEdit, open])
 
+  // Chargement des données de référence
   useEffect(() => {
     if (open && mounted) {
       const fetchData = async () => {
@@ -85,7 +91,7 @@ export default function AddListingModal({ open, onOpenChange, listingToEdit }: a
           setAvailableOptions(resOpts.data["hydra:member"] || resOpts.data.member || [])
           setLocalisations(resLocs.data["hydra:member"] || resLocs.data.member || [])
         } catch (error) {
-            toast.error("Erreur lors de la récupération des options du formulaire");
+            toast.error("Erreur lors de la récupération des options");
         }
       }
       fetchData()
@@ -102,6 +108,7 @@ export default function AddListingModal({ open, onOpenChange, listingToEdit }: a
     try {
       let imageToSubmit = manualImageUrl.trim();
 
+      // Gestion Upload Image
       if (imageFile) {
         const imgData = new FormData();
         imgData.append("file", imageFile);
@@ -111,6 +118,7 @@ export default function AddListingModal({ open, onOpenChange, listingToEdit }: a
         imageToSubmit = up.data.url.startsWith('http') ? up.data.url : `${API_URL}${up.data.url}`;
       }
 
+      // Payload de base (Listing)
       const payload: any = {
         title,
         description,
@@ -122,18 +130,20 @@ export default function AddListingModal({ open, onOpenChange, listingToEdit }: a
         images: imageToSubmit ? [{ url: imageToSubmit }] : []
       };
 
+      // 💡 GESTION DE L'HÉRITAGE ET DES ENDPOINTS SPÉCIFIQUES
+      let endpoint = "listings";
       if (typeLogement === "maison") {
-        payload.gardenSize = Number(formData.get("gardenSize") || 0);
+        payload.gardenSize = parseFloat(formData.get("gardenSize")?.toString() || "0");
         payload.hasGarage = formData.get("hasGarage") === "oui";
-        payload.type = "house";
+        if (!isEditMode) endpoint = "house_listings"; // Endpoint pour créer une maison
       } else {
-        payload.numberOfRooms = Number(formData.get("numberOfRooms") || 1);
+        payload.numberOfRooms = parseInt(formData.get("numberOfRooms")?.toString() || "1");
         payload.balcony = formData.get("balcony") === "oui";
-        payload.type = "apartment";
+        if (!isEditMode) endpoint = "apartment_listings"; // Endpoint pour créer un appartement
       }
 
       if (payload.images.length === 0 || payload.options.length === 0) {
-        toast.error("Veuillez ajouter au moins une image et un équipement.");
+        toast.error("Veuillez ajouter une image et un équipement.");
         setIsLoading(false);
         return;
       }
@@ -146,27 +156,30 @@ export default function AddListingModal({ open, onOpenChange, listingToEdit }: a
         }
       };
 
+      // URL dynamique : on utilise l'id pour PATCH, l'endpoint de type pour POST
+      const finalUrl = isEditMode
+        ? `${API_URL}/api/listings/${listingToEdit.id}`
+        : `${API_URL}/api/${endpoint}`;
+
       if (isEditMode) {
-        await axios.patch(`${API_URL}/api/listings/${listingToEdit.id}`, payload, config);
+        await axios.patch(finalUrl, payload, config);
         toast.success("Annonce mise à jour !");
       } else {
-        await axios.post(`${API_URL}/api/listings`, payload, config);
-        toast.success("Annonce publiée avec succès !");
+        await axios.post(finalUrl, payload, config);
+        toast.success("Annonce publiée !");
       }
 
       onOpenChange(false);
       router.push("/dashboard#locations");
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      setTimeout(() => window.location.reload(), 500);
 
     } catch (err: any) {
+      console.error("Erreur enregistrement:", err.response?.data);
       const violations = err.response?.data?.violations;
       if (violations) {
         violations.forEach((v: any) => toast.error(v.message));
       } else {
-        toast.error("Une erreur est survenue lors de l'enregistrement.");
+        toast.error("Erreur lors de l'enregistrement.");
       }
     } finally {
       setIsLoading(false);
@@ -183,34 +196,45 @@ export default function AddListingModal({ open, onOpenChange, listingToEdit }: a
         </DialogHeader>
 
         <form className="space-y-6" onSubmit={handleSubmit}>
-          {/* TYPE BIEN */}
-          <RadioGroup value={typeLogement} onValueChange={(v) => setTypeLogement(v as any)} className="flex gap-4">
-            <div className="flex items-center space-x-2 border p-3 rounded-lg flex-1 cursor-pointer">
+          {/* SÉLECTEUR DE TYPE */}
+          <RadioGroup
+            value={typeLogement}
+            onValueChange={(v) => setTypeLogement(v as any)}
+            className="flex gap-4"
+            disabled={isEditMode}
+          >
+            <div className={`flex items-center space-x-2 border p-3 rounded-lg flex-1 cursor-pointer ${isEditMode && typeLogement !== 'maison' ? 'opacity-50' : ''}`}>
               <RadioGroupItem value="maison" id="m" />
               <Label htmlFor="m" className="cursor-pointer">Maison</Label>
             </div>
-            <div className="flex items-center space-x-2 border p-3 rounded-lg flex-1 cursor-pointer">
+            <div className={`flex items-center space-x-2 border p-3 rounded-lg flex-1 cursor-pointer ${isEditMode && typeLogement !== 'appartement' ? 'opacity-50' : ''}`}>
               <RadioGroupItem value="appartement" id="a" />
               <Label htmlFor="a" className="cursor-pointer">Appartement</Label>
             </div>
           </RadioGroup>
 
-          {/* TITRE & DESC */}
+          {/* TITRE & DESCRIPTION */}
           <div className="grid gap-4">
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titre de l'annonce *" required />
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description détaillée *" required />
+            <div className="grid gap-2">
+                <Label>Titre</Label>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Magnifique villa avec piscine" required />
+            </div>
+            <div className="grid gap-2">
+                <Label>Description</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Décrivez votre logement..." required />
+            </div>
           </div>
 
-          {/* SPECIFIQUES */}
-          <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg border">
+          {/* CHAMPS SPÉCIFIQUES HÉRITAGE */}
+          <div className="grid grid-cols-2 gap-4 bg-green-50/50 p-4 rounded-lg border border-green-100">
             {typeLogement === "maison" ? (
               <>
                 <div className="grid gap-2">
-                    <Label>Jardin (m²)</Label>
-                    <Input name="gardenSize" type="number" defaultValue={listingToEdit?.gardenSize || 0} />
+                    <Label className="text-green-800">Taille du jardin (m²)</Label>
+                    <Input name="gardenSize" type="number" step="0.01" defaultValue={listingToEdit?.gardenSize || 0} />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Garage ?</Label>
+                  <Label className="text-green-800">Garage disponible ?</Label>
                   <Select name="hasGarage" defaultValue={listingToEdit?.hasGarage ? "oui" : "non"}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -223,11 +247,11 @@ export default function AddListingModal({ open, onOpenChange, listingToEdit }: a
             ) : (
               <>
                 <div className="grid gap-2">
-                    <Label>Pièces</Label>
+                    <Label className="text-green-800">Nombre de pièces</Label>
                     <Input name="numberOfRooms" type="number" defaultValue={listingToEdit?.numberOfRooms || 1} required />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Balcon ?</Label>
+                  <Label className="text-green-800">Présence d'un balcon ?</Label>
                   <Select name="balcony" defaultValue={listingToEdit?.balcony ? "oui" : "non"}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -240,31 +264,43 @@ export default function AddListingModal({ open, onOpenChange, listingToEdit }: a
             )}
           </div>
 
-          {/* VILLE & CAT */}
+          {/* VILLE & CATÉGORIE */}
           <div className="grid grid-cols-2 gap-4">
-            <Select value={selectedCity} onValueChange={setSelectedCity} required>
-              <SelectTrigger><SelectValue placeholder="Ville *" /></SelectTrigger>
-              <SelectContent className="z-9999">
-                {localisations.map((loc) => <SelectItem key={loc.id} value={loc.id.toString()}>{loc.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory} required>
-              <SelectTrigger><SelectValue placeholder="Catégorie *" /></SelectTrigger>
-              <SelectContent className="z-9999">
-                {categories.map((cat) => <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="grid gap-2">
+                <Label>Localisation</Label>
+                <Select value={selectedCity} onValueChange={setSelectedCity} required>
+                <SelectTrigger><SelectValue placeholder="Choisir une ville" /></SelectTrigger>
+                <SelectContent>
+                    {localisations.map((loc) => <SelectItem key={loc.id} value={loc.id.toString()}>{loc.name}</SelectItem>)}
+                </SelectContent>
+                </Select>
+            </div>
+            <div className="grid gap-2">
+                <Label>Catégorie de bien</Label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory} required>
+                <SelectTrigger><SelectValue placeholder="Catégorie" /></SelectTrigger>
+                <SelectContent>
+                    {categories.map((cat) => <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>)}
+                </SelectContent>
+                </Select>
+            </div>
           </div>
 
-          {/* PRIX & CAPACITE */}
+          {/* PRIX & CAPACITÉ */}
           <div className="grid grid-cols-2 gap-4">
-            <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Prix / nuit *" required />
-            <Input type="number" value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="Capacité *" required />
+            <div className="grid gap-2">
+                <Label>Prix par nuit (€)</Label>
+                <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required />
+            </div>
+            <div className="grid gap-2">
+                <Label>Capacité d'accueil</Label>
+                <Input type="number" value={capacity} onChange={(e) => setCapacity(e.target.value)} required />
+            </div>
           </div>
 
-          {/* EQUIPEMENTS */}
-          <div className="grid gap-2 border p-4 rounded-xl">
-            <Label className="font-bold text-xs uppercase text-muted-foreground mb-2">Équipements (requis) *</Label>
+          {/* ÉQUIPEMENTS */}
+          <div className="grid gap-2 border p-4 rounded-xl bg-muted/30">
+            <Label className="font-bold text-xs uppercase text-muted-foreground mb-2">Équipements & Services *</Label>
             <div className="grid grid-cols-2 gap-3">
               {availableOptions.map((opt) => (
                 <div key={opt.id} className="flex items-center space-x-2">
@@ -284,15 +320,15 @@ export default function AddListingModal({ open, onOpenChange, listingToEdit }: a
 
           {/* PHOTOS */}
           <div className="border-t pt-4 space-y-4">
-            <Label className="font-bold">Photos *</Label>
-            <div className="grid gap-3">
-                <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
-                <div className="text-center text-xs text-muted-foreground">ou URL de l'image :</div>
+            <Label className="font-bold">Galerie Photos</Label>
+            <div className="grid gap-3 p-4 border-2 border-dashed rounded-lg">
+                <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} className="cursor-pointer" />
+                <div className="text-center text-xs text-muted-foreground font-semibold italic">OU</div>
                 <Input
                     value={manualImageUrl}
                     onChange={(e) => setManualImageUrl(e.target.value)}
                     type="url"
-                    placeholder="Lien URL (ex: Unsplash)"
+                    placeholder="URL de l'image"
                 />
             </div>
           </div>
@@ -300,7 +336,7 @@ export default function AddListingModal({ open, onOpenChange, listingToEdit }: a
           <div className="flex gap-3 justify-end pt-6 border-t">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Annuler</Button>
             <Button type="submit" disabled={isLoading} className="bg-green-600 hover:bg-green-700 text-white min-w-[140px]">
-              {isLoading ? "Envoi en cours..." : "Valider"}
+              {isLoading ? "Enregistrement..." : (isEditMode ? "Enregistrer les modifications" : "Publier l'annonce")}
             </Button>
           </div>
         </form>
