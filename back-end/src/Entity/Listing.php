@@ -27,55 +27,37 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\InheritanceType('JOINED')]
 #[ORM\DiscriminatorColumn(name: 'type', type: 'string')]
 #[ORM\DiscriminatorMap([
-    'apartment' => ApartmentListing::class,
-    'house' => HouseListing::class,
     'listing' => Listing::class,
+    'house' => HouseListing::class,
+    'apartment' => ApartmentListing::class
 ])]
 #[ApiResource(
-    forceEager: true,
-    paginationItemsPerPage: 14,
+    // 💡 CONFIGURATION GLOBALE : On définit les groupes ici pour qu'ils s'appliquent
+    // à toutes les opérations et forcent la jointure polymorphique.
+    normalizationContext: [
+        'groups' => ['listing:read', 'listing:item:read', 'house:read', 'apartment:read', 'listing:card:read'],
+        'skip_null_values' => false,
+    ],
+    denormalizationContext: [
+        'groups' => ['listing:create', 'listing:update', 'house:create', 'apartment:create', 'house:update', 'apartment:update']
+    ],
+    paginationItemsPerPage: 20,
     paginationPartial: true,
     operations: [
-        // 1. Pour ton espace "Mes Locations"
         new GetCollection(
             uriTemplate: '/my-listings',
-            security: "is_granted('ROLE_USER')",
-            normalizationContext: [
-                'groups' => ['listing:card:read', 'listing:read', 'house:read', 'apartment:read'],
-                'api_platform.swagger_definition_name' => 'Read_MyListings',
-            ]
+            security: "is_granted('ROLE_USER')"
         ),
-
-        // 2. ⚡ VUE GÉNÉRALE (Accueil)
-        new GetCollection(
-            normalizationContext: [
-                'groups' => ['listing:card:read', 'house:read', 'apartment:read'],
-                'api_platform.swagger_definition_name' => 'Read_Collection',
-            ]
-        ),
-
-        // 3. Détails d'une annonce
-        new Get(
-            normalizationContext: [
-                'groups' => ['listing:read', 'listing:item:read', 'house:read', 'apartment:read'],
-                'api_platform.swagger_definition_name' => 'Read_Item',
-            ]
-        ),
-
-        // 4. Création
+        new GetCollection(),
+        new Get(),
         new Post(
             processor: ListingOwnerProcessor::class,
-            security: "is_granted('ROLE_PROPRIETAIRE') or is_granted('ROLE_ADMIN')",
-            denormalizationContext: ['groups' => ['listing:create', 'house:create', 'apartment:create']]
+            security: "is_granted('ROLE_PROPRIETAIRE') or is_granted('ROLE_ADMIN')"
         ),
-
-        // 5. Modification
         new Patch(
             processor: ListingOwnerProcessor::class,
-            security: "is_granted('ROLE_ADMIN') or object.getOwner() == user",
-            denormalizationContext: ['groups' => ['listing:update', 'house:update', 'apartment:update']]
+            security: "is_granted('ROLE_ADMIN') or object.getOwner() == user"
         ),
-
         new Delete(
             security: "is_granted('ROLE_ADMIN') or object.getOwner() == user"
         ),
@@ -86,7 +68,6 @@ use Symfony\Component\Validator\Constraints as Assert;
     'capacity' => 'gte',
     'localisation' => 'exact'
 ])]
-// 💡 TEST : Commentez cette ligne si l'ID 31 n'apparaît toujours pas
 #[ApiFilter(ListingAvailabilityFilter::class)]
 class Listing
 {
@@ -99,22 +80,22 @@ class Listing
     #[ORM\Column(length: 255)]
     #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
     #[Assert\NotBlank]
-    protected ?string $title = null;
+    private ?string $title = null;
 
     #[ORM\Column(type: Types::TEXT)]
     #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:update'])]
     #[Assert\NotBlank]
-    protected ?string $description = null;
+    private ?string $description = null;
 
     #[ORM\Column]
     #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
     #[Assert\PositiveOrZero]
-    protected ?float $pricePerNight = null;
+    private ?float $pricePerNight = null;
 
     #[ORM\Column]
     #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
     #[Assert\Positive]
-    protected ?int $capacity = null;
+    private ?int $capacity = null;
 
     #[ORM\ManyToOne(inversedBy: 'listings')]
     #[Groups(['listing:read', 'listing:item:read', 'listing:card:read'])]
@@ -125,34 +106,34 @@ class Listing
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
     #[Assert\NotNull]
-    protected ?Category $category = null;
+    private ?Category $category = null;
 
     #[ORM\ManyToOne(targetEntity: Localisation::class, fetch: 'EAGER')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['listing:read', 'listing:item:read', 'listing:card:read', 'listing:create', 'listing:update'])]
     #[Assert\NotNull(message: "La localisation est obligatoire.")]
-    protected ?Localisation $localisation = null;
+    private ?Localisation $localisation = null;
 
     #[ORM\OneToMany(targetEntity: Booking::class, mappedBy: 'listing', orphanRemoval: true)]
     #[Groups(['listing:item:read'])]
-    protected Collection $bookings;
+    private Collection $bookings;
 
     #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'listing', cascade: ['persist', 'remove'], orphanRemoval: true, fetch: 'EAGER')]
     #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:card:read', 'booking:read'])]
     #[Assert\Count(min: 1, minMessage: "Une annonce doit obligatoirement avoir au moins une image.")]
-    protected Collection $images;
+    private Collection $images;
 
     #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'listing', orphanRemoval: true)]
     #[Groups(['listing:item:read', 'listing:card:read'])]
-    protected Collection $reviews;
+    private Collection $reviews;
 
     #[ORM\ManyToMany(targetEntity: Option::class, inversedBy: 'listings')]
     #[Groups(['listing:read', 'listing:create', 'listing:update'])]
     #[Assert\Count(min: 1, minMessage: "Vous devez sélectionner au moins une option.")]
-    protected Collection $options;
+    private Collection $options;
 
     #[ORM\OneToMany(targetEntity: Favorite::class, mappedBy: 'listing', orphanRemoval: true)]
-    protected Collection $favoriteListings;
+    private Collection $favoriteListings;
 
     public function __construct()
     {
@@ -163,7 +144,6 @@ class Listing
         $this->favoriteListings = new ArrayCollection();
     }
 
-    // --- GETTERS & SETTERS ---
     public function getId(): ?int { return $this->id; }
     public function getTitle(): ?string { return $this->title; }
     public function setTitle(string $title): static { $this->title = $title; return $this; }
@@ -212,10 +192,5 @@ class Listing
     {
         $this->options->removeElement($option);
         return $this;
-    }
-
-    public function __toString()
-    {
-        return $this->title;
     }
 }
