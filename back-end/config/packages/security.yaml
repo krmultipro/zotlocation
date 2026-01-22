@@ -23,13 +23,6 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
-        # 💡 NOUVEAU FIREWALL PUBLIC : Permet les requêtes GET /api/bookings sans JWT.
-        # Il DOIT être placé avant 'api' pour être évalué en premier.
-        public_api:
-            pattern: ^/api/bookings
-            security: false # <--- La clé : Ignore complètement le système de sécurité
-            methods: [GET]
-
         # 🔥 Firewall principal pour l'API
         api:
             pattern: ^/api
@@ -72,7 +65,8 @@ security:
         - { path: ^/api/reviews, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/localisations, roles: PUBLIC_ACCESS, methods: [GET] }
 
-        # Le GET /api/bookings est géré par le firewall 'public_api', donc on retire la règle ici.
+        # Autoriser GET /api/bookings sans JWT, tout en laissant passer l'auth si fournie.
+        - { path: ^/api/bookings, roles: PUBLIC_ACCESS, methods: [GET] }
 
         # GET /api
         - { path: ^/api$, methods: [GET], roles: PUBLIC_ACCESS }

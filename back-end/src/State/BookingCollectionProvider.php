@@ -9,12 +9,14 @@ use ApiPlatform\State\ProviderInterface;
 use App\Entity\Booking;
 use App\Repository\BookingRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Bundle\SecurityBundle\Security;
 
 final class BookingCollectionProvider implements ProviderInterface
 {
     public function __construct(
         private BookingRepository $bookingRepository,
-        private RequestStack $requestStack
+        private RequestStack $requestStack,
+        private Security $security
     ) {}
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
@@ -27,6 +29,13 @@ final class BookingCollectionProvider implements ProviderInterface
         $request = $this->requestStack->getMainRequest();
         if (!$request) {
             return [];
+        }
+
+        $user = $this->security->getUser();
+
+          if ($user && $this->security->isGranted('ROLE_ADMIN')) {
+            return $this->bookingRepository->findBy([], ['startDate' => 'DESC']);
+;
         }
 
         // Récupération des deux filtres possibles
