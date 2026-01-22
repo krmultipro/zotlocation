@@ -22,49 +22,60 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ListingRepository::class)]
 #[ORM\Table(name: 'listing')]
-// 🚀 OPTIMISATION SQL : Index pour accélérer le filtrage par catégorie et ville
 #[ORM\Index(columns: ['category_id'], name: 'idx_listing_category')]
 #[ORM\Index(columns: ['localisation_id'], name: 'idx_listing_localisation')]
 #[ORM\InheritanceType('JOINED')]
 #[ORM\DiscriminatorColumn(name: 'type', type: 'string')]
 #[ORM\DiscriminatorMap([
-    'listing' => Listing::class,
+    'apartment' => ApartmentListing::class,
     'house' => HouseListing::class,
-    'apartment' => ApartmentListing::class
+    'listing' => Listing::class,
 ])]
 #[ApiResource(
+    forceEager: true,
     paginationItemsPerPage: 14,
-    paginationClientItemsPerPage: true,
-    paginationMaximumItemsPerPage: 50,
-    // ⚡ VITESSE : Désactive le COUNT(*) total qui ralentit PostgreSQL sur Alwaysdata
     paginationPartial: true,
-    cacheHeaders: [
-        'max_age' => 60,
-        'shared_max_age' => 3600,
-        'vary' => ['Authorization', 'Accept']
-    ],
     operations: [
+        // 1. Pour ton espace "Mes Locations"
         new GetCollection(
             uriTemplate: '/my-listings',
             security: "is_granted('ROLE_USER')",
-            normalizationContext: ['groups' => ['listing:card:read']]
+            normalizationContext: [
+                'groups' => ['listing:card:read', 'listing:read', 'house:read', 'apartment:read'],
+                'api_platform.swagger_definition_name' => 'Read_MyListings',
+            ]
         ),
+
+        // 2. ⚡ VUE GÉNÉRALE (Accueil)
         new GetCollection(
-            normalizationContext: ['groups' => ['listing:card:read']]
+            normalizationContext: [
+                'groups' => ['listing:card:read', 'house:read', 'apartment:read'],
+                'api_platform.swagger_definition_name' => 'Read_Collection',
+            ]
         ),
+
+        // 3. Détails d'une annonce
         new Get(
-            normalizationContext: ['groups' => ['listing:read', 'listing:item:read']]
+            normalizationContext: [
+                'groups' => ['listing:read', 'listing:item:read', 'house:read', 'apartment:read'],
+                'api_platform.swagger_definition_name' => 'Read_Item',
+            ]
         ),
+
+        // 4. Création
         new Post(
             processor: ListingOwnerProcessor::class,
             security: "is_granted('ROLE_PROPRIETAIRE') or is_granted('ROLE_ADMIN')",
-            denormalizationContext: ['groups' => ['listing:create']]
+            denormalizationContext: ['groups' => ['listing:create', 'house:create', 'apartment:create']]
         ),
+
+        // 5. Modification
         new Patch(
             processor: ListingOwnerProcessor::class,
             security: "is_granted('ROLE_ADMIN') or object.getOwner() == user",
-            denormalizationContext: ['groups' => ['listing:update']]
+            denormalizationContext: ['groups' => ['listing:update', 'house:update', 'apartment:update']]
         ),
+
         new Delete(
             security: "is_granted('ROLE_ADMIN') or object.getOwner() == user"
         ),
@@ -75,6 +86,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     'capacity' => 'gte',
     'localisation' => 'exact'
 ])]
+// 💡 TEST : Commentez cette ligne si l'ID 31 n'apparaît toujours pas
 #[ApiFilter(ListingAvailabilityFilter::class)]
 class Listing
 {
@@ -87,26 +99,25 @@ class Listing
     #[ORM\Column(length: 255)]
     #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
     #[Assert\NotBlank]
-    private ?string $title = null;
+    protected ?string $title = null;
 
     #[ORM\Column(type: Types::TEXT)]
     #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:update'])]
     #[Assert\NotBlank]
-    private ?string $description = null;
+    protected ?string $description = null;
 
     #[ORM\Column]
     #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
     #[Assert\PositiveOrZero]
-    private ?float $pricePerNight = null;
+    protected ?float $pricePerNight = null;
 
     #[ORM\Column]
     #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
     #[Assert\Positive]
-    private ?int $capacity = null;
+    protected ?int $capacity = null;
 
     #[ORM\ManyToOne(inversedBy: 'listings')]
-    // ❌ Nettoyage : On retire 'listing:card:read' pour éviter les requêtes Profile en boucle
-    #[Groups(['listing:read', 'listing:item:read'])]
+    #[Groups(['listing:read', 'listing:item:read', 'listing:card:read'])]
     #[Assert\Valid]
     private ?User $owner = null;
 
@@ -114,34 +125,34 @@ class Listing
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
     #[Assert\NotNull]
-    private ?Category $category = null;
+    protected ?Category $category = null;
 
     #[ORM\ManyToOne(targetEntity: Localisation::class, fetch: 'EAGER')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['listing:read', 'listing:item:read', 'listing:card:read', 'listing:create', 'listing:update'])]
     #[Assert\NotNull(message: "La localisation est obligatoire.")]
-    private ?Localisation $localisation = null;
+    protected ?Localisation $localisation = null;
 
     #[ORM\OneToMany(targetEntity: Booking::class, mappedBy: 'listing', orphanRemoval: true)]
     #[Groups(['listing:item:read'])]
-    private Collection $bookings;
+    protected Collection $bookings;
 
     #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'listing', cascade: ['persist', 'remove'], orphanRemoval: true, fetch: 'EAGER')]
     #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:card:read', 'booking:read'])]
     #[Assert\Count(min: 1, minMessage: "Une annonce doit obligatoirement avoir au moins une image.")]
-    private Collection $images;
+    protected Collection $images;
 
     #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'listing', orphanRemoval: true)]
     #[Groups(['listing:item:read', 'listing:card:read'])]
-    private Collection $reviews;
+    protected Collection $reviews;
 
     #[ORM\ManyToMany(targetEntity: Option::class, inversedBy: 'listings')]
     #[Groups(['listing:read', 'listing:create', 'listing:update'])]
     #[Assert\Count(min: 1, minMessage: "Vous devez sélectionner au moins une option.")]
-    private Collection $options;
+    protected Collection $options;
 
     #[ORM\OneToMany(targetEntity: Favorite::class, mappedBy: 'listing', orphanRemoval: true)]
-    private Collection $favoriteListings;
+    protected Collection $favoriteListings;
 
     public function __construct()
     {
@@ -174,7 +185,6 @@ class Listing
     public function getOptions(): Collection { return $this->options; }
     public function getFavoriteListings(): Collection { return $this->favoriteListings; }
 
-    // --- MAPPING LOGIQUE (ADD / REMOVE) ---
     public function addImage(Image $image): static
     {
         if (!$this->images->contains($image)) {
@@ -202,5 +212,10 @@ class Listing
     {
         $this->options->removeElement($option);
         return $this;
+    }
+
+    public function __toString()
+    {
+        return $this->title;
     }
 }
