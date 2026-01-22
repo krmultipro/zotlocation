@@ -21,10 +21,20 @@ class StripeController extends AbstractController
             return new JsonResponse(['error' => 'Accès non autorisé'], 403);
         }
 
-        // 2. Configuration de Stripe (une seule ligne suffit)
-        Stripe::setApiKey($_ENV['STRIPE_SECRET_KEY']);
+        // 2. Configuration de Stripe
+        // On s'assure que la clé API est bien présente dans le .env
+        $stripeSecretKey = $_ENV['STRIPE_SECRET_KEY'] ?? null;
+        if (!$stripeSecretKey) {
+            return new JsonResponse(['error' => 'Configuration Stripe manquante'], 500);
+        }
 
-        // 3. Création de la session Stripe
+        Stripe::setApiKey($stripeSecretKey);
+
+        // 3. Récupération de l'URL de redirection depuis le .env racine
+        // On retire un éventuel slash final pour construire une URL propre
+        $baseUrl = rtrim($_ENV['FRONTEND_URL'] ?? 'http://localhost:8080', '/');
+
+        // 4. Création de la session Stripe
         $session = Session::create([
             'payment_method_types' => ['card'],
             'line_items' => [[
@@ -38,8 +48,8 @@ class StripeController extends AbstractController
                             $booking->getEndDate()->format('d/m/Y')
                         ),
                     ],
-                    // Stripe veut des centimes
-                    'unit_amount' => (int)($booking->getTotalPrice() * 100),
+                    // Stripe attend des centimes (ex: 100.50€ -> 10050)
+                    'unit_amount' => (int)round($booking->getTotalPrice() * 100),
                 ],
                 'quantity' => 1,
             ]],
@@ -47,9 +57,9 @@ class StripeController extends AbstractController
             'metadata' => [
                 'booking_id' => $booking->getId()
             ],
-            // 💡 URLs vers Dashboard
-            'success_url' => 'http://localhost:3000/dashboard/reservations?payment=success',
-            'cancel_url' => 'http://localhost:3000/dashboard/reservations?payment=cancel',
+            // 💡 Utilisation de l'URL dynamique (localhost:8080)
+            'success_url' => $baseUrl . '/dashboard/reservations?payment=success',
+            'cancel_url' => $baseUrl . '/dashboard/reservations?payment=cancel',
         ]);
 
         return new JsonResponse(['url' => $session->url]);
