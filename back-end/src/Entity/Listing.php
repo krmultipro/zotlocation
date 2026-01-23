@@ -32,8 +32,6 @@ use Symfony\Component\Validator\Constraints as Assert;
     'apartment' => ApartmentListing::class
 ])]
 #[ApiResource(
-    // 💡 CONFIGURATION GLOBALE : On définit les groupes ici pour qu'ils s'appliquent
-    // à toutes les opérations et forcent la jointure polymorphique.
     normalizationContext: [
         'groups' => ['listing:read', 'listing:item:read', 'house:read', 'apartment:read', 'listing:card:read'],
         'skip_null_values' => false,
@@ -74,11 +72,11 @@ class Listing
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['listing:read', 'booking:read', 'review:read', 'listing:card:read'])]
+    #[Groups(['listing:read', 'booking:read', 'review:read', 'listing:card:read', 'listing:item:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
+    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read', 'listing:item:read'])]
     #[Assert\NotBlank]
     private ?string $title = null;
 
@@ -88,12 +86,12 @@ class Listing
     private ?string $description = null;
 
     #[ORM\Column]
-    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
+    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read', 'listing:item:read'])]
     #[Assert\PositiveOrZero]
     private ?float $pricePerNight = null;
 
     #[ORM\Column]
-    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
+    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read', 'listing:item:read'])]
     #[Assert\Positive]
     private ?int $capacity = null;
 
@@ -104,13 +102,13 @@ class Listing
 
     #[ORM\ManyToOne(inversedBy: 'listings', fetch: 'EAGER')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
+    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
     #[Assert\NotNull]
     private ?Category $category = null;
 
     #[ORM\ManyToOne(targetEntity: Localisation::class, fetch: 'EAGER')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['listing:read', 'listing:item:read', 'listing:card:read', 'listing:create', 'listing:update'])]
+    #[Groups(['listing:read', 'listing:item:read', 'listing:card:read', 'listing:create', 'listing:update', 'booking:read'])]
     #[Assert\NotNull(message: "La localisation est obligatoire.")]
     private ?Localisation $localisation = null;
 
@@ -128,7 +126,7 @@ class Listing
     private Collection $reviews;
 
     #[ORM\ManyToMany(targetEntity: Option::class, inversedBy: 'listings')]
-    #[Groups(['listing:read', 'listing:create', 'listing:update'])]
+    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:item:read'])]
     #[Assert\Count(min: 1, minMessage: "Vous devez sélectionner au moins une option.")]
     private Collection $options;
 
