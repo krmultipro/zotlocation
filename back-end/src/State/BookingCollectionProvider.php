@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
@@ -21,47 +20,46 @@ final class BookingCollectionProvider implements ProviderInterface
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
     {
-        // On s'assure qu'on gère seulement le GetCollection pour Booking
         if ($operation->getClass() !== Booking::class || !$operation instanceof GetCollection) {
             return null;
         }
 
         $request = $this->requestStack->getMainRequest();
-        if (!$request) {
-            return [];
-        }
-
         $user = $this->security->getUser();
 
-          if ($user && $this->security->isGranted('ROLE_ADMIN')) {
+        // 1. Si c'est un ADMIN, on lui donne tout (ton code actuel)
+        if ($user && $this->security->isGranted('ROLE_ADMIN')) {
             return $this->bookingRepository->findBy([], ['startDate' => 'DESC']);
-;
         }
 
-        // Récupération des deux filtres possibles
-        $listingId = $request->query->get('listing');
-        $bookerId = $request->query->get('booker');
+        // 2. Récupération des filtres dans l'URL
+        $listingId = $request ? $request->query->get('listing') : null;
+        $bookerId = $request ? $request->query->get('booker') : null;
 
-        // --- CAS 1 : Filtre par Listing (Calendrier de l'annonce) ---
+        // --- CAS 1 : Calendrier de l'annonce (Filtre listing) ---
         if ($listingId && is_numeric($listingId)) {
-            $bookings = $this->bookingRepository->findBookingsByListingId((int) $listingId);
-            error_log("[DEBUG PROVIDER] Calendrier : " . count($bookings) . " réservations trouvées pour Listing $listingId");
-            return $bookings;
+            return $this->bookingRepository->findBookingsByListingId((int) $listingId);
         }
 
-        // --- CAS 2 : Filtre par Booker (Dashboard de l'utilisateur) ---
+        // --- CAS 2 : Filtre booker explicite ---
         if ($bookerId && is_numeric($bookerId)) {
-            // On utilise findBy de base pour récupérer les réservations de l'utilisateur
-            $bookings = $this->bookingRepository->findBy(
+            return $this->bookingRepository->findBy(
                 ['booker' => (int) $bookerId],
                 ['startDate' => 'DESC']
             );
-            error_log("[DEBUG PROVIDER] Dashboard : " . count($bookings) . " réservations trouvées pour Booker $bookerId");
-            return $bookings;
         }
 
-        // Si aucun des deux filtres n'est présent, on retourne un tableau vide
-        // pour ne pas exposer toutes les réservations du site publiquement
+        // --- 💡 CAS 3 (INDISPENSABLE) : Pas de filtre, on prend l'utilisateur connecté ---
+        // Si l'utilisateur est connecté mais n'a pas mis de ?booker= dans l'URL,
+        // on lui renvoie ses propres réservations automatiquement.
+        if ($user) {
+            return $this->bookingRepository->findBy(
+                ['booker' => $user],
+                ['startDate' => 'DESC']
+            );
+        }
+
+        // Si vraiment personne n'est connecté et aucun filtre, vide.
         return [];
     }
 }

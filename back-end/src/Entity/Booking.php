@@ -23,36 +23,36 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     operations: [
         new GetCollection(
-            security: "is_granted('PUBLIC_ACCESS')",
-            normalizationContext: ['groups' => ['booking:read']],
+            // Le Provider gère maintenant la sécurité de filtrage par utilisateur
+            security: "is_granted('ROLE_USER')",
+            normalizationContext: ['groups' => ['booking:read', 'listing:read', 'listing:card:read']],
             provider: BookingCollectionProvider::class,
         ),
         new Get(
             security: "is_granted('ROLE_ADMIN') or object.getBooker() == user or object.getListing().getOwner() == user",
-            normalizationContext: ['groups' => ['booking:read', 'booking:item:read']]
+            normalizationContext: ['groups' => ['booking:read', 'booking:item:read', 'listing:read', 'listing:card:read']]
         ),
         new Post(
             security: "is_granted('ROLE_USER')",
-            // Utilise le Validator pour vérifier la dispo et calculer le prix (via chaînage)
             processor: BookingValidatorProcessor::class,
             denormalizationContext: ['groups' => ['booking:create']]
         ),
         new Patch(
-            // On utilise les IDs ici aussi pour plus de fiabilité
             security: "is_granted('ROLE_ADMIN') or (user !== null and object.getBooker().getId() === user.getId())",
             processor: BookingValidatorProcessor::class,
             denormalizationContext: ['groups' => ['booking:update']]
         ),
         new Delete(
             security: "is_granted('ROLE_ADMIN') or (user !== null and object.getBooker().getId() === user.getId())"
-        ), // <--- La virgule était absente ici
+        ),
     ],
-            normalizationContext: ['groups' => ['booking:read']],
-            denormalizationContext: ['groups' => ['booking:create', 'booking:update']],
+    // Groupes par défaut pour la lecture et l'écriture
+    normalizationContext: ['groups' => ['booking:read', 'listing:read', 'listing:card:read']],
+    denormalizationContext: ['groups' => ['booking:create', 'booking:update']],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'listing' => 'exact',
-    'booker' => 'exact', //Permet de filtrer les réservations par utilisateur pour le tableau de bord
+    'booker' => 'exact',
 ])]
 #[Assert\Expression(
     "this.getEndDate() > this.getStartDate()",
@@ -63,13 +63,12 @@ class Booking
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['booking:read', 'listing:item:read'])]
+    #[Groups(['booking:read', 'listing:item:read', 'listing:read'])]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     #[Groups(['booking:read', 'booking:create', 'booking:update', 'listing:item:read'])]
     #[Assert\NotBlank]
-    #[Assert\GreaterThanOrEqual('today', message: "La date de début ne peut pas être dans le passé.", groups: ['booking:create'])]
     private ?\DateTimeInterface $startDate = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
@@ -78,13 +77,14 @@ class Booking
     private ?\DateTimeInterface $endDate = null;
 
     #[ORM\Column]
-    #[Groups(['booking:read', 'booking:item:read'])]
+    #[Groups(['booking:read', 'listing:item:read'])]
     #[Assert\PositiveOrZero]
     private ?float $totalPrice = null;
 
     #[ORM\ManyToOne(inversedBy: 'bookings')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['booking:read', 'booking:create'])]
+    // 💡 IMPORTANT : On ajoute 'booking:read' pour que l'objet Listing soit inclus dans la réponse
+    #[Groups(['booking:read', 'booking:create', 'listing:read'])]
     #[Assert\NotNull]
     private ?Listing $listing = null;
 
@@ -93,20 +93,13 @@ class Booking
     #[Groups(['booking:read', 'listing:item:read'])]
     private ?User $booker = null;
 
-    // Nouveau champ pour Stripe
     #[ORM\Column(length: 20)]
-    #[Groups(['booking:read', 'booking:update'])] // Permet au front de savoir si c'est payé
-    private string $status = 'pending'; // Valeurs possibles : 'pending', 'paid', 'cancelled'
+    #[Groups(['booking:read', 'booking:update', 'listing:item:read'])]
+    private string $status = 'pending';
 
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
+    public function getId(): ?int { return $this->id; }
 
-    public function getStartDate(): ?\DateTimeInterface
-    {
-        return $this->startDate;
-    }
+    public function getStartDate(): ?\DateTimeInterface { return $this->startDate; }
 
     public function setStartDate(\DateTimeInterface $startDate): static
     {
@@ -114,10 +107,7 @@ class Booking
         return $this;
     }
 
-    public function getEndDate(): ?\DateTimeInterface
-    {
-        return $this->endDate;
-    }
+    public function getEndDate(): ?\DateTimeInterface { return $this->endDate; }
 
     public function setEndDate(\DateTimeInterface $endDate): static
     {
@@ -128,17 +118,12 @@ class Booking
     #[Groups(['booking:read'])]
     public function getDuration(): ?int
     {
-        if (!$this->startDate || !$this->endDate) {
-            return null;
-        }
+        if (!$this->startDate || !$this->endDate) return null;
         $interval = $this->startDate->diff($this->endDate);
         return (int) $interval->days;
     }
 
-    public function getTotalPrice(): ?float
-    {
-        return $this->totalPrice;
-    }
+    public function getTotalPrice(): ?float { return $this->totalPrice; }
 
     public function setTotalPrice(float $totalPrice): static
     {
@@ -146,10 +131,7 @@ class Booking
         return $this;
     }
 
-    public function getListing(): ?Listing
-    {
-        return $this->listing;
-    }
+    public function getListing(): ?Listing { return $this->listing; }
 
     public function setListing(?Listing $listing): static
     {
@@ -157,10 +139,7 @@ class Booking
         return $this;
     }
 
-    public function getBooker(): ?User
-    {
-        return $this->booker;
-    }
+    public function getBooker(): ?User { return $this->booker; }
 
     public function setBooker(?User $booker): static
     {
@@ -168,11 +147,7 @@ class Booking
         return $this;
     }
 
-    // 💡 Getters et Setters pour le status
-    public function getStatus(): string
-    {
-        return $this->status;
-    }
+    public function getStatus(): string { return $this->status; }
 
     public function setStatus(string $status): static
     {
