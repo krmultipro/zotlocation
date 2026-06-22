@@ -14,7 +14,7 @@ import useLoginModal from "../../app/hooks/useLoginModal"
 import useRegisterModal from "../../app/hooks/useRegisterModal"
 import CustomButton from "../CustomButton"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8085"
 const SYMFONY_REGISTER_URL = `${API_URL}/api/users`
 const SYMFONY_LOGIN_CHECK_URL = `${API_URL}/api/login_check`
 
@@ -60,7 +60,7 @@ const RegisterModal = () => {
       setAvatarPreview(value)
       setValue("avatar", value, { shouldValidate: true, shouldDirty: true })
     },
-    [setValue]
+    [setValue],
   )
 
   const onToggle = () => {
@@ -102,11 +102,11 @@ const RegisterModal = () => {
           setErrorMessage(
             error.response.data.violations
               .map((v: any) => v.message)
-              .join(" | ")
+              .join(" | "),
           )
         } else {
           setErrorMessage(
-            error.response.data.detail || "Erreur lors de l'inscription."
+            error.response.data.detail || "Erreur lors de l'inscription.",
           )
         }
       } else {

@@ -8,7 +8,7 @@ import React, {
   useContext,
   useEffect,
   useState,
-} from "react";
+} from "react"
 
 interface Listing {
   id: number
@@ -45,7 +45,8 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [trigger, setTrigger] = useState(0) // On garde un entier simple pour l'hydratation
 
   const fetchBookings = useCallback(async () => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
 
     if (!token) {
       setBookings([])
@@ -55,10 +56,12 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setIsLoading(true)
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:8000"
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || "https://localhost:8085"
       let userId: number | null = null
 
-      const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null
+      const storedUser =
+        typeof window !== "undefined" ? localStorage.getItem("user") : null
       if (storedUser) {
         try {
           const parsed = JSON.parse(storedUser)
@@ -85,18 +88,24 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // 💡 ANTI-CACHE : On génère le timestamp ICI, pas dans le state
       // Cela force le navigateur à ignorer le cache sans casser l'hydratation Next.js
-      const cacheBuster = Date.now();
-      const res = await fetch(`${API_URL}/api/bookings?booker=${userId}&t=${cacheBuster}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/ld+json",
+      const cacheBuster = Date.now()
+      const res = await fetch(
+        `${API_URL}/api/bookings?booker=${userId}&t=${cacheBuster}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/ld+json",
+          },
         },
-      })
+      )
 
       if (!res.ok) throw new Error(`Erreur serveur: ${res.status}`)
 
       const data = await res.json()
-      const bookingsArray = data["member"] || data["hydra:member"] || (Array.isArray(data) ? data : [])
+      const bookingsArray =
+        data["member"] ||
+        data["hydra:member"] ||
+        (Array.isArray(data) ? data : [])
 
       setBookings(bookingsArray)
     } catch (err) {
@@ -108,8 +117,8 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const refreshBookings = useCallback(() => {
     // On incrémente simplement pour déclencher l'useEffect
-    setTrigger((prev) => prev + 1);
-  }, []);
+    setTrigger((prev) => prev + 1)
+  }, [])
 
   useEffect(() => {
     fetchBookings()
@@ -124,7 +133,9 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [fetchBookings, refreshBookings])
 
   return (
-    <ReservationsContext.Provider value={{ bookings, isLoading, refreshBookings }}>
+    <ReservationsContext.Provider
+      value={{ bookings, isLoading, refreshBookings }}
+    >
       {children}
     </ReservationsContext.Provider>
   )
@@ -132,6 +143,9 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
 export const useReservations = () => {
   const context = useContext(ReservationsContext)
-  if (!context) throw new Error("useReservations doit être utilisé dans un ReservationsProvider")
+  if (!context)
+    throw new Error(
+      "useReservations doit être utilisé dans un ReservationsProvider",
+    )
   return context
 }

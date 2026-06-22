@@ -6,7 +6,7 @@ import React, {
   useContext,
   useEffect,
   useState,
-} from "react";
+} from "react"
 
 interface FavoriteItem {
   id: number
@@ -31,7 +31,8 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
   const [trigger, setTrigger] = useState(0)
 
   const fetchFavorites = useCallback(async () => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
 
     if (!token) {
       setFavorites([])
@@ -40,7 +41,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8085"
       // 💡 Ajout de l'anti-cache ?t=
       const res = await fetch(`${API_URL}/api/favorites?t=${Date.now()}`, {
         headers: {
@@ -68,7 +69,8 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const handleGlobalUpdate = () => setTrigger((prev) => prev + 1)
     window.addEventListener("favorites:updated", handleGlobalUpdate)
-    return () => window.removeEventListener("favorites:updated", handleGlobalUpdate)
+    return () =>
+      window.removeEventListener("favorites:updated", handleGlobalUpdate)
   }, [])
 
   const refreshFavorites = useCallback(() => {
@@ -82,11 +84,11 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
   const getFavoriteIdByListingId = useCallback(
     (listingId: string) => {
       const found = favorites.find(
-        (fav) => fav.listing.id.toString() === listingId
+        (fav) => fav.listing.id.toString() === listingId,
       )
       return found ? found.id.toString() : null
     },
-    [favorites]
+    [favorites],
   )
 
   return (
@@ -106,6 +108,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({
 
 export const useFavorites = () => {
   const context = useContext(FavoritesContext)
-  if (!context) throw new Error("useFavorites doit être utilisé dans un FavoritesProvider")
+  if (!context)
+    throw new Error("useFavorites doit être utilisé dans un FavoritesProvider")
   return context
 }

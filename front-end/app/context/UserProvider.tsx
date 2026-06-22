@@ -19,7 +19,7 @@ interface UserContextType {
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8085"
 const SYMFONY_ME_URL = `${API_URL}/api/me`
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {

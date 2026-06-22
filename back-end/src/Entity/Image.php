@@ -34,17 +34,19 @@ class Image
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['image:read', 'listing:read', 'listing:create'])]
+    // 🚀 Groupes mis à jour pour assurer la présence de l'ID côté React
+    #[Groups(['image:read', 'listing:read', 'listing:create', 'listing:card:read', 'listing:item:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Groups([
         'image:read',
         'image:create',
-        'listing:read',      // Nécessaire pour l'affichage de l'image sur le listing complet
+        'listing:read',
         'listing:create',
-        'listing:card:read', // Nécessaire pour l'affichage de l'image sur la carte (collection)
-        'booking:read'       // Nécessaire pour l'affichage de l'image sur les réservations
+        'listing:card:read',
+        'listing:item:read', // 🚀 Débloque l'affichage de l'image sur la vue détaillée
+        'booking:read'
     ])]
     #[Assert\NotBlank(message: "L'URL de l'image est obligatoire.")]
     #[Assert\Url(message: "Ceci n'est pas une URL valide.")]
@@ -52,7 +54,6 @@ class Image
 
     #[ORM\ManyToOne(inversedBy: 'images')]
     #[ORM\JoinColumn(nullable: false)]
-    // Ce groupe doit UNIQUEMENT être en écriture pour éviter la boucle infinie.
     #[Groups(['image:create'])]
     private ?Listing $listing = null;
 
