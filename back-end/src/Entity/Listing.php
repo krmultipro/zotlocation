@@ -46,10 +46,24 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new GetCollection(
             uriTemplate: '/my-listings',
+            normalizationContext: [
+                'groups' => ['listing:card:read', 'house:card:read', 'apartment:card:read'],
+                'skip_null_values' => false,
+            ],
             security: "is_granted('ROLE_USER')"
         ),
-        new GetCollection(),
-        new Get(),
+        new GetCollection(
+            normalizationContext: [
+                'groups' => ['listing:card:read', 'house:card:read', 'apartment:card:read'],
+                'skip_null_values' => false,
+            ]
+        ),
+        new Get(
+            normalizationContext: [
+                'groups' => ['listing:read', 'listing:item:read', 'house:read', 'apartment:read'],
+                'skip_null_values' => false,
+            ]
+        ),
         new Post(
             processor: ListingOwnerProcessor::class,
             security: "is_granted('ROLE_PROPRIETAIRE') or is_granted('ROLE_ADMIN')"
@@ -98,7 +112,7 @@ class Listing
     private ?int $capacity = null;
 
     #[ORM\ManyToOne(inversedBy: 'listings')]
-    #[Groups(['listing:read', 'listing:item:read', 'listing:card:read'])]
+    #[Groups(['listing:read', 'listing:item:read'])]
     #[Assert\Valid]
     private ?User $owner = null;
 

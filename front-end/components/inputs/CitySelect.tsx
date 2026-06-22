@@ -10,6 +10,11 @@ export type CitySelectValue = {
   latlng: number[]
 }
 
+type LocalisationApiItem = {
+  id: number | string
+  name: string
+}
+
 interface CitySelectProps {
   value?: CitySelectValue | null
   onChange: (val: CitySelectValue | null) => void
@@ -60,7 +65,7 @@ const CitySelect: React.FC<CitySelectProps> = ({ value, onChange }) => {
         const data = response.data["hydra:member"] || response.data["member"] || [];
 
         if (Array.isArray(data)) {
-            const formattedOptions = data.map((city: any) => {
+            const formattedOptions = data.map((city: LocalisationApiItem) => {
               const coords = CITY_COORDINATES[city.name] || { lat: -21.1151, lng: 55.5364 };
               return {
                 label: city.name,
