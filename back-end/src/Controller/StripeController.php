@@ -32,7 +32,7 @@ class StripeController extends AbstractController
 
         // 3. Récupération de l'URL de redirection depuis le .env racine
         // On retire un éventuel slash final pour construire une URL propre
-        $baseUrl = rtrim($_ENV['FRONTEND_URL'] ?? 'http://localhost:8080', '/');
+        $baseUrl = rtrim($_ENV['FRONTEND_URL'] ?? 'http://localhost:8085', '/');
 
         // 4. Création de la session Stripe
         $session = Session::create([
@@ -57,7 +57,7 @@ class StripeController extends AbstractController
             'metadata' => [
                 'booking_id' => $booking->getId()
             ],
-            // 💡 Utilisation de l'URL dynamique (localhost:8080)
+            // 💡 Utilisation de l'URL dynamique (localhost:8085)
             'success_url' => $baseUrl . '/dashboard/reservations?payment=success',
             'cancel_url' => $baseUrl . '/dashboard/reservations?payment=cancel',
         ]);
