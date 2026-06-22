@@ -32,12 +32,12 @@ services:
     depends_on:
       - db
     ports:
-      - "8001:8000"
+      - "8001:8085"
     command: >
       sh -c "
       composer install &&
       php bin/console doctrine:migrations:migrate --no-interaction &&
-      symfony server:start --no-tls --allow-http --port=8000
+      symfony server:start --no-tls --allow-http --port=8085
       "
 
   frontend:
@@ -58,7 +58,7 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "8085:80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

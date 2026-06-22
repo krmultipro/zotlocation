@@ -9,6 +9,8 @@ Thumbs.db
 .vscode/
 .idea/
 *.sublime-*
+.node_modules/
+
 
 # Logs
 *.log
@@ -22,3 +24,4 @@ yarn-error.log*
 dev.txt
 
 .env
+.env.local

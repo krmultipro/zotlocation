@@ -2,6 +2,8 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    ports:
+      - "5434:5432"
     environment:
       POSTGRES_DB: app
       POSTGRES_USER: app
@@ -38,7 +40,7 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "8085:80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
