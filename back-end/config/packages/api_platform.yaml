@@ -16,16 +16,16 @@ api_platform:
 
         # 🚀 CACHE HTTP : Réduit drastiquement la charge serveur
         cache_headers:
-            max_age: 60             # Le navigateur garde les données 1 min
-            shared_max_age: 3600    # Les serveurs intermédiaires gardent 1h
+            max_age: 60 # Le navigateur garde les données 1 min
+            shared_max_age: 3600 # Les serveurs intermédiaires gardent 1h
             vary: ["Content-Type", "Authorization", "Origin"]
 
         # 🏎️ EAGER LOADING : Évite le problème des requêtes SQL N+1
         # Fusionne les requêtes pour les relations (images, catégories, etc.)
         eager_loading:
             enabled: true
-            fetch_eager: true       # Force la jointure SQL (JOIN)
-            max_joins: 30           # Limite pour éviter des requêtes trop lourdes
+            force_eager: false # Force la jointure SQL (JOIN)
+            max_joins: 100 # Limite pour éviter des requêtes trop lourdes
 
     # 4. GESTION DE L'INVALIDATION DU CACHE
     http_cache:
