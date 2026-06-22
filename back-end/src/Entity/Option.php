@@ -35,11 +35,11 @@ class Option
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['option:read', 'listing:read'])]
+    #[Groups(['option:read', 'listing:read', 'listing:detail:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['option:read', 'option:create', 'listing:read', 'listing:create'])]
+    #[Groups(['option:read', 'option:create', 'listing:read', 'listing:detail:read', 'listing:create'])]
     #[Assert\NotBlank(message: "Le nom de l'option est obligatoire.")]
     private ?string $name = null;
 

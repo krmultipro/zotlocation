@@ -49,11 +49,11 @@ class Review
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['review:read', 'listing:item:read', 'user:read', 'listing:card:read'])]
+    #[Groups(['review:read', 'listing:item:read', 'listing:detail:read', 'user:read', 'listing:card:read'])]
     private ?int $id = null;
 
     #[ORM\Column]
-    #[Groups(['review:read', 'review:create', 'review:update', 'listing:item:read', 'listing:card:read'])]
+    #[Groups(['review:read', 'review:create', 'review:update', 'listing:item:read', 'listing:detail:read', 'listing:card:read'])]
     #[Assert\NotBlank]
     #[Assert\Range(
         min: 1,
@@ -63,7 +63,7 @@ class Review
     private ?int $rating = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['review:read', 'review:create', 'review:update', 'listing:item:read'])]
+    #[Groups(['review:read', 'review:create', 'review:update', 'listing:item:read', 'listing:detail:read'])]
     #[Assert\Length(
         max: 500,
         maxMessage: "Le commentaire ne peut pas dépasser {{ limit }} caractères."
@@ -79,7 +79,7 @@ class Review
     // Relation ManyToOne avec User (Author)
     #[ORM\ManyToOne(inversedBy: 'reviews')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['review:read', 'listing:item:read'])]
+    #[Groups(['review:read', 'listing:item:read', 'listing:detail:read'])]
 
     private ?User $author = null;
 

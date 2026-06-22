@@ -60,7 +60,12 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new Get(
             normalizationContext: [
-                'groups' => ['listing:read', 'listing:item:read', 'house:read', 'apartment:read'],
+                'groups' => [
+                    'listing:card:read',
+                    'listing:detail:read',
+                    'house:card:read',
+                    'apartment:card:read',
+                ],
                 'skip_null_values' => false,
             ]
         ),
@@ -97,7 +102,7 @@ class Listing
     private ?string $title = null;
 
     #[ORM\Column(type: Types::TEXT)]
-    #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:update'])]
+    #[Groups(['listing:read', 'listing:item:read', 'listing:detail:read', 'listing:create', 'listing:update'])]
     #[Assert\NotBlank]
     private ?string $description = null;
 
@@ -112,7 +117,7 @@ class Listing
     private ?int $capacity = null;
 
     #[ORM\ManyToOne(inversedBy: 'listings')]
-    #[Groups(['listing:read', 'listing:item:read'])]
+    #[Groups(['listing:read', 'listing:item:read', 'listing:detail:read'])]
     #[Assert\Valid]
     private ?User $owner = null;
 
@@ -138,11 +143,11 @@ class Listing
     private Collection $images;
 
     #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'listing', orphanRemoval: true)]
-    #[Groups(['listing:item:read', 'listing:card:read'])]
+    #[Groups(['listing:item:read', 'listing:detail:read', 'listing:card:read'])]
     private Collection $reviews;
 
     #[ORM\ManyToMany(targetEntity: Option::class, inversedBy: 'listings')]
-    #[Groups(['listing:read', 'listing:create', 'listing:update'])]
+    #[Groups(['listing:read', 'listing:detail:read', 'listing:create', 'listing:update'])]
     #[Assert\Count(min: 1, minMessage: "Vous devez sélectionner au moins une option.")]
     private Collection $options;
 

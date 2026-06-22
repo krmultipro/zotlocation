@@ -43,7 +43,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 255)]
     // Ajout de 'listing:item:read'
-    #[Groups(['user:read', 'listing:read', 'booking:read', 'review:read', 'listing:item:read'])]
+    #[Groups(['user:read', 'listing:read', 'booking:read', 'review:read', 'listing:item:read', 'listing:detail:read'])]
     #[Assert\NotBlank]
     private ?string $name = null;
 
