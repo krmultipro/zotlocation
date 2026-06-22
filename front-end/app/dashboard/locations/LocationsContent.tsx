@@ -3,13 +3,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import Container from "@/components/Container";
-import Heading from "@/components/Heading";
-import ListingCard from "@/components/ListingCard";
-import AddListingModal from "@/components/modals/AddListingModal";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
+import Container from "@/components/Container"
+import Heading from "@/components/Heading"
+import ListingCard from "@/components/ListingCard"
+import AddListingModal from "@/components/modals/AddListingModal"
+import { useRouter } from "next/navigation"
+import { useCallback, useEffect, useState } from "react"
+import { toast } from "react-hot-toast"
 
 export default function LocationsContent() {
   const router = useRouter()
@@ -34,7 +34,7 @@ export default function LocationsContent() {
     }
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8085"
       const res = await fetch(`${API_URL}/api/my-listings`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -65,7 +65,7 @@ export default function LocationsContent() {
   // Fonction de suppression réelle
   const executeDelete = async (id: number) => {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8085"
       const res = await fetch(`${API_URL}/api/listings/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
@@ -83,35 +83,38 @@ export default function LocationsContent() {
   // Déclencheur du toast de confirmation
   const onDelete = useCallback(
     (id: number) => {
-      toast((t) => (
-        <div className="flex flex-col gap-3">
-          <p className="font-medium text-sm text-gray-800">
-            Voulez-vous vraiment supprimer cette annonce ?
-          </p>
-          <div className="flex gap-2 justify-end">
-            <button
-              onClick={() => toast.dismiss(t.id)}
-              className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition"
-            >
-              Annuler
-            </button>
-            <button
-              onClick={() => {
-                toast.dismiss(t.id)
-                executeDelete(id)
-              }}
-              className="px-3 py-1 text-xs bg-rose-500 text-white hover:bg-rose-600 rounded-md transition"
-            >
-              Supprimer
-            </button>
+      toast(
+        (t) => (
+          <div className="flex flex-col gap-3">
+            <p className="font-medium text-sm text-gray-800">
+              Voulez-vous vraiment supprimer cette annonce ?
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id)
+                  executeDelete(id)
+                }}
+                className="px-3 py-1 text-xs bg-rose-500 text-white hover:bg-rose-600 rounded-md transition"
+              >
+                Supprimer
+              </button>
+            </div>
           </div>
-        </div>
-      ), {
-        duration: 5000,
-        position: "top-center",
-      })
+        ),
+        {
+          duration: 5000,
+          position: "top-center",
+        },
+      )
     },
-    [token]
+    [token],
   )
 
   const onEdit = useCallback((location: any) => {

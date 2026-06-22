@@ -33,13 +33,13 @@ export default function ReservationsContent() {
     try {
       const token = localStorage.getItem("jwtToken")
       const API_URL = process.env.NEXT_PUBLIC_API_URL
-      
+
       const res = await axios.post(
         `${API_URL}/api/bookings/${bookingId}/create-checkout-session`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       )
-      
+
       if (res.data.url) {
         window.location.href = res.data.url
       }
@@ -62,7 +62,7 @@ export default function ReservationsContent() {
       setDeletingId(bookingId)
 
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8085"
 
         const res = await fetch(`${API_URL}/api/bookings/${bookingId}`, {
           method: "DELETE",
@@ -126,7 +126,7 @@ export default function ReservationsContent() {
   return (
     <Container>
       <div className="pb-20">
-        <Heading  
+        <Heading
           title="Mes Réservations"
           subtitle={`Vous avez ${bookings.length} réservation${bookings.length > 1 ? 's' : ''}`}
         />

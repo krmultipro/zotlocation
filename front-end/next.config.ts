@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -36,20 +36,20 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "127.0.0.1",
-        port: "8000",
+        port: "8085",
         pathname: "/uploads/**",
       },
       {
         protocol: "https",
         hostname: "localhost",
-        port: "8000",
+        port: "8085",
         pathname: "/uploads/**",
       },
       // Au cas où tu lances ton Symfony sans HTTPS
       {
         protocol: "http",
         hostname: "127.0.0.1",
-        port: "8000",
+        port: "8085",
         pathname: "/uploads/**",
       },
     ],

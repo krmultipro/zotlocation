@@ -37,7 +37,7 @@ interface BookingEditModalProps {
 }
 // --- FIN DES INTERFACES MANQUANTES ---
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8085"
 
 const BookingEditModal: React.FC<BookingEditModalProps> = ({
   isOpen,
@@ -71,7 +71,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
           throw new Error(
             `Échec du chargement de l'annonce (${
               res.status
-            }). Détail: ${errorText.substring(0, 100)}...`
+            }). Détail: ${errorText.substring(0, 100)}...`,
           )
         }
 
@@ -81,7 +81,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
         console.error("ERREUR CRITIQUE DANS LE CHARGEMENT DE LA MODALE:", err)
         toast.error(
           err.message ||
-            "Erreur lors du chargement des données. Consultez la console."
+            "Erreur lors du chargement des données. Consultez la console.",
         )
         onClose()
       } finally {
@@ -137,7 +137,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
   const handleSubmit = useCallback(async () => {
     if (!listingData || newDaysCount <= 0) {
       toast.error(
-        "Veuillez sélectionner des dates valides (au moins une nuit)."
+        "Veuillez sélectionner des dates valides (au moins une nuit).",
       )
       return
     }
@@ -181,7 +181,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
       }
 
       toast.success(
-        "Réservation modifiée avec succès! Les nouvelles dates ont été enregistrées."
+        "Réservation modifiée avec succès! Les nouvelles dates ont été enregistrées.",
       )
       if (typeof onSuccess === "function") {
         onSuccess()
@@ -190,7 +190,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
     } catch (err: any) {
       console.error("Erreur de soumission de la modification:", err)
       toast.error(
-        err.message || "Erreur lors de la modification de la réservation."
+        err.message || "Erreur lors de la modification de la réservation.",
       )
     } finally {
       // Réactive le bouton à la fin

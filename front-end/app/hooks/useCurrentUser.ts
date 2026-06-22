@@ -21,7 +21,7 @@ interface CurrentUserHook {
   token: string | null // <-- 🎯 Ajout de la propriété token
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8085"
 const SYMFONY_ME_URL = `${API_URL}/api/me`
 
 // 💡 APPLICATION DE L'INTERFACE
@@ -31,7 +31,7 @@ const useCurrentUser = (): CurrentUserHook => {
 
   // Token local réactif
   const [token, setToken] = useState<string | null>(() =>
-    typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null
+    typeof window !== "undefined" ? localStorage.getItem("jwtToken") : null,
   )
 
   // Permettra d’actualiser l’utilisateur après connexion
