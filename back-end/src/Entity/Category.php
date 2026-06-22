@@ -35,21 +35,19 @@ class Category
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['category:read', 'listing:read'])]
+    // 🚀 L'ID est maintenant accessible pour les listes et les cartes
+    #[Groups(['category:read', 'listing:read', 'listing:card:read', 'listing:item:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    // Ajout du groupe 'listing:item:read'
     #[Groups(['category:read', 'category:write', 'category:update', 'listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
     #[Assert\NotBlank]
     private ?string $name = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    //  Ajout du groupe 'listing:item:read'
     #[Groups(['category:read', 'category:write', 'listing:read', 'listing:card:read', 'listing:item:read'])]
     private ?string $description = null;
 
-    // Relation avec Listing (Une catégorie a plusieurs annonces)
     #[ORM\OneToMany(mappedBy: 'category', targetEntity: Listing::class)]
     private Collection $listings;
 

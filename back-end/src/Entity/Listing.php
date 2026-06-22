@@ -32,10 +32,9 @@ use Symfony\Component\Validator\Constraints as Assert;
     'apartment' => ApartmentListing::class
 ])]
 #[ApiResource(
-    // 💡 CONFIGURATION GLOBALE : On définit les groupes ici pour qu'ils s'appliquent
-    // à toutes les opérations et forcent la jointure polymorphique.
+    // 💡 On garde uniquement les groupes de base pour le polymorphisme ici
     normalizationContext: [
-        'groups' => ['listing:read', 'listing:item:read', 'house:read', 'apartment:read', 'listing:card:read'],
+        'groups' => ['house:read', 'apartment:read'],
         'skip_null_values' => false,
     ],
     denormalizationContext: [
@@ -48,8 +47,14 @@ use Symfony\Component\Validator\Constraints as Assert;
             uriTemplate: '/my-listings',
             security: "is_granted('ROLE_USER')"
         ),
-        new GetCollection(),
-        new Get(),
+        // 🚀 OPTIMISATION ICI : La liste ne charge QUE les infos de la carte
+        new GetCollection(
+            normalizationContext: ['groups' => ['listing:card:read', 'house:read', 'apartment:read']]
+        ),
+        // 🚀 OPTIMISATION ICI : L'élément seul charge les détails (options, reviews...)
+        new Get(
+            normalizationContext: ['groups' => ['listing:item:read', 'house:read', 'apartment:read']]
+        ),
         new Post(
             processor: ListingOwnerProcessor::class,
             security: "is_granted('ROLE_PROPRIETAIRE') or is_granted('ROLE_ADMIN')"
@@ -74,43 +79,45 @@ class Listing
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['listing:read', 'booking:read', 'review:read', 'listing:card:read'])]
+    #[Groups(['listing:item:read', 'booking:read', 'review:read', 'listing:card:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
+    #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
     #[Assert\NotBlank]
     private ?string $title = null;
 
     #[ORM\Column(type: Types::TEXT)]
-    #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:update'])]
+    #[Groups(['listing:item:read', 'listing:create', 'listing:update'])]
     #[Assert\NotBlank]
     private ?string $description = null;
 
     #[ORM\Column]
-    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
+    #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
     #[Assert\PositiveOrZero]
     private ?float $pricePerNight = null;
 
     #[ORM\Column]
-    #[Groups(['listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'booking:read'])]
+    #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
     #[Assert\Positive]
     private ?int $capacity = null;
 
     #[ORM\ManyToOne(inversedBy: 'listings')]
-    #[Groups(['listing:read', 'listing:item:read', 'listing:card:read'])]
+    #[Groups(['listing:item:read', 'listing:card:read'])]
     #[Assert\Valid]
     private ?User $owner = null;
 
-    #[ORM\ManyToOne(inversedBy: 'listings', fetch: 'EAGER')]
+    // 🔥 J'ai retiré le fetch: 'EAGER' ici
+    #[ORM\ManyToOne(inversedBy: 'listings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
     #[Assert\NotNull]
     private ?Category $category = null;
 
-    #[ORM\ManyToOne(targetEntity: Localisation::class, fetch: 'EAGER')]
+    // 🔥 J'ai retiré le fetch: 'EAGER' ici
+    #[ORM\ManyToOne(targetEntity: Localisation::class)]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['listing:read', 'listing:item:read', 'listing:card:read', 'listing:create', 'listing:update'])]
+    #[Groups(['listing:item:read', 'listing:card:read', 'listing:create', 'listing:update'])]
     #[Assert\NotNull(message: "La localisation est obligatoire.")]
     private ?Localisation $localisation = null;
 
@@ -118,17 +125,18 @@ class Listing
     #[Groups(['listing:item:read'])]
     private Collection $bookings;
 
-    #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'listing', cascade: ['persist', 'remove'], orphanRemoval: true, fetch: 'EAGER')]
-    #[Groups(['listing:read', 'listing:item:read', 'listing:create', 'listing:card:read', 'booking:read'])]
+    // 🔥 J'ai retiré le fetch: 'EAGER' ici
+    #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'listing', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Groups(['listing:item:read', 'listing:create', 'listing:card:read', 'booking:read'])]
     #[Assert\Count(min: 1, minMessage: "Une annonce doit obligatoirement avoir au moins une image.")]
     private Collection $images;
 
     #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'listing', orphanRemoval: true)]
-    #[Groups(['listing:item:read', 'listing:card:read'])]
+    #[Groups(['listing:item:read'])] // Retiré de card:read pour alléger la liste
     private Collection $reviews;
 
     #[ORM\ManyToMany(targetEntity: Option::class, inversedBy: 'listings')]
-    #[Groups(['listing:read', 'listing:create', 'listing:update'])]
+    #[Groups(['listing:item:read', 'listing:create', 'listing:update'])]
     #[Assert\Count(min: 1, minMessage: "Vous devez sélectionner au moins une option.")]
     private Collection $options;
 

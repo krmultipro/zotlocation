@@ -38,12 +38,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['user:read'])]
+    // 🚀 L'ID est maintenant accessible pour l'affichage des cartes et détails d'annonces
+    #[Groups(['user:read', 'listing:item:read', 'listing:card:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    // Ajout de 'listing:item:read'
-    #[Groups(['user:read', 'listing:read', 'booking:read', 'review:read', 'listing:item:read'])]
+    // 🚀 Ajout de 'listing:card:read' pour afficher le nom du propriétaire sur les cartes
+    #[Groups(['user:read', 'listing:read', 'booking:read', 'review:read', 'listing:item:read', 'listing:card:read'])]
     #[Assert\NotBlank]
     private ?string $name = null;
 
@@ -67,7 +68,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private array $roles = [];
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['user:read', 'user:create', 'user:update'])]
+    // 🚀 Ajout de 'listing:item:read' et 'listing:card:read' pour afficher la photo de profil
+    #[Groups(['user:read', 'user:create', 'user:update', 'listing:item:read', 'listing:card:read'])]
     #[Assert\Url(
         protocols: ['http', 'https'],
         message: 'Veuillez fournir une URL valide pour l\'avatar.'
@@ -117,15 +119,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->favoritesUser = new ArrayCollection();
     }
 
-
-
     public function getRoles(): array
     {
         $roles = $this->roles;
         $roles[] = 'ROLE_USER';
         return array_unique($roles);
     }
-
 
     public function getId(): ?int
     {
