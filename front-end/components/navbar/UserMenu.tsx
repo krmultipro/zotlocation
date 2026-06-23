@@ -5,7 +5,7 @@ import { useUser } from "@/app/context/UserProvider";
 import useLoginModal from "@/app/hooks/useLoginModal";
 import useRegisterModal from "@/app/hooks/useRegisterModal";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AiOutlineMenu } from "react-icons/ai";
 
 import AddListingModal from "@/components/modals/AddListingModal";
@@ -20,9 +20,13 @@ const UserMenu = () => {
   const { refreshFavorites } = useFavorites()
   const [isOpen, setIsOpen] = useState(false)
   const [openModal, setOpenModal] = useState(false)
+  const [hasMounted, setHasMounted] = useState(false)
 
-  // Debug pour vérifier les rôles en temps réel dans la console
-  console.log("User Data:", user)
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setHasMounted(true), 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [])
 
   const toggleOpen = useCallback(() => setIsOpen((prev) => !prev), [])
 
@@ -70,7 +74,7 @@ const UserMenu = () => {
     router.push("/admin")
   }, [router])
 
-  if (isLoading) {
+  if (!hasMounted || isLoading) {
     return (
       <div className="relative">
         <div className="flex flex-row items-center gap-3">

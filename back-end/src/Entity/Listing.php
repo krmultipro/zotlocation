@@ -45,15 +45,28 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new GetCollection(
             uriTemplate: '/my-listings',
+            normalizationContext: [
+                'groups' => ['listing:card:read', 'house:card:read', 'apartment:card:read'],
+                'skip_null_values' => false,
+            ],
             security: "is_granted('ROLE_USER')"
         ),
-        // 🚀 OPTIMISATION ICI : La liste ne charge QUE les infos de la carte
         new GetCollection(
-            normalizationContext: ['groups' => ['listing:card:read', 'house:read', 'apartment:read']]
+            normalizationContext: [
+                'groups' => ['listing:card:read', 'house:card:read', 'apartment:card:read'],
+                'skip_null_values' => false,
+            ]
         ),
-        // 🚀 OPTIMISATION ICI : L'élément seul charge les détails (options, reviews...)
         new Get(
-            normalizationContext: ['groups' => ['listing:item:read', 'house:read', 'apartment:read']]
+            normalizationContext: [
+                'groups' => [
+                    'listing:card:read',
+                    'listing:detail:read',
+                    'house:card:read',
+                    'apartment:card:read',
+                ],
+                'skip_null_values' => false,
+            ]
         ),
         new Post(
             processor: ListingOwnerProcessor::class,
@@ -88,7 +101,7 @@ class Listing
     private ?string $title = null;
 
     #[ORM\Column(type: Types::TEXT)]
-    #[Groups(['listing:item:read', 'listing:create', 'listing:update'])]
+    #[Groups(['listing:read', 'listing:item:read', 'listing:detail:read', 'listing:create', 'listing:update'])]
     #[Assert\NotBlank]
     private ?string $description = null;
 
@@ -103,7 +116,7 @@ class Listing
     private ?int $capacity = null;
 
     #[ORM\ManyToOne(inversedBy: 'listings')]
-    #[Groups(['listing:item:read', 'listing:card:read'])]
+    #[Groups(['listing:read', 'listing:item:read', 'listing:detail:read'])]
     #[Assert\Valid]
     private ?User $owner = null;
 
@@ -132,11 +145,11 @@ class Listing
     private Collection $images;
 
     #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'listing', orphanRemoval: true)]
-    #[Groups(['listing:item:read'])] // Retiré de card:read pour alléger la liste
+    #[Groups(['listing:item:read', 'listing:detail:read', 'listing:card:read'])]
     private Collection $reviews;
 
     #[ORM\ManyToMany(targetEntity: Option::class, inversedBy: 'listings')]
-    #[Groups(['listing:item:read', 'listing:create', 'listing:update'])]
+    #[Groups(['listing:read', 'listing:detail:read', 'listing:create', 'listing:update'])]
     #[Assert\Count(min: 1, minMessage: "Vous devez sélectionner au moins une option.")]
     private Collection $options;
 

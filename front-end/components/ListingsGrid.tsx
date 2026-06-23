@@ -163,13 +163,6 @@ export default function ListingsGrid({ categoryFilter }: ListingsGridProps) {
               ? (reviews.reduce((acc, r) => acc + (r.rating || 0), 0) / reviews.length).toFixed(1)
               : null;
 
-            // 💡 Optionnel : Créer un petit texte descriptif selon le type pour la carte
-            const specificInfo = listing.gardenSize
-                ? `${listing.gardenSize}m² de jardin`
-                : listing.numberOfRooms
-                ? `${listing.numberOfRooms} pièces`
-                : "";
-
             return (
               <ListingCard
                 key={listing.id}

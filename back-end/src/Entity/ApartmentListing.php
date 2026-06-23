@@ -17,11 +17,11 @@ class ApartmentListing extends Listing
 {
     #[ORM\Column]
     // 💡 Ajout de 'listing:read' pour que ces champs apparaissent dans le GET global de Listing
-    #[Groups(['apartment:read', 'apartment:create', 'apartment:update', 'listing:read'])]
+    #[Groups(['apartment:read', 'apartment:card:read', 'apartment:create', 'apartment:update', 'listing:read'])]
     private ?bool $balcony = null;
 
     #[ORM\Column]
-    #[Groups(['apartment:read', 'apartment:create', 'apartment:update', 'listing:read'])]
+    #[Groups(['apartment:read', 'apartment:card:read', 'apartment:create', 'apartment:update', 'listing:read'])]
     #[Assert\Positive(message: "Le nombre de pièces doit être positif.")]
     private ?int $numberOfRooms = null;
 

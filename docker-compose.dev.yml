@@ -1,17 +1,15 @@
-version: "3.9"
-
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    ports:
+      - "5434:5432"
     environment:
       POSTGRES_DB: app
       POSTGRES_USER: app
       POSTGRES_PASSWORD: change_me
     volumes:
       - db_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
 
   backend:
     build:
@@ -37,12 +35,14 @@ services:
       sh -c "
       composer install &&
       php bin/console doctrine:migrations:migrate --no-interaction &&
-      symfony server:start --no-tls --allow-http --port=8085
+      php -S 0.0.0.0:8000 -t public
       "
 
   frontend:
     build:
       context: ./front-end
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     container_name: app-frontend-dev
     restart: unless-stopped
     volumes:
@@ -60,7 +60,7 @@ services:
     ports:
       - "8085:80"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

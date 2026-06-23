@@ -23,5 +23,4 @@ yarn-error.log*
 *.temp
 dev.txt
 
-.env
-.env.local
+.env*

@@ -43,8 +43,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    // 🚀 Ajout de 'listing:card:read' pour afficher le nom du propriétaire sur les cartes
-    #[Groups(['user:read', 'listing:read', 'booking:read', 'review:read', 'listing:item:read', 'listing:card:read'])]
+    // Ajout de 'listing:item:read'
+    #[Groups(['user:read', 'listing:read', 'booking:read', 'review:read', 'listing:item:read', 'listing:detail:read'])]
     #[Assert\NotBlank]
     private ?string $name = null;
 

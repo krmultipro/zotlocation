@@ -20,12 +20,12 @@ api_platform:
             shared_max_age: 3600 # Les serveurs intermédiaires gardent 1h
             vary: ["Content-Type", "Authorization", "Origin"]
 
-    # 🏎️ EAGER LOADING : Évite le problème des requêtes SQL N+1
-    # Doit être aligné avec "defaults" et "swagger", pas dedans !
-    eager_loading:
-        enabled: true
-        force_eager: false
-        max_joins: 100
+        # 🏎️ EAGER LOADING : Évite le problème des requêtes SQL N+1
+        # Fusionne les requêtes pour les relations (images, catégories, etc.)
+        eager_loading:
+            enabled: true
+            force_eager: false # Force la jointure SQL (JOIN)
+            max_joins: 100 # Limite pour éviter des requêtes trop lourdes
 
     # 4. GESTION DE L'INVALIDATION DU CACHE
     http_cache:
@@ -45,4 +45,4 @@ api_platform:
 
     openapi:
         swagger_ui_extra_configuration:
-            persistAuthorization: true
+            persistAuthorization: true # Garde le token JWT après un refresh de Swagger

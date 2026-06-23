@@ -17,12 +17,12 @@ class HouseListing extends Listing
 {
     #[ORM\Column]
     // 💡 Ajout de 'listing:read' pour la visibilité lors de la lecture d'un Listing générique
-    #[Groups(['house:read', 'house:create', 'house:update', 'listing:read'])]
+    #[Groups(['house:read', 'house:card:read', 'house:create', 'house:update', 'listing:read'])]
     #[Assert\PositiveOrZero(message: "La taille du jardin doit être positive ou nulle.")]
     private ?float $gardenSize = null;
 
     #[ORM\Column]
-    #[Groups(['house:read', 'house:create', 'house:update', 'listing:read'])]
+    #[Groups(['house:read', 'house:card:read', 'house:create', 'house:update', 'listing:read'])]
     private ?bool $hasGarage = null;
 
     public function getGardenSize(): ?float { return $this->gardenSize; }
