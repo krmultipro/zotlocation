@@ -5,7 +5,15 @@
 :80 {
     encode gzip
 
-    handle /api* {
+    @api {
+        path /api /api/*
+    }
+
+    handle @api {
+        reverse_proxy backend:8000
+    }
+
+    handle /uploads/* {
         reverse_proxy backend:8000
     }
 

@@ -6,11 +6,19 @@
     encode gzip
     root * /var/www/html/public
 
-  handle /api* {
+  @api {
+           path /api /api/*
+       }
+
+  handle @api {
 
                         php_fastcgi backend:9000
                         file_server
                      }
+
+  handle /uploads/* {
+           file_server
+         }
 
   handle {
            reverse_proxy frontend:3000
