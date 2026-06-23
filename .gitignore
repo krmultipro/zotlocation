@@ -24,3 +24,4 @@ yarn-error.log*
 dev.txt
 
 .env*
+AUDIT_CDA_ZOTLOCATION.md
