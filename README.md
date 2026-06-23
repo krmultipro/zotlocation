@@ -1,95 +1,253 @@
-Liste de nos Entités : 
+# ZotLocation
 
-- User
-- Listing (table parent)
-- HouseListing (table enfant →heritage)
-- ApartementListing (table enfant→heritage)
-- Booking
-- Category
-- Profile
-- Review
-- Image
+Application web de location saisonnière développée dans le cadre du titre professionnel CDA.
 
-**Relations de nos Entités :** 
+## Technologies utilisées
 
-**Relations User** 
+### Front-end
 
-**OneToMany → Listing**
+- Next.js
+- React.js
 
-*Un utilisateur peut publier plusieurs annonces.*
+### Back-end
 
-**OneToMany → Booking**
+- Symfony
+- API Platform
+- JWT Authentication
 
-*Un utilisateur peut effectuer plusieurs réservations.*
+### Base de données
 
-**OneToMany → Review**
+- PostgreSQL
 
-*Un utilisateur peut écrire plusieurs avis.*
+### Infrastructure
 
-**OneToOne → Profile**
+- Docker
+- Docker Compose
+- Caddy
 
-*Un utilisateur possède un seul profil détaillé.*
+### Paiement
 
-**ManyToMany → Listing (favoris)**
+- Stripe
 
-*Un utilisateur peut avoir plusieurs annonces favorites, et chaque annonce peut être dans les favoris de plusieurs utilisateurs.*
+---
 
-**Relations Listing**
+# Prérequis
 
-**ManyToOne → User (owner)**
+- Docker Desktop (Windows/Mac)
+- Docker Engine + Docker Compose (Linux)
 
-*Chaque annonce appartient à un utilisateur (l’hôte).*
+Vérifier l'installation :
 
-**OneToMany → Image**
+```bash
+docker --version
+docker compose version
+```
 
-*Une annonce possède plusieurs images.*
+---
 
-**OneToMany → Booking**
+# Installation
 
-*Une annonce peut recevoir plusieurs réservations.*
+## 1. Cloner le dépôt
 
-**OneToMany → Review**
+```bash
+git clone <url-du-depot>
+cd zotlocation
+```
 
-*Une annonce peut recevoir plusieurs avis.*
+---
 
-**ManyToMany → Option**
+## 2. Créer le fichier .env
 
-*Chaque annonce peut avoir plusieurs options*
+Créer un fichier `.env` à la racine du projet.
 
-**Relations Booking :**
+Exemple :
 
-**ManyToOne → User**
+```env
+DATABASE_URL=postgresql://app:change_me@db:5432/app?serverVersion=16&charset=utf8
 
-*Plusieurs réservations appartiennent à un même utilisateur.*
+CORS_ALLOW_ORIGIN=http://localhost:3000
 
-**ManyToOne → Listing**
+JWT_PRIVATE_KEY=%kernel.project_dir%/config/jwt/private.pem
+JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem
+JWT_PASSPHRASE=change_me
 
-*Plusieurs réservations appartiennent à une même annonce.*
+JWT_TOKEN_TTL=3600
 
-**Relations Image :**
+NEXT_PUBLIC_API_URL=http://localhost:8085
+```
 
-**ManyToOne → Listing**
+Adapter les valeurs si nécessaire.
 
-Plusieurs images appartiennent à une annonce
+---
 
-**Relations Reviews :**
+## 3. Générer les clés JWT
 
-**ManyToOne → User**
+Si les clés JWT ne sont pas présentes :
 
-Plusieurs avis appartiennent à un utilisateur 
+```bash
+docker compose run --rm backend php bin/console lexik:jwt:generate-keypair
+```
 
-**ManyToOne → Listing**
+Les fichiers générés seront :
 
-Plusieurs avis appartiennent à une annonce
+```text
+back-end/config/jwt/private.pem
+back-end/config/jwt/public.pem
+```
 
-**Relations Option :**
+---
 
-**ManyToMany → Listing**
+## 4. Démarrer l'environnement de développement
 
-Une option appartient à plusieurs annonces. Une annonce possède plusieurs options.
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
 
-**Relation Profile**
+Au premier démarrage :
 
-**OneToOne**
+- les dépendances Composer sont installées ;
+- les migrations Doctrine sont exécutées automatiquement ;
+- Symfony est lancé ;
+- Next.js est lancé ;
+- PostgreSQL est créé automatiquement.
 
-Un utilisateur possède un profil.
+---
+
+# Accès aux services
+
+## Front-end
+
+```text
+http://localhost:3000
+```
+
+---
+
+## API Symfony
+
+```text
+http://localhost:8085/api
+```
+
+---
+
+## PostgreSQL
+
+```text
+Host : localhost
+Port : 5434
+Database : app
+User : app
+Password : change_me
+```
+
+---
+
+# Architecture
+
+```text
+Navigateur
+        │
+        ▼
+Next.js / React
+        │
+        ▼
+Caddy
+        │
+        ▼
+Symfony API Platform
+        │
+        ▼
+PostgreSQL
+```
+
+---
+
+# Arrêter l'environnement
+
+```bash
+docker compose -f docker-compose.dev.yml down
+```
+
+---
+
+# Rebuild complet
+
+```bash
+docker compose -f docker-compose.dev.yml down -v
+
+docker compose -f docker-compose.dev.yml up --build
+```
+
+---
+
+# Dépannage
+
+## Vérifier les conteneurs
+
+```bash
+docker ps
+```
+
+---
+
+## Logs backend
+
+```bash
+docker compose logs backend
+```
+
+---
+
+## Logs frontend
+
+```bash
+docker compose logs frontend
+```
+
+---
+
+## Logs caddy
+
+```bash
+docker compose logs caddy
+```
+
+---
+
+## Erreur JWT
+
+Vérifier la présence des fichiers :
+
+```text
+back-end/config/jwt/private.pem
+back-end/config/jwt/public.pem
+```
+
+Si nécessaire :
+
+```bash
+docker compose run --rm backend php bin/console lexik:jwt:generate-keypair
+```
+
+---
+
+## Erreur CORS
+
+Vérifier :
+
+```env
+CORS_ALLOW_ORIGIN=http://localhost:3000
+```
+
+---
+
+## Réinitialiser la base
+
+```bash
+docker compose -f docker-compose.dev.yml down -v
+
+docker compose -f docker-compose.dev.yml up --build
+```
+
+Les migrations seront rejouées automatiquement.

@@ -7,8 +7,8 @@ lexik_jwt_authentication:
     public_key: "%env(resolve:JWT_PUBLIC_KEY)%"
 
     # --- Gestion du mot de passe de la clé ---
-    # S'assurer que c'est une chaîne vide si aucune passphrase n'a été utilisée
-    pass_phrase: ""
+    # Utilise la variable d'environnement. Laisser JWT_PASSPHRASE vide si la clé privée n'a pas de passphrase.
+    pass_phrase: "%env(JWT_PASSPHRASE)%"
 
     # --- Options du Token ---
     # Durée de vie du token (Récupère la valeur dans .env.local)
