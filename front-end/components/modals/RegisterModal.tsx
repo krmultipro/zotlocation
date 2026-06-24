@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import axios from "axios"
 import { useCallback, useState } from "react"
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form"
+import toast from "react-hot-toast"
 import useLoginModal from "../../app/hooks/useLoginModal"
 import useRegisterModal from "../../app/hooks/useRegisterModal"
 import CustomButton from "../CustomButton"
@@ -31,7 +32,6 @@ const RegisterModal = () => {
   const loginModal = useLoginModal()
   const [isLoading, setIsLoading] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string>("")
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const {
     register,
@@ -70,7 +70,6 @@ const RegisterModal = () => {
 
   const onSubmit: SubmitHandler<RegisterFormValues> = async (data) => {
     setIsLoading(true)
-    setErrorMessage(null)
 
     try {
       const response = await axios.post(SYMFONY_REGISTER_URL, {
@@ -93,25 +92,25 @@ const RegisterModal = () => {
 
         reset()
         registerModal.onClose()
+        toast.success("Inscription réussie ! Bienvenue sur ZotLocation.")
       } else {
-        setErrorMessage("Erreur inattendue lors de l'inscription.")
+        const message = "Erreur inattendue lors de l'inscription."
+        toast.error(message)
       }
     } catch (error: any) {
+      let message = "Impossible de se connecter au serveur Symfony."
+
       if (error.response?.data) {
         if (error.response.data.violations) {
-          setErrorMessage(
-            error.response.data.violations
-              .map((v: any) => v.message)
-              .join(" | "),
-          )
+          message = error.response.data.violations
+            .map((v: any) => v.message)
+            .join(" | ")
         } else {
-          setErrorMessage(
-            error.response.data.detail || "Erreur lors de l'inscription.",
-          )
+          message = error.response.data.detail || "Erreur lors de l'inscription."
         }
-      } else {
-        setErrorMessage("Impossible de se connecter au serveur Symfony.")
       }
+
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }
@@ -128,13 +127,6 @@ const RegisterModal = () => {
               </DialogTitle>
             </CardHeader>
             <CardContent className="relative p-6">
-              {errorMessage && (
-                <div className="bg-rose-100 border-l-4 border-rose-500 text-rose-700 p-3 rounded-md">
-                  <p className="font-bold">Erreur :</p>
-                  <p className="text-sm">{errorMessage}</p>
-                </div>
-              )}
-
               <div>
                 <Label htmlFor="name">Nom</Label>
                 <Input
