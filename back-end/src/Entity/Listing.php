@@ -97,22 +97,22 @@ class Listing
 
     #[ORM\Column(length: 255)]
     #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: "Le titre de l'annonce est obligatoire.")]
     private ?string $title = null;
 
     #[ORM\Column(type: Types::TEXT)]
     #[Groups(['listing:read', 'listing:item:read', 'listing:detail:read', 'listing:create', 'listing:update'])]
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: "La description de l'annonce est obligatoire.")]
     private ?string $description = null;
 
     #[ORM\Column]
     #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
-    #[Assert\PositiveOrZero]
+    #[Assert\PositiveOrZero(message: "Le prix par nuit doit être positif ou nul.")]
     private ?float $pricePerNight = null;
 
     #[ORM\Column]
     #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
-    #[Assert\Positive]
+    #[Assert\Positive(message: "La capacité d'accueil doit être positive.")]
     private ?int $capacity = null;
 
     #[ORM\ManyToOne(inversedBy: 'listings')]
@@ -124,7 +124,7 @@ class Listing
     #[ORM\ManyToOne(inversedBy: 'listings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
-    #[Assert\NotNull]
+    #[Assert\NotNull(message: "La catégorie est obligatoire.")]
     private ?Category $category = null;
 
     // 🔥 J'ai retiré le fetch: 'EAGER' ici

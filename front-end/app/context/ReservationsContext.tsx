@@ -99,7 +99,11 @@ export const ReservationsProvider: React.FC<{ children: React.ReactNode }> = ({
         },
       )
 
-      if (!res.ok) throw new Error(`Erreur serveur: ${res.status}`)
+      if (!res.ok) {
+        throw new Error(
+          `Impossible de charger vos réservations. Statut ${res.status}.`,
+        )
+      }
 
       const data = await res.json()
       const bookingsArray =

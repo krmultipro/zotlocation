@@ -77,7 +77,7 @@ class Favorite
     #[ORM\ManyToOne(inversedBy: 'favoriteListings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['favorite:read', 'favorite:create', 'user:read'])]
-    #[Assert\NotNull]
+    #[Assert\NotNull(message: "L'annonce à ajouter aux favoris est obligatoire.")]
     private ?Listing $listing = null; // URI du listing fournie par l'utilisateur
 
     public function getId(): ?int

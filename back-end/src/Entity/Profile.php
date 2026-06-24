@@ -38,8 +38,8 @@ class Profile
 
     #[ORM\Column(length: 255)]
     #[Groups(['profile:read', 'profile:update'])]
-    #[Assert\NotBlank]
-    #[Assert\Length(min: 3)]
+    #[Assert\NotBlank(message: "Le nom complet est obligatoire.")]
+    #[Assert\Length(min: 3, minMessage: "Le nom complet doit contenir au moins {{ limit }} caractères.")]
     private ?string $fullName = null;
 
     // Relation OneToOne avec User

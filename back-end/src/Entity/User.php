@@ -47,20 +47,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255)]
     // Ajout de 'listing:item:read'
     #[Groups(['user:read', 'user:create', 'user:update', 'listing:read', 'booking:read', 'review:read', 'listing:item:read', 'listing:detail:read'])]
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: "Le nom est obligatoire.")]
     private ?string $name = null;
 
     #[ORM\Column(length: 180, unique: true)]
     #[Groups(['user:read', 'user:create', 'user:update'])]
-    #[Assert\NotBlank]
-    #[Assert\Email]
+    #[Assert\NotBlank(message: "L'adresse email est obligatoire.")]
+    #[Assert\Email(message: "Veuillez saisir une adresse email valide.")]
     private ?string $email = null;
 
     #[ORM\Column(length: 255)]
     private ?string $password = null;
 
     #[Groups(['user:create', 'user:update'])]
-    #[Assert\NotBlank(groups: ['user:create'])]
+    #[Assert\NotBlank(message: "Le mot de passe est obligatoire.", groups: ['user:create'])]
     private ?string $plainPassword = null;
 
     #[Groups(['user:create'])]

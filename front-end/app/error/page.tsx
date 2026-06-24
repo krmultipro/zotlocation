@@ -6,7 +6,7 @@ export default function ErrorPage() {
     <Container>
       <div className="pt-32 text-center">
         <h1 className="text-3xl font-bold text-red-600 mb-4">
-          Accès refusé petit voyou
+          Accès refusé
         </h1>
         <Link
           href="/"
