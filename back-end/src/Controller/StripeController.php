@@ -23,7 +23,10 @@ class StripeController extends AbstractController
 
         // 2. Configuration de Stripe
         // On s'assure que la clé API est bien présente dans le .env
-        $stripeSecretKey = $_ENV['STRIPE_SECRET_KEY'] ?? null;
+        $stripeSecretKey = $_ENV['STRIPE_SECRET_KEY']
+            ?? $_SERVER['STRIPE_SECRET_KEY']
+            ?? getenv('STRIPE_SECRET_KEY')
+            ?: null;
         if (!$stripeSecretKey) {
             return new JsonResponse(['error' => 'Configuration Stripe manquante'], 500);
         }
@@ -32,7 +35,13 @@ class StripeController extends AbstractController
 
         // 3. Récupération de l'URL de redirection depuis le .env racine
         // On retire un éventuel slash final pour construire une URL propre
-        $baseUrl = rtrim($_ENV['FRONTEND_URL'] ?? 'http://localhost:8085', '/');
+        $baseUrl = rtrim(
+            $_ENV['FRONTEND_URL']
+                ?? $_SERVER['FRONTEND_URL']
+                ?? getenv('FRONTEND_URL')
+                ?: 'http://localhost:8085',
+            '/'
+        );
 
         // 4. Création de la session Stripe
         $session = Session::create([
