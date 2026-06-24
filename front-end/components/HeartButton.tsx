@@ -11,6 +11,7 @@ interface HeartButtonProps {
 }
 
 const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/favorites`
+const FAVORITE_TOAST_DURATION = 4500
 
 const HeartButton: React.FC<HeartButtonProps> = ({ listingId }) => {
   // 1. Récupération des données depuis le Contexte Global (Mémoire)
@@ -40,7 +41,8 @@ const HeartButton: React.FC<HeartButtonProps> = ({ listingId }) => {
 
       if (!token) {
         toast.error(
-          "Vous devez avoir un compte pour mettre une annonce en favoris"
+          "Vous devez avoir un compte pour mettre une annonce en favoris",
+          { duration: FAVORITE_TOAST_DURATION },
         )
         return
       }
@@ -67,7 +69,9 @@ const HeartButton: React.FC<HeartButtonProps> = ({ listingId }) => {
             throw new Error("Erreur lors de la suppression")
           }
 
-          toast.success("Annonce retirée des favoris")
+          toast.success("Annonce retirée des favoris", {
+            duration: FAVORITE_TOAST_DURATION,
+          })
         } else {
           // --- CAS : AJOUT (POST) ---
           const res = await fetch(`${API_BASE_URL}`, {
@@ -83,7 +87,9 @@ const HeartButton: React.FC<HeartButtonProps> = ({ listingId }) => {
           if (!res.ok) {
             // Si c'est un doublon (422 ou 500 selon config), on considère que c'est bon
             if (res.status === 422 || res.status === 500) {
-              toast.success("Annonce ajoutée en favoris")
+              toast.success("Annonce ajoutée en favoris", {
+                duration: FAVORITE_TOAST_DURATION,
+              })
               refreshFavorites() // On rafraichit pour être sûr
               return
             }
@@ -91,7 +97,9 @@ const HeartButton: React.FC<HeartButtonProps> = ({ listingId }) => {
             throw new Error(data["hydra:description"] || "Impossible d'ajouter")
           }
 
-          toast.success("Annonce ajoutée en favoris")
+          toast.success("Annonce ajoutée en favoris", {
+            duration: FAVORITE_TOAST_DURATION,
+          })
         }
 
         // 💡 CRUCIAL : On met à jour le contexte global pour que
@@ -99,7 +107,9 @@ const HeartButton: React.FC<HeartButtonProps> = ({ listingId }) => {
         refreshFavorites()
       } catch (error) {
         console.error(error)
-        toast.error("Une erreur est survenue")
+        toast.error("Une erreur est survenue", {
+          duration: FAVORITE_TOAST_DURATION,
+        })
         // En cas d'erreur, on annule le changement visuel (Rollback)
         setHasFavorited(previousState)
       } finally {
