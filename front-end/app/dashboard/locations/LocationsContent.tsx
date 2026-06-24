@@ -3,16 +3,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
+import { useUser } from "@/app/context/UserProvider"
 import Container from "@/components/Container"
 import Heading from "@/components/Heading"
 import ListingCard from "@/components/ListingCard"
 import AddListingModal from "@/components/modals/AddListingModal"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
 
 export default function LocationsContent() {
   const router = useRouter()
+  const { user, isLoading: isUserLoading } = useUser()
   const [locations, setLocations] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -21,6 +24,11 @@ export default function LocationsContent() {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const [token, setToken] = useState<string | null>(null)
+  const canManageLocations =
+    !!user &&
+    (user.isOwner ||
+      user.roles?.includes("ROLE_PROPRIETAIRE") ||
+      user.roles?.includes("ROLE_ADMIN"))
 
   useEffect(() => {
     const storedToken = localStorage.getItem("jwtToken")
@@ -58,14 +66,21 @@ export default function LocationsContent() {
   }, [token])
 
   useEffect(() => {
+    if (isUserLoading) return
+
+    if (!user || !canManageLocations) {
+      setIsLoading(false)
+      return
+    }
+
     if (token) fetchLocations()
     else if (token === null && !isLoading) setIsLoading(false)
-  }, [fetchLocations, token, isLoading])
+  }, [fetchLocations, token, isLoading, isUserLoading, user, canManageLocations])
 
   // --- ACTIONS ---
 
   // Fonction de suppression réelle
-  const executeDelete = async (id: number) => {
+  const executeDelete = useCallback(async (id: number) => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8085"
       const res = await fetch(`${API_URL}/api/listings/${id}`, {
@@ -80,7 +95,7 @@ export default function LocationsContent() {
     } catch (err: any) {
       toast.error("Impossible de supprimer l'annonce")
     }
-  }
+  }, [token])
 
   // Déclencheur du toast de confirmation
   const onDelete = useCallback(
@@ -116,7 +131,7 @@ export default function LocationsContent() {
         },
       )
     },
-    [token],
+    [executeDelete],
   )
 
   const onEdit = useCallback((location: any) => {
@@ -147,12 +162,48 @@ export default function LocationsContent() {
   )
 
   // --- RENDU ---
-  if (isLoading)
+  if (isUserLoading || isLoading)
     return (
       <Container>
         <div className="py-20 flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-4 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
           <p className="text-gray-500">Chargement de vos annonces...</p>
+        </div>
+      </Container>
+    )
+
+  if (!user)
+    return (
+      <Container>
+        <div className="py-20 text-center">
+          <Heading
+            title="Connexion requise"
+            subtitle="Vous devez être connecté pour accéder à cette page."
+          />
+          <Link
+            href="/"
+            className="inline-block mt-6 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800"
+          >
+            Retour à l'accueil
+          </Link>
+        </div>
+      </Container>
+    )
+
+  if (!canManageLocations)
+    return (
+      <Container>
+        <div className="py-20 text-center">
+          <Heading
+            title="Accès refusé"
+            subtitle="Cette page est réservée aux propriétaires."
+          />
+          <Link
+            href="/dashboard/reservations"
+            className="inline-block mt-6 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800"
+          >
+            Voir mes réservations
+          </Link>
         </div>
       </Container>
     )
