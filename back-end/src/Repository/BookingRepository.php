@@ -34,9 +34,9 @@ class BookingRepository extends ServiceEntityRepository
             ->where('b.listing = :listingId')
             ->setParameter('listingId', $listingId)
 
-            // Logique de chevauchement INCLUSIVE et stable pour les bornes
-            ->andWhere('b.endDate >= :startDate')
-            ->andWhere('b.startDate <= :endDate')
+            // Chevauchement réel : le jour de départ reste disponible pour un autre séjour.
+            ->andWhere('b.endDate > :startDate')
+            ->andWhere('b.startDate < :endDate')
             ->andWhere('b.status IN (:blockingStatuses)')
 
             // Les paramètres de date sont maintenant ajoutés sans conflit
@@ -55,7 +55,7 @@ class BookingRepository extends ServiceEntityRepository
     }
 
     /**
-     * Trouve les IDs des Listings ayant une réservation qui chevauche la période [startDate, endDate].
+     * Trouve les IDs des Listings ayant une réservation qui chevauche la période [startDate, endDate[.
      * Utilisé par le filtre API Platform pour masquer les annonces indisponibles.
      *
      * @param string $startDate Date de début de la recherche (format 'Y-m-d')
@@ -66,8 +66,8 @@ class BookingRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('b')
             ->select('DISTINCT IDENTITY(b.listing) as listing_id') // Alias pour plus de clarté
-            ->where('b.endDate >= :startDate')
-            ->andWhere('b.startDate <= :endDate')
+            ->where('b.endDate > :startDate')
+            ->andWhere('b.startDate < :endDate')
             ->andWhere('b.status IN (:blockingStatuses)')
             ->setParameter('startDate', $startDate)
             ->setParameter('endDate', $endDate)
