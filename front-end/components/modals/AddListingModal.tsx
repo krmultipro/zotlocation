@@ -22,10 +22,22 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
 import axios from "axios"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
+
+type ListingFieldError =
+  | "title"
+  | "description"
+  | "selectedCity"
+  | "selectedCategory"
+  | "price"
+  | "capacity"
+  | "numberOfRooms"
+  | "images"
+  | "options"
 
 export default function AddListingModal({
   open,
@@ -53,6 +65,9 @@ export default function AddListingModal({
   const [capacity, setCapacity] = useState<string>("")
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
   const [manualImageUrl, setManualImageUrl] = useState("")
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<ListingFieldError, boolean>>
+  >({})
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:8085"
   const isEditMode = !!listingToEdit
@@ -81,6 +96,7 @@ export default function AddListingModal({
         listingToEdit.options?.map((o: any) => o.id.toString()) || [],
       )
       setManualImageUrl(listingToEdit.images?.[0]?.url || "")
+      setFieldErrors({})
     } else if (open) {
       setTitle("")
       setDescription("")
@@ -92,6 +108,7 @@ export default function AddListingModal({
       setSelectedOptions([])
       setManualImageUrl("")
       setImageFile(null)
+      setFieldErrors({})
     }
   }, [listingToEdit, open])
 
@@ -129,16 +146,70 @@ export default function AddListingModal({
     }
   }, [open, mounted, API_URL])
 
+  const getValidationMessage = (
+    formData: FormData,
+    imageToSubmit: string,
+  ): { field: ListingFieldError; message: string } | null => {
+    const parsedPrice = Number(price)
+    const parsedCapacity = Number(capacity)
+
+    if (!title.trim()) {
+      return { field: "title", message: "Veuillez renseigner le titre de l'annonce." }
+    }
+    if (!description.trim()) {
+      return { field: "description", message: "Veuillez renseigner la description." }
+    }
+    if (!selectedCity) {
+      return { field: "selectedCity", message: "Veuillez choisir une localisation." }
+    }
+    if (!selectedCategory) {
+      return { field: "selectedCategory", message: "Veuillez choisir une catégorie." }
+    }
+    if (!price || Number.isNaN(parsedPrice) || parsedPrice <= 0) {
+      return { field: "price", message: "Veuillez renseigner un prix par nuit valide." }
+    }
+    if (!capacity || Number.isNaN(parsedCapacity) || parsedCapacity < 1) {
+      return { field: "capacity", message: "Veuillez renseigner une capacité d'accueil valide." }
+    }
+
+    if (typeLogement === "appartement") {
+      const rooms = Number(formData.get("numberOfRooms")?.toString() || "")
+      if (Number.isNaN(rooms) || rooms < 1) {
+        return { field: "numberOfRooms", message: "Veuillez renseigner un nombre de pièces valide." }
+      }
+    }
+
+    if (!imageFile && !imageToSubmit) {
+      return { field: "images", message: "Veuillez ajouter une image ou une URL d'image." }
+    }
+    if (selectedOptions.length === 0) {
+      return { field: "options", message: "Veuillez sélectionner au moins un équipement." }
+    }
+
+    return null
+  }
+
+  const clearFieldError = (field: ListingFieldError) => {
+    setFieldErrors((current) => ({ ...current, [field]: false }))
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setIsLoading(true)
 
     const token = localStorage.getItem("jwtToken")
     const formData = new FormData(e.currentTarget)
+    let imageToSubmit = manualImageUrl.trim()
+    const validationMessage = getValidationMessage(formData, imageToSubmit)
 
+    if (validationMessage) {
+      setFieldErrors({ [validationMessage.field]: true })
+      toast.error(validationMessage.message)
+      return
+    }
+
+    setFieldErrors({})
+    setIsLoading(true)
     try {
-      let imageToSubmit = manualImageUrl.trim()
-
       // Gestion Upload Image
       if (imageFile) {
         const imgData = new FormData()
@@ -177,12 +248,6 @@ export default function AddListingModal({
         )
         payload.balcony = formData.get("balcony") === "oui"
         if (!isEditMode) endpoint = "apartment_listings" // Endpoint pour créer un appartement
-      }
-
-      if (payload.images.length === 0 || payload.options.length === 0) {
-        toast.error("Veuillez ajouter une image et un équipement.")
-        setIsLoading(false)
-        return
       }
 
       const config = {
@@ -267,18 +332,24 @@ export default function AddListingModal({
               <Label>Titre</Label>
               <Input
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value)
+                  clearFieldError("title")
+                }}
                 placeholder="Ex: Magnifique villa avec piscine"
-                required
+                className={cn(fieldErrors.title && "border-rose-500")}
               />
             </div>
             <div className="grid gap-2">
               <Label>Description</Label>
               <Textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  setDescription(e.target.value)
+                  clearFieldError("description")
+                }}
                 placeholder="Décrivez votre logement..."
-                required
+                className={cn(fieldErrors.description && "border-rose-500")}
               />
             </div>
           </div>
@@ -322,7 +393,8 @@ export default function AddListingModal({
                     name="numberOfRooms"
                     type="number"
                     defaultValue={listingToEdit?.numberOfRooms || 1}
-                    required
+                    onChange={() => clearFieldError("numberOfRooms")}
+                    className={cn(fieldErrors.numberOfRooms && "border-rose-500")}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -352,10 +424,14 @@ export default function AddListingModal({
               <Label>Localisation</Label>
               <Select
                 value={selectedCity}
-                onValueChange={setSelectedCity}
-                required
+                onValueChange={(value) => {
+                  setSelectedCity(value)
+                  clearFieldError("selectedCity")
+                }}
               >
-                <SelectTrigger>
+                <SelectTrigger
+                  className={cn(fieldErrors.selectedCity && "border-rose-500")}
+                >
                   <SelectValue placeholder="Choisir une ville" />
                 </SelectTrigger>
                 <SelectContent>
@@ -371,10 +447,14 @@ export default function AddListingModal({
               <Label>Catégorie de bien</Label>
               <Select
                 value={selectedCategory}
-                onValueChange={setSelectedCategory}
-                required
+                onValueChange={(value) => {
+                  setSelectedCategory(value)
+                  clearFieldError("selectedCategory")
+                }}
               >
-                <SelectTrigger>
+                <SelectTrigger
+                  className={cn(fieldErrors.selectedCategory && "border-rose-500")}
+                >
                   <SelectValue placeholder="Catégorie" />
                 </SelectTrigger>
                 <SelectContent>
@@ -395,8 +475,11 @@ export default function AddListingModal({
               <Input
                 type="number"
                 value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
+                onChange={(e) => {
+                  setPrice(e.target.value)
+                  clearFieldError("price")
+                }}
+                className={cn(fieldErrors.price && "border-rose-500")}
               />
             </div>
             <div className="grid gap-2">
@@ -404,14 +487,22 @@ export default function AddListingModal({
               <Input
                 type="number"
                 value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
-                required
+                onChange={(e) => {
+                  setCapacity(e.target.value)
+                  clearFieldError("capacity")
+                }}
+                className={cn(fieldErrors.capacity && "border-rose-500")}
               />
             </div>
           </div>
 
           {/* ÉQUIPEMENTS */}
-          <div className="grid gap-2 border p-4 rounded-xl bg-muted/30">
+          <div
+            className={cn(
+              "grid gap-2 border p-4 rounded-xl bg-muted/30",
+              fieldErrors.options && "border-rose-500",
+            )}
+          >
             <Label className="font-bold text-xs uppercase text-muted-foreground mb-2">
               Équipements & Services *
             </Label>
@@ -422,6 +513,7 @@ export default function AddListingModal({
                     id={`opt-${opt.id}`}
                     checked={selectedOptions.includes(opt.id.toString())}
                     onCheckedChange={(checked) => {
+                      clearFieldError("options")
                       if (checked)
                         setSelectedOptions((prev) => [
                           ...prev,
@@ -447,11 +539,19 @@ export default function AddListingModal({
           {/* PHOTOS */}
           <div className="border-t pt-4 space-y-4">
             <Label className="font-bold">Galerie Photos</Label>
-            <div className="grid gap-3 p-4 border-2 border-dashed rounded-lg">
+            <div
+              className={cn(
+                "grid gap-3 p-4 border-2 border-dashed rounded-lg",
+                fieldErrors.images && "border-rose-500",
+              )}
+            >
               <Input
                 type="file"
                 accept="image/*"
-                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                onChange={(e) => {
+                  setImageFile(e.target.files?.[0] || null)
+                  clearFieldError("images")
+                }}
                 className="cursor-pointer"
               />
               <div className="text-center text-xs text-muted-foreground font-semibold italic">
@@ -459,7 +559,10 @@ export default function AddListingModal({
               </div>
               <Input
                 value={manualImageUrl}
-                onChange={(e) => setManualImageUrl(e.target.value)}
+                onChange={(e) => {
+                  setManualImageUrl(e.target.value)
+                  clearFieldError("images")
+                }}
                 type="url"
                 placeholder="URL de l'image"
               />
