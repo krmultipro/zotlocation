@@ -3,7 +3,9 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Post;
 use App\Repository\HouseListingRepository;
+use App\State\ListingOwnerProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -12,6 +14,12 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     normalizationContext: ['groups' => ['house:read', 'listing:read']],
     denormalizationContext: ['groups' => ['house:create', 'house:update', 'listing:create', 'listing:update']],
+    operations: [
+        new Post(
+            processor: ListingOwnerProcessor::class,
+            security: "is_granted('ROLE_PROPRIETAIRE') or is_granted('ROLE_ADMIN')"
+        ),
+    ],
 )]
 class HouseListing extends Listing
 {

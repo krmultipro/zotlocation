@@ -30,14 +30,54 @@ export default function ReservationsContent() {
   // Gestion des retours Stripe
   useEffect(() => {
     const paymentStatus = searchParams.get("payment")
+    const sessionId = searchParams.get("session_id")
+
     if (paymentStatus === "success") {
-      toast.success("Paiement validé ! Votre séjour est confirmé.")
-      refreshBookings()
-      // On nettoie l'URL sans recharger pour éviter les doubles toasts au refresh
-      router.replace("/dashboard/reservations")
+      const confirmPayment = async () => {
+        const token = localStorage.getItem("jwtToken")
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8085"
+
+        if (!token || !sessionId) {
+          toast.error("Impossible de confirmer le paiement. Veuillez vous reconnecter.", {
+            duration: 6000,
+          })
+          return
+        }
+
+        try {
+          await axios.post(
+            `${API_URL}/api/stripe/confirm-session`,
+            { sessionId },
+            { headers: { Authorization: `Bearer ${token}` } },
+          )
+
+          toast.success("Paiement validé ! Votre séjour est confirmé.", {
+            duration: 6000,
+          })
+          refreshBookings()
+          window.setTimeout(() => refreshBookings(), 1200)
+        } catch (err) {
+          toast.error(
+            "Paiement reçu, mais la confirmation de la réservation a échoué. Veuillez actualiser la page.",
+            { duration: 7000 },
+          )
+        }
+      }
+
+      confirmPayment()
+
+      const cleanupTimer = window.setTimeout(() => {
+        router.replace("/dashboard/reservations")
+      }, 4500)
+
+      return () => window.clearTimeout(cleanupTimer)
     } else if (paymentStatus === "cancel") {
-      toast.error("Le paiement a été annulé.")
-      router.replace("/dashboard/reservations")
+      toast.error("Le paiement a été annulé.", { duration: 5000 })
+      const cleanupTimer = window.setTimeout(() => {
+        router.replace("/dashboard/reservations")
+      }, 3000)
+
+      return () => window.clearTimeout(cleanupTimer)
     }
   }, [searchParams, refreshBookings, router])
 

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
@@ -6,8 +5,7 @@ import { useUser } from "@/app/context/UserProvider"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import axios from "axios"
-import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { DateRange } from "react-day-picker"
 import toast from "react-hot-toast"
 
@@ -32,16 +30,21 @@ const createLocalDay = (dateString: string): Date => {
   )
 }
 
+const activeBookingRequests = new Set<string>()
+const getBookingStorageKey = (requestKey: string) =>
+  `zotlocation:booking:${requestKey}`
+const BOOKING_TOAST_ID = "booking-checkout"
+
 export default function BookingCalendar({
   listingId,
   pricePerNight,
 }: BookingCalendarProps) {
-  const router = useRouter()
   const { user } = useUser()
 
   const [range, setRange] = useState<DateRange>()
   const [disabledDates, setDisabledDates] = useState<Date[]>([])
   const [loading, setLoading] = useState(false)
+  const bookingInProgressRef = useRef(false)
 
   // Charger les réservations existantes pour griser les dates
   useEffect(() => {
@@ -65,17 +68,21 @@ export default function BookingCalendar({
           res.data["member"] || res.data["hydra:member"] || []
         const dates: Date[] = []
 
-        bookingsData.forEach((booking: any) => {
-          const current = createLocalDay(booking.startDate)
-          const end = createLocalDay(booking.endDate)
+        bookingsData
+          .filter((booking: any) =>
+            ["pending", "paid"].includes(booking.status?.toLowerCase()),
+          )
+          .forEach((booking: any) => {
+            const current = createLocalDay(booking.startDate)
+            const end = createLocalDay(booking.endDate)
 
-          //  On grise du début jusqu'à la veille de la fin
-          // (le jour du check-out est disponible pour le prochain voyageur)
-          while (current < end) {
-            dates.push(new Date(current))
-            current.setDate(current.getDate() + 1)
-          }
-        })
+            //  On grise du début jusqu'à la veille de la fin
+            // (le jour du check-out est disponible pour le prochain voyageur)
+            while (current < end) {
+              dates.push(new Date(current))
+              current.setDate(current.getDate() + 1)
+            }
+          })
 
         setDisabledDates(dates)
       } catch (err) {
@@ -101,6 +108,8 @@ export default function BookingCalendar({
   //  Action de réservation
   // Action de réservation avec Paiement Stripe
   const handleBooking = async () => {
+    if (bookingInProgressRef.current || loading) return
+
     if (!user) {
       toast.error("Vous devez être connecté pour réserver")
       return
@@ -111,7 +120,21 @@ export default function BookingCalendar({
       return
     }
 
+    const startDate = getLocalFormattedDate(range.from)
+    const endDate = getLocalFormattedDate(range.to)
+    const bookingRequestKey = `${listingId}:${startDate}:${endDate}`
+    const bookingStorageKey = getBookingStorageKey(bookingRequestKey)
+
+    if (activeBookingRequests.has(bookingRequestKey)) return
+
+    activeBookingRequests.add(bookingRequestKey)
+    sessionStorage.setItem(bookingStorageKey, "processing")
+    bookingInProgressRef.current = true
     setLoading(true)
+    toast.loading("Préparation de votre réservation...", {
+      id: BOOKING_TOAST_ID,
+    })
+
     try {
       const token = localStorage.getItem("jwtToken")
       const apiUrl = process.env.NEXT_PUBLIC_API_URL
@@ -121,8 +144,8 @@ export default function BookingCalendar({
         `${apiUrl}/api/bookings`,
         {
           listing: `/api/listings/${listingId}`,
-          startDate: getLocalFormattedDate(range.from),
-          endDate: getLocalFormattedDate(range.to),
+          startDate,
+          endDate,
         },
         {
           headers: {
@@ -134,8 +157,11 @@ export default function BookingCalendar({
 
       // On récupère l'ID de la réservation créée
       const newBookingId = bookingRes.data.id
+      sessionStorage.setItem(bookingStorageKey, "redirecting")
 
-      toast.loading("Redirection vers le paiement sécurisé...")
+      toast.loading("Redirection vers le paiement sécurisé...", {
+        id: BOOKING_TOAST_ID,
+      })
 
       // 2. Étape : Appel nouveau contrôleur Symfony pour Stripe
       const stripeRes = await axios.post(
@@ -154,12 +180,20 @@ export default function BookingCalendar({
       }
     } catch (err: any) {
       console.error("Erreur flux réservation/paiement:", err)
+      const bookingStatus = sessionStorage.getItem(bookingStorageKey)
+      const isDuplicateConflict =
+        err.response?.status === 409 && bookingStatus === "redirecting"
+
+      if (isDuplicateConflict) return
+
       const msg =
+        err.response?.data?.error ||
         err.response?.data?.detail ||
         "Une erreur est survenue lors de la réservation"
-      toast.dismiss() // On retire le toast de chargement
-      toast.error(msg)
-    } finally {
+      toast.error(msg, { id: BOOKING_TOAST_ID })
+      sessionStorage.removeItem(bookingStorageKey)
+      activeBookingRequests.delete(bookingRequestKey)
+      bookingInProgressRef.current = false
       setLoading(false)
     }
   }
@@ -169,7 +203,9 @@ export default function BookingCalendar({
       <Calendar
         mode="range"
         selected={range}
-        onSelect={setRange}
+        onSelect={(selectedRange) => {
+          if (!loading) setRange(selectedRange)
+        }}
         numberOfMonths={1}
         // Désactiver les dates passées et les dates déjà réservées
         disabled={[{ before: new Date() }, ...disabledDates]}

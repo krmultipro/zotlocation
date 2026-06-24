@@ -15,6 +15,7 @@ interface Booking {
   startDate: string
   endDate: string
   totalPrice: number
+  status: string
   listing: {
     id: number
     title: string
@@ -67,11 +68,8 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
         const res = await fetch(`${API_URL}/api/listings/${booking.listing.id}`)
 
         if (!res.ok) {
-          const errorText = await res.text()
           throw new Error(
-            `Échec du chargement de l'annonce (${
-              res.status
-            }). Détail: ${errorText.substring(0, 100)}...`,
+            `Impossible de charger les informations de l'annonce. Statut ${res.status}.`,
           )
         }
 
@@ -81,7 +79,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
         console.error("ERREUR CRITIQUE DANS LE CHARGEMENT DE LA MODALE:", err)
         toast.error(
           err.message ||
-            "Erreur lors du chargement des données. Consultez la console.",
+            "Impossible de charger les données de réservation. Veuillez réessayer.",
         )
         onClose()
       } finally {
@@ -119,6 +117,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
     listingData.bookings.forEach((b) => {
       // Ignorer la réservation en cours d'édition
       if (b.id === booking.id) return
+      if (!["pending", "paid"].includes(b.status?.toLowerCase())) return
 
       const start = new Date(b.startDate.split("T")[0])
       const end = new Date(b.endDate.split("T")[0])
@@ -174,7 +173,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
       if (!res.ok) {
         const errorData = await res
           .json()
-          .catch(() => ({ "hydra:description": "Erreur non décodable" }))
+          .catch(() => ({ "hydra:description": "La réponse du serveur est illisible." }))
         const errorMessage =
           errorData["hydra:description"] || "Erreur lors de la modification."
         throw new Error(errorMessage)

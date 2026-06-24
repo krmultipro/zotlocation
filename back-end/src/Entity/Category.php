@@ -41,7 +41,7 @@ class Category
 
     #[ORM\Column(length: 255)]
     #[Groups(['category:read', 'category:write', 'category:update', 'listing:read', 'listing:create', 'listing:update', 'listing:card:read', 'listing:item:read', 'booking:read'])]
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: "Le nom de la catégorie est obligatoire.")]
     private ?string $name = null;
 
     #[ORM\Column(length: 255, nullable: true)]

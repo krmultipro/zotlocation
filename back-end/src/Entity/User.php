@@ -14,6 +14,7 @@ use App\State\UserPasswordHasher;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -21,6 +22,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '"user"')]
+#[UniqueEntity(fields: ['email'], message: 'Cette adresse email est déjà utilisée.')]
 #[ApiResource(
     operations: [
         new GetCollection(security: "is_granted('ROLE_ADMIN')"),
@@ -44,20 +46,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 255)]
     // Ajout de 'listing:item:read'
-    #[Groups(['user:read', 'listing:read', 'booking:read', 'review:read', 'listing:item:read', 'listing:detail:read'])]
-    #[Assert\NotBlank]
+    #[Groups(['user:read', 'user:create', 'user:update', 'listing:read', 'booking:read', 'review:read', 'listing:item:read', 'listing:detail:read'])]
+    #[Assert\NotBlank(message: "Le nom est obligatoire.")]
     private ?string $name = null;
 
     #[ORM\Column(length: 180, unique: true)]
     #[Groups(['user:read', 'user:create', 'user:update'])]
-    #[Assert\Email]
+    #[Assert\NotBlank(message: "L'adresse email est obligatoire.")]
+    #[Assert\Email(message: "Veuillez saisir une adresse email valide.")]
     private ?string $email = null;
 
     #[ORM\Column(length: 255)]
     private ?string $password = null;
 
     #[Groups(['user:create', 'user:update'])]
-    #[Assert\NotBlank(groups: ['user:create'])]
+    #[Assert\NotBlank(message: "Le mot de passe est obligatoire.", groups: ['user:create'])]
     private ?string $plainPassword = null;
 
     #[Groups(['user:create'])]
@@ -124,6 +127,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $roles = $this->roles;
         $roles[] = 'ROLE_USER';
         return array_unique($roles);
+    }
+
+    public function setRoles(array $roles): static
+    {
+        $this->roles = array_values(array_unique($roles));
+        return $this;
     }
 
     public function getId(): ?int

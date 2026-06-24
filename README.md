@@ -7,7 +7,7 @@ Application web de location saisonnière développée dans le cadre du titre pro
 ### Front-end
 
 - Next.js
-- React.js
+- React, utilisé par Next.js
 
 ### Back-end
 
@@ -58,34 +58,111 @@ cd zotlocation
 
 ## 2. Créer le fichier .env
 
-Créer un fichier `.env` à la racine du projet.
+Créer un fichier `.env` à la racine du projet. Ce fichier est utilisé par Docker Compose pour configurer les services.
 
 Exemple :
 
 ```env
-DATABASE_URL=postgresql://app:change_me@db:5432/app?serverVersion=16&charset=utf8
+# Base de données Docker
+DATABASE_URL="postgresql://app:change_me@db:5432/app?serverVersion=16&charset=utf8"
 
-CORS_ALLOW_ORIGIN=http://localhost:3000
+# CORS dev : le frontend Next.js tourne sur localhost:3000
+CORS_ALLOW_ORIGIN="http://localhost:3000"
 
-JWT_PRIVATE_KEY=%kernel.project_dir%/config/jwt/private.pem
-JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem
+# URL publique utilisée par le frontend pour appeler Caddy/API
+NEXT_PUBLIC_API_URL=http://localhost:8085
+
+# JWT dans le conteneur backend
+JWT_PRIVATE_KEY=/var/www/html/config/jwt/private.pem
+JWT_PUBLIC_KEY=/var/www/html/config/jwt/public.pem
 JWT_PASSPHRASE=change_me
-
 JWT_TOKEN_TTL=3600
 
-NEXT_PUBLIC_API_URL=http://localhost:8085
+# Stripe
+FRONTEND_URL=http://localhost:3000
+STRIPE_SECRET_KEY=sk_test_votre_cle_stripe
+STRIPE_WEBHOOK_SECRET=whsec_votre_secret_webhook
 ```
 
-Adapter les valeurs si nécessaire.
+Pour un démarrage sans paiement Stripe, laisser les clés Stripe vides est possible, mais la réservation sera refusée avant création :
+
+```env
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+```
+
+Pour tester le paiement, `STRIPE_SECRET_KEY` doit obligatoirement contenir une clé test Stripe valide.
 
 ---
 
-## 3. Générer les clés JWT
+## 3. Obtenir une clé Stripe de test
+
+Pour tester les réservations avec paiement, il faut créer ou utiliser un compte Stripe en mode test.
+
+1. Aller sur le tableau de bord Stripe :
+
+```text
+https://dashboard.stripe.com
+```
+
+2. Activer le mode test dans le tableau de bord Stripe.
+
+3. Aller dans :
+
+```text
+Développeurs > Clés API
+```
+
+4. Copier la clé secrète de test. Elle commence par :
+
+```text
+sk_test_
+```
+
+5. La renseigner dans le fichier `.env` à la racine du projet :
+
+```env
+STRIPE_SECRET_KEY=sk_test_votre_cle_stripe
+```
+
+Le webhook Stripe n'est pas obligatoire pour le test local simple du paiement. Après le retour Stripe, le front appelle Symfony avec l'identifiant de session Stripe pour confirmer le paiement et passer la réservation en `paid`.
+
+Il peut donc rester vide en développement :
+
+```env
+STRIPE_WEBHOOK_SECRET=
+```
+
+Pour tester un paiement Stripe, utiliser la carte de test suivante :
+
+```text
+Numéro : 4242 4242 4242 4242
+Date   : une date future, par exemple 12/34
+CVC    : 123
+Code postal : n'importe quelle valeur
+```
+
+Après modification des variables Stripe dans `.env`, recréer au minimum le conteneur backend :
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --force-recreate backend
+```
+
+En cas de doute ou après une modification Docker, relancer tout l'environnement :
+
+```bash
+docker compose -f docker-compose.dev.yml down
+docker compose -f docker-compose.dev.yml up --build
+```
+
+---
+
+## 4. Générer les clés JWT
 
 Si les clés JWT ne sont pas présentes :
 
 ```bash
-docker compose run --rm backend php bin/console lexik:jwt:generate-keypair
+docker compose -f docker-compose.dev.yml exec backend php bin/console lexik:jwt:generate-keypair --skip-if-exists
 ```
 
 Les fichiers générés seront :
@@ -95,9 +172,11 @@ back-end/config/jwt/private.pem
 back-end/config/jwt/public.pem
 ```
 
+La valeur de `JWT_PASSPHRASE` doit correspondre à la passphrase utilisée au moment de la génération des clés.
+
 ---
 
-## 4. Démarrer l'environnement de développement
+## 5. Démarrer l'environnement de développement
 
 ```bash
 docker compose -f docker-compose.dev.yml up --build
@@ -129,6 +208,12 @@ http://localhost:3000
 http://localhost:8085/api
 ```
 
+## Backend direct debug
+
+```text
+http://localhost:8001
+```
+
 ---
 
 ## PostgreSQL
@@ -147,18 +232,26 @@ Password : change_me
 
 ```text
 Navigateur
-        │
-        ▼
-Next.js / React
-        │
-        ▼
-Caddy
-        │
-        ▼
-Symfony API Platform
-        │
-        ▼
-PostgreSQL
+  │
+  ├─ http://localhost:3000
+  │    └─ Next.js
+  │
+  └─ http://localhost:8085/api
+       └─ Caddy
+          └─ Symfony API Platform
+             └─ PostgreSQL
+```
+
+Les fichiers uploadés sont servis via :
+
+```text
+http://localhost:8085/uploads/...
+```
+
+Physiquement, ils sont stockés dans :
+
+```text
+back-end/public/uploads/
 ```
 
 ---
@@ -227,8 +320,39 @@ back-end/config/jwt/public.pem
 Si nécessaire :
 
 ```bash
-docker compose run --rm backend php bin/console lexik:jwt:generate-keypair
+docker compose -f docker-compose.dev.yml exec backend php bin/console lexik:jwt:generate-keypair --skip-if-exists
 ```
+
+---
+
+## Erreur Stripe
+
+Si la réservation affiche :
+
+```text
+Le paiement est temporairement indisponible. La réservation n'a pas été créée.
+```
+
+vérifier dans `.env` :
+
+```env
+STRIPE_SECRET_KEY=sk_test_votre_cle_stripe
+FRONTEND_URL=http://localhost:3000
+```
+
+Puis recréer le conteneur backend pour recharger les variables :
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --force-recreate backend
+```
+
+Pour un test manuel du paiement, utiliser la carte Stripe :
+
+```text
+4242 4242 4242 4242
+```
+
+avec une date future et un CVC quelconque.
 
 ---
 

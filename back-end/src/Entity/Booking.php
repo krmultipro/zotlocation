@@ -68,24 +68,24 @@ class Booking
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     #[Groups(['booking:read', 'booking:create', 'booking:update', 'listing:item:read'])]
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: "La date de début est obligatoire.")]
     private ?\DateTimeInterface $startDate = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     #[Groups(['booking:read', 'booking:create', 'booking:update', 'listing:item:read'])]
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: "La date de fin est obligatoire.")]
     private ?\DateTimeInterface $endDate = null;
 
     #[ORM\Column]
     #[Groups(['booking:read', 'listing:item:read'])]
-    #[Assert\PositiveOrZero]
+    #[Assert\PositiveOrZero(message: "Le prix total doit être positif ou nul.")]
     private ?float $totalPrice = null;
 
     #[ORM\ManyToOne(inversedBy: 'bookings')]
     #[ORM\JoinColumn(nullable: false)]
     // 💡 IMPORTANT : On ajoute 'booking:read' pour que l'objet Listing soit inclus dans la réponse
     #[Groups(['booking:read', 'booking:create', 'listing:read'])]
-    #[Assert\NotNull]
+    #[Assert\NotNull(message: "Le logement à réserver est obligatoire.")]
     private ?Listing $listing = null;
 
     #[ORM\ManyToOne(inversedBy: 'bookings')]

@@ -54,7 +54,7 @@ class Review
 
     #[ORM\Column]
     #[Groups(['review:read', 'review:create', 'review:update', 'listing:item:read', 'listing:detail:read', 'listing:card:read'])]
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: "La note est obligatoire.")]
     #[Assert\Range(
         min: 1,
         max: 5,
@@ -73,7 +73,7 @@ class Review
     // Relation ManyToOne avec Listing
     #[ORM\ManyToOne(inversedBy: 'reviews')]
     #[Groups(['review:read', 'review:create'])]
-    #[Assert\NotNull]
+    #[Assert\NotNull(message: "L'annonce associée à l'avis est obligatoire.")]
     private ?Listing $listing = null;
 
     // Relation ManyToOne avec User (Author)
