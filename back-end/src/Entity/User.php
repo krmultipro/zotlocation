@@ -44,7 +44,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 255)]
     // Ajout de 'listing:item:read'
-    #[Groups(['user:read', 'listing:read', 'booking:read', 'review:read', 'listing:item:read', 'listing:detail:read'])]
+    #[Groups(['user:read', 'user:create', 'user:update', 'listing:read', 'booking:read', 'review:read', 'listing:item:read', 'listing:detail:read'])]
     #[Assert\NotBlank]
     private ?string $name = null;
 
@@ -124,6 +124,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $roles = $this->roles;
         $roles[] = 'ROLE_USER';
         return array_unique($roles);
+    }
+
+    public function setRoles(array $roles): static
+    {
+        $this->roles = array_values(array_unique($roles));
+        return $this;
     }
 
     public function getId(): ?int
