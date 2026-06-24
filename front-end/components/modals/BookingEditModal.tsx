@@ -15,6 +15,7 @@ interface Booking {
   startDate: string
   endDate: string
   totalPrice: number
+  status: string
   listing: {
     id: number
     title: string
@@ -116,6 +117,7 @@ const BookingEditModal: React.FC<BookingEditModalProps> = ({
     listingData.bookings.forEach((b) => {
       // Ignorer la réservation en cours d'édition
       if (b.id === booking.id) return
+      if (!["pending", "paid"].includes(b.status?.toLowerCase())) return
 
       const start = new Date(b.startDate.split("T")[0])
       const end = new Date(b.endDate.split("T")[0])

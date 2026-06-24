@@ -37,10 +37,12 @@ class BookingRepository extends ServiceEntityRepository
             // Logique de chevauchement INCLUSIVE et stable pour les bornes
             ->andWhere('b.endDate >= :startDate')
             ->andWhere('b.startDate <= :endDate')
+            ->andWhere('b.status IN (:blockingStatuses)')
 
             // Les paramètres de date sont maintenant ajoutés sans conflit
             ->setParameter('startDate', $startDate)
-            ->setParameter('endDate', $endDate);
+            ->setParameter('endDate', $endDate)
+            ->setParameter('blockingStatuses', ['pending', 'paid']);
 
         if ($excludedBookingId !== null) {
             $qb->andWhere('b.id != :excludedId')
@@ -66,8 +68,10 @@ class BookingRepository extends ServiceEntityRepository
             ->select('DISTINCT IDENTITY(b.listing) as listing_id') // Alias pour plus de clarté
             ->where('b.endDate >= :startDate')
             ->andWhere('b.startDate <= :endDate')
+            ->andWhere('b.status IN (:blockingStatuses)')
             ->setParameter('startDate', $startDate)
-            ->setParameter('endDate', $endDate);
+            ->setParameter('endDate', $endDate)
+            ->setParameter('blockingStatuses', ['pending', 'paid']);
 
         $result = $qb->getQuery()->getScalarResult();
 

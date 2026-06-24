@@ -68,17 +68,21 @@ export default function BookingCalendar({
           res.data["member"] || res.data["hydra:member"] || []
         const dates: Date[] = []
 
-        bookingsData.forEach((booking: any) => {
-          const current = createLocalDay(booking.startDate)
-          const end = createLocalDay(booking.endDate)
+        bookingsData
+          .filter((booking: any) =>
+            ["pending", "paid"].includes(booking.status?.toLowerCase()),
+          )
+          .forEach((booking: any) => {
+            const current = createLocalDay(booking.startDate)
+            const end = createLocalDay(booking.endDate)
 
-          //  On grise du début jusqu'à la veille de la fin
-          // (le jour du check-out est disponible pour le prochain voyageur)
-          while (current < end) {
-            dates.push(new Date(current))
-            current.setDate(current.getDate() + 1)
-          }
-        })
+            //  On grise du début jusqu'à la veille de la fin
+            // (le jour du check-out est disponible pour le prochain voyageur)
+            while (current < end) {
+              dates.push(new Date(current))
+              current.setDate(current.getDate() + 1)
+            }
+          })
 
         setDisabledDates(dates)
       } catch (err) {
