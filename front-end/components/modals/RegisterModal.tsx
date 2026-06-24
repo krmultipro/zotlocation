@@ -92,7 +92,12 @@ const RegisterModal = () => {
 
         reset()
         registerModal.onClose()
-        toast.success("Inscription réussie ! Bienvenue sur ZotLocation.")
+        toast.success(`Ravi de vous accueillir, ${data.name.trim()} !`, {
+          duration: 2500,
+        })
+        setTimeout(() => {
+          window.location.reload()
+        }, 2500)
       } else {
         const message = "Erreur inattendue lors de l'inscription."
         toast.error(message)
