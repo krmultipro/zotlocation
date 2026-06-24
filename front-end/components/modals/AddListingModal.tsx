@@ -43,6 +43,7 @@ export default function AddListingModal({
   open,
   onOpenChange,
   listingToEdit,
+  onSuccess,
 }: any) {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
@@ -269,18 +270,24 @@ export default function AddListingModal({
         ? "Annonce mise à jour !"
         : "Annonce publiée !"
 
+      let savedListing
       if (isEditMode) {
-        await axios.patch(finalUrl, payload, config)
+        const response = await axios.patch(finalUrl, payload, config)
+        savedListing = response.data
       } else {
-        await axios.post(finalUrl, payload, config)
+        const response = await axios.post(finalUrl, payload, config)
+        savedListing = response.data
       }
 
       toast.success(successMessage, { duration: 3000 })
       onOpenChange(false)
-      setTimeout(() => {
-        router.push("/dashboard#locations")
-        window.location.reload()
-      }, 1500)
+      if (onSuccess) {
+        await onSuccess(savedListing)
+      } else {
+        setTimeout(() => {
+          window.location.href = "/dashboard/locations"
+        }, 1500)
+      }
     } catch (err: any) {
       console.error("Erreur enregistrement:", err.response?.data)
       const violations = err.response?.data?.violations

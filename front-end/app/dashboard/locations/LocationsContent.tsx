@@ -34,8 +34,10 @@ export default function LocationsContent() {
     }
 
     try {
+      setError(null)
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8085"
-      const res = await fetch(`${API_URL}/api/my-listings`, {
+      const res = await fetch(`${API_URL}/api/my-listings?t=${Date.now()}`, {
+        cache: "no-store",
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/ld+json",
@@ -122,6 +124,28 @@ export default function LocationsContent() {
     setIsModalOpen(true)
   }, [])
 
+  const handleListingSaved = useCallback(
+    async (savedListing: any) => {
+      if (savedListing?.id) {
+        setLocations((current) => {
+          const exists = current.some((item) => item.id === savedListing.id)
+          if (exists) {
+            return current.map((item) =>
+              item.id === savedListing.id ? savedListing : item,
+            )
+          }
+          return [savedListing, ...current]
+        })
+      }
+
+      await fetchLocations()
+      setTimeout(() => {
+        window.location.reload()
+      }, 1200)
+    },
+    [fetchLocations],
+  )
+
   // --- RENDU ---
   if (isLoading)
     return (
@@ -149,6 +173,7 @@ export default function LocationsContent() {
           if (!open) setSelectedListing(null)
         }}
         listingToEdit={selectedListing}
+        onSuccess={handleListingSaved}
       />
 
       <Heading
