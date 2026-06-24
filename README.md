@@ -7,7 +7,7 @@ Application web de location saisonnière développée dans le cadre du titre pro
 ### Front-end
 
 - Next.js
-- React
+- React, utilisé par Next.js
 
 ### Back-end
 
@@ -95,7 +95,67 @@ Pour tester le paiement, `STRIPE_SECRET_KEY` doit obligatoirement contenir une c
 
 ---
 
-## 3. Générer les clés JWT
+## 3. Obtenir une clé Stripe de test
+
+Pour tester les réservations avec paiement, il faut créer ou utiliser un compte Stripe en mode test.
+
+1. Aller sur le tableau de bord Stripe :
+
+```text
+https://dashboard.stripe.com
+```
+
+2. Activer le mode test dans le tableau de bord Stripe.
+
+3. Aller dans :
+
+```text
+Développeurs > Clés API
+```
+
+4. Copier la clé secrète de test. Elle commence par :
+
+```text
+sk_test_
+```
+
+5. La renseigner dans le fichier `.env` à la racine du projet :
+
+```env
+STRIPE_SECRET_KEY=sk_test_votre_cle_stripe
+```
+
+Le webhook Stripe n'est pas obligatoire pour le test local simple du paiement. Il peut rester vide :
+
+```env
+STRIPE_WEBHOOK_SECRET=
+```
+
+Pour tester un paiement Stripe, utiliser la carte de test suivante :
+
+```text
+Numéro : 4242 4242 4242 4242
+Date   : une date future, par exemple 12/34
+CVC    : 123
+Code postal : n'importe quelle valeur
+```
+
+Après modification des variables Stripe dans `.env`, recréer au minimum le conteneur backend :
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --force-recreate backend
+```
+
+En cas de doute ou après une modification Docker, relancer tout l'environnement :
+
+```bash
+docker compose -f docker-compose.dev.yml down
+docker compose -f docker-compose.dev.yml up --build
+```
+
+---
+
+## 4. Générer les clés JWT
 
 Si les clés JWT ne sont pas présentes :
 
@@ -114,7 +174,7 @@ La valeur de `JWT_PASSPHRASE` doit correspondre à la passphrase utilisée au mo
 
 ---
 
-## 4. Démarrer l'environnement de développement
+## 5. Démarrer l'environnement de développement
 
 ```bash
 docker compose -f docker-compose.dev.yml up --build
@@ -283,6 +343,14 @@ Puis recréer le conteneur backend pour recharger les variables :
 ```bash
 docker compose -f docker-compose.dev.yml up -d --force-recreate backend
 ```
+
+Pour un test manuel du paiement, utiliser la carte Stripe :
+
+```text
+4242 4242 4242 4242
+```
+
+avec une date future et un CVC quelconque.
 
 ---
 
