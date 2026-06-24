@@ -28,7 +28,7 @@ services:
       JWT_TOKEN_TTL: ${JWT_TOKEN_TTL}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8085}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     depends_on:
       - db
 

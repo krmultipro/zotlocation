@@ -79,7 +79,7 @@ JWT_PASSPHRASE=change_me
 JWT_TOKEN_TTL=3600
 
 # Stripe
-FRONTEND_URL=http://localhost:8085
+FRONTEND_URL=http://localhost:3000
 STRIPE_SECRET_KEY=sk_test_votre_cle_stripe
 STRIPE_WEBHOOK_SECRET=whsec_votre_secret_webhook
 ```
@@ -125,7 +125,9 @@ sk_test_
 STRIPE_SECRET_KEY=sk_test_votre_cle_stripe
 ```
 
-Le webhook Stripe n'est pas obligatoire pour le test local simple du paiement. Il peut rester vide :
+Le webhook Stripe n'est pas obligatoire pour le test local simple du paiement. Après le retour Stripe, le front appelle Symfony avec l'identifiant de session Stripe pour confirmer le paiement et passer la réservation en `paid`.
+
+Il peut donc rester vide en développement :
 
 ```env
 STRIPE_WEBHOOK_SECRET=
@@ -335,7 +337,7 @@ vérifier dans `.env` :
 
 ```env
 STRIPE_SECRET_KEY=sk_test_votre_cle_stripe
-FRONTEND_URL=http://localhost:8085
+FRONTEND_URL=http://localhost:3000
 ```
 
 Puis recréer le conteneur backend pour recharger les variables :
