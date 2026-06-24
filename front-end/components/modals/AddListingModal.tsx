@@ -265,17 +265,22 @@ export default function AddListingModal({
         ? `${API_URL}/api/listings/${listingToEdit.id}`
         : `${API_URL}/api/${endpoint}`
 
+      const successMessage = isEditMode
+        ? "Annonce mise à jour !"
+        : "Annonce publiée !"
+
       if (isEditMode) {
         await axios.patch(finalUrl, payload, config)
-        toast.success("Annonce mise à jour !")
       } else {
         await axios.post(finalUrl, payload, config)
-        toast.success("Annonce publiée !")
       }
 
+      toast.success(successMessage, { duration: 3000 })
       onOpenChange(false)
-      router.push("/dashboard#locations")
-      setTimeout(() => window.location.reload(), 500)
+      setTimeout(() => {
+        router.push("/dashboard#locations")
+        window.location.reload()
+      }, 1500)
     } catch (err: any) {
       console.error("Erreur enregistrement:", err.response?.data)
       const violations = err.response?.data?.violations
