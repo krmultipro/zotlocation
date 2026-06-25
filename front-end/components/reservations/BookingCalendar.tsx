@@ -50,39 +50,31 @@ export default function BookingCalendar({
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const token = localStorage.getItem("jwtToken")
         const apiUrl = process.env.NEXT_PUBLIC_API_URL
 
         const res = await axios.get(
-          `${apiUrl}/api/bookings?listing=${listingId}`,
+          `${apiUrl}/api/listings/${listingId}/booked-periods`,
           {
             headers: {
-              Authorization: token ? `Bearer ${token}` : undefined,
-              Accept: "application/ld+json",
+              Accept: "application/json",
             },
           }
         )
 
-        // Support des deux formats de réponse API Platform
-        const bookingsData =
-          res.data["member"] || res.data["hydra:member"] || []
+        const bookingsData = Array.isArray(res.data) ? res.data : []
         const dates: Date[] = []
 
-        bookingsData
-          .filter((booking: any) =>
-            ["pending", "paid"].includes(booking.status?.toLowerCase()),
-          )
-          .forEach((booking: any) => {
-            const current = createLocalDay(booking.startDate)
-            const end = createLocalDay(booking.endDate)
+        bookingsData.forEach((booking: any) => {
+          const current = createLocalDay(booking.startDate)
+          const end = createLocalDay(booking.endDate)
 
-            //  On grise du début jusqu'à la veille de la fin
-            // (le jour du check-out est disponible pour le prochain voyageur)
-            while (current < end) {
-              dates.push(new Date(current))
-              current.setDate(current.getDate() + 1)
-            }
-          })
+          //  On grise du début jusqu'à la veille de la fin
+          // (le jour du check-out est disponible pour le prochain voyageur)
+          while (current < end) {
+            dates.push(new Date(current))
+            current.setDate(current.getDate() + 1)
+          }
+        })
 
         setDisabledDates(dates)
       } catch (err) {
