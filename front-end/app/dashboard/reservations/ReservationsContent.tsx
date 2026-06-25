@@ -3,6 +3,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client"
 
+import { useUser } from "@/app/context/UserProvider"
 import { useReservations } from "@/app/context/ReservationsContext"
 import Container from "@/components/Container"
 import Heading from "@/components/Heading"
@@ -18,14 +19,25 @@ export default function ReservationsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { bookings, isLoading, refreshBookings } = useReservations()
+  const { user, isLoading: isUserLoading } = useUser()
 
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [payingId, setPayingId] = useState<number | null>(null)
 
   // Synchronisation au montage
   useEffect(() => {
+    if (isUserLoading || !user) return
     refreshBookings()
-  }, [refreshBookings])
+  }, [isUserLoading, refreshBookings, user])
+
+  useEffect(() => {
+    if (isUserLoading) return
+
+    if (!user) {
+      toast.error("Vous devez être connecté pour accéder à vos réservations.")
+      router.replace("/")
+    }
+  }, [isUserLoading, router, user])
 
   // Gestion des retours Stripe
   useEffect(() => {
@@ -197,7 +209,7 @@ export default function ReservationsContent() {
     }
   }
 
-  if (isLoading) {
+  if (isUserLoading || isLoading || !user) {
     return (
       <Container>
         <div className="w-full h-[60vh] flex flex-col items-center justify-center">

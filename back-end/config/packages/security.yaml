@@ -65,8 +65,8 @@ security:
         - { path: ^/api/reviews, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/localisations, roles: PUBLIC_ACCESS, methods: [GET] }
 
-        # Autoriser GET /api/bookings sans JWT, tout en laissant passer l'auth si fournie.
-        - { path: ^/api/bookings, roles: PUBLIC_ACCESS, methods: [GET] }
+        # Les réservations sont toujours privées.
+        - { path: ^/api/bookings, roles: IS_AUTHENTICATED_FULLY }
 
         # GET /api
         - { path: ^/api$, methods: [GET], roles: PUBLIC_ACCESS }
